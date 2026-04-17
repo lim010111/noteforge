@@ -1,0 +1,22 @@
+{
+  "name": "@obpub/theme-default",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference theme for Obsidian-Publish-OSS.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./layouts/*": "./src/layouts/*",
+    "./components/*": "./src/components/*",
+    "./styles/*": "./src/styles/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "astro": "^5.0.0"
+  },
+  "dependencies": {
+    "@obpub/core": "workspace:*"
+  }
+}

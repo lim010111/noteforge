@@ -1,0 +1,21 @@
+{
+  "name": "blog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@obpub/astro": "workspace:*",
+    "@obpub/core": "workspace:*",
+    "@obpub/theme-default": "workspace:*",
+    "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4"
+  }
+}

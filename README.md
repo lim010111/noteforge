@@ -1,0 +1,113 @@
+# Obsidian-Publish-OSS (작업명)
+
+> Obsidian vault를 선택적으로 공개하는 오픈소스 정적 블로그 생성기.
+> **Privacy-first**: 표시하지 않은 것은 존재조차 드러내지 않습니다.
+
+Obsidian에서 `public: true` frontmatter나 `#public` 태그가 있는 노트만 정적 웹사이트로 발행합니다. Quartz의 "기본 공개(opt-out)" 모델과 정반대로, 이 도구는 **기본 비공개(opt-in)** 입니다.
+
+## 이것이 해결하는 문제
+
+기존 도구의 한계:
+- **Quartz**: 기본값이 "모두 공개". 새 노트 작성 시 실수로 유출 가능. 공개 노트가 private 노트를 링크하면 그래프/백링크에 제목이 노출됨.
+- **Obsidian Publish**: 월 $8–10, lock-in.
+- **Digital Garden / Flowershow**: opt-in이지만 transclusion(`![[Note]]`), `%%comment%%`, frontmatter 필드, 태그 누출까지 다루는 프라이버시 모델은 없음.
+
+이 도구는 **모든 알려진 누출 경로를 명시적으로 차단**하고 post-build audit으로 검증합니다.
+
+## Threat Model — 약속하는 것
+
+이 도구가 **책임지는** 프라이버시 누출 경로:
+- Private 노트 본문/제목이 public HTML에 등장
+- Private 노트 제목이 `<a>` 텍스트/title/data 속성/graph/backlinks/sitemap/RSS에 등장
+- Private 첨부파일이 `dist/`에 복사됨
+- `![[Private]]` transclusion으로 private 본문이 public 노트에 통째로 삽입됨
+- Obsidian `%%comment%%`가 렌더된 HTML에 남음
+- Allowlist 밖 frontmatter 필드(개인 메모 등)가 meta에 유출
+- `private/` 폴더 파일이 frontmatter `public: true`만으로 공개되는 사고(tripwire)
+
+**책임지지 않는** 것:
+- Public 노트 본문에 저자가 직접 타이핑한 문자열 (예: private 노트 제목을 그대로 쓴 경우). `audit --strict`에서 경고.
+- Vault 파일의 git 이력 — vault는 레포 밖이므로 저자가 관리.
+- 배포 서버 쪽 접근 제어 — 이 도구는 정적 파일 출력만 담당. **public = 인터넷 전체에 공개**.
+- 외부 링크/이미지 호스트로 흘러나가는 referrer, analytics.
+- OS 파일 권한.
+
+## 빠른 시작 (v0.1 예정)
+
+> **주의**: 현재 MVP 구현 전 단계. 아래는 최종 설계.
+
+```bash
+# 1. 레포 clone
+git clone <this-repo> my-blog && cd my-blog
+
+# 2. 의존성 설치
+pnpm install
+
+# 3. vault 경로 설정
+# apps/blog/obsidian-blog.config.ts 편집 → vaults[0].path에 Obsidian vault 절대경로 입력
+
+# 4. 개발 서버
+pnpm --filter apps/blog dev  # http://localhost:4321
+
+# 5. 정적 빌드 + audit
+pnpm --filter apps/blog build
+# → apps/blog/dist/ 생성, Cloudflare Pages / Vercel / Netlify로 배포
+```
+
+## 노트를 공개하는 방법
+
+### 방법 1: frontmatter
+```markdown
+---
+public: true
+title: "My First Public Note"
+date: 2026-04-17
+---
+
+내용…
+```
+
+### 방법 2: 태그
+```markdown
+# 제목
+본문 어딘가에 #public 태그만 있으면 공개됩니다.
+```
+
+둘 중 **하나만 있어도** 공개. 둘 다 없으면 비공개(기본).
+
+## Obsidian에서 "어떤 노트가 공개되는지" 확인
+
+Obsidian 안에서 Dataview 플러그인으로:
+
+~~~markdown
+```dataview
+TABLE file.mtime as "수정일"
+WHERE public = true OR contains(file.tags, "#public")
+SORT file.mtime DESC
+```
+~~~
+
+또는 CLI:
+```bash
+pnpm obpub status path/to/note.md
+# → path/to/note.md → PUBLIC (reason: frontmatter public: true, line 2)
+```
+
+## 라이선스
+
+MIT. 코드는 자유롭게 사용/수정/재배포 가능합니다.
+
+**당신의 vault는 당신의 것입니다** — 이 도구는 vault 콘텐츠를 저장/전송/분석하지 않으며, 텔레메트리를 보내지 않습니다.
+
+## 상태
+
+v0.1 MVP 구현 진행 중. 정식 계획은 [plan 파일](/.claude/plans/public-fizzy-patterson.md) 참고.
+
+- [x] Step 0: 문서 구조
+- [ ] Step 1: monorepo 스켈레톤
+- [ ] Step 2: `@obpub/core` privacy 엔진 (TDD)
+- [ ] Step 3: `@obpub/astro` integration
+- [ ] Step 4: `@obpub/theme-default`
+- [ ] Step 5: `@obpub/cli`
+- [ ] Step 6: `apps/blog` 도그푸드 배포
+- [ ] Step 7: CI + 릴리스 준비

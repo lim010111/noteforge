@@ -1,0 +1,89 @@
+# TODO
+
+v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/public-fizzy-patterson.md`.
+
+## Step 0 — 문서 선행 ✅
+- [x] `CLAUDE.md` 실내용 작성
+- [x] `docs/PRD.md`
+- [x] `docs/ARCHITECTURE.md`
+- [x] `docs/ADR.md`
+- [x] `docs/UI_GUIDE.md`
+- [x] `README.md` 초안
+
+## Step 1 — 루트 monorepo 스켈레톤 ✅
+- [x] `.nvmrc` (Node 20)
+- [x] `pnpm-workspace.yaml` (`packages/*`, `apps/*`)
+- [x] 루트 `package.json`
+- [x] `tsconfig.base.json`
+- [x] `.gitignore`, `.editorconfig`, `.prettierrc.json`, `.prettierignore`
+- [x] ESLint flat config + Prettier
+- [x] Vitest 루트 config
+- [x] 각 패키지 스켈레톤 (core, astro-integration, theme-default, cli)
+- [x] `apps/blog` 스켈레톤
+- [x] `pnpm install` 성공, `pnpm -r typecheck` 통과, `pnpm lint`/`pnpm test` 통과
+
+## Step 2 — @obpub/core privacy 엔진 (TDD)
+각 항목은 **실패 테스트 → 통과 구현** 순서. fixture vault는 통합 테스트 직전에 준비.
+
+- [x] `types.ts` — ParsedNote, ClassifyRule, Classification 타입
+- [x] `privacy/classify.ts` — isPublic + tripwire (13 tests)
+- [x] `tags.ts` — 5가지 태그 포맷 정규화 (20 tests)
+- [x] `slug.ts` — 한국어/공백 처리 (18 tests)
+- [x] `resolve/wikilink.ts` — case-insensitive 타겟 해석 + aliases (18 tests)
+- [x] `privacy/commentStrip.ts` — `%%...%%` 제거 (10 tests)
+- [ ] `config.ts` — defineConfig + Zod 스키마 + 강제 private ignore + allowlist/blocklist
+- [ ] `discover/parseNote.ts` — gray-matter + 코멘트 스트리핑 + 태그 추출 (엔드투엔드)
+- [ ] `discover/walk.ts` — ignore glob 적용 vault walker
+- [ ] `privacy/frontmatterFilter.ts` — allowlist 필터
+- [ ] `privacy/graph.ts` — full/filtered 그래프
+- [ ] `privacy/linkRewriter.ts` — wikilink remark plugin (private → strip-to-text)
+- [ ] `privacy/transclude.ts` — public 임베드 재귀/private 임베드 제거 (cycle detection)
+- [ ] `privacy/attachmentFilter.ts` — reference closure
+- [ ] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert
+- [ ] Property-based fuzz test (50회)
+
+## Step 3 — @obpub/astro integration
+- [ ] `integration.ts` — AstroIntegration factory + 훅 등록
+- [ ] `loader.ts` — Content Layer loader (core 파이프라인 호출)
+- [ ] `remarkWikilink.ts` — MDX 파이프라인 브리지
+- [ ] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce
+- [ ] HMR 통합 테스트 (토글 → 브라우저 반영)
+
+## Step 4 — @obpub/theme-default
+- [ ] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
+- [ ] `BaseLayout.astro` (nav, main, footer, semantic HTML)
+- [ ] `Note.astro` (prose 본문, 메타, 태그 칩)
+- [ ] `Backlinks.astro` (필터된 그래프 데이터 입력)
+- [ ] `TagList.astro` + 태그 인덱스 페이지 로직
+- [ ] `Graph.astro` (정적 SVG, 노드 클릭 가능)
+- [ ] 404 페이지 (private 존재 누설 금지 문구)
+- [ ] 모바일 반응형 점검
+
+## Step 5 — @obpub/cli
+- [ ] `bin.ts` + commander/clipanion 진입점
+- [ ] `commands/dev.ts` (astro dev 래핑)
+- [ ] `commands/build.ts` (astro build + audit + 종료 리포트)
+- [ ] `commands/audit.ts` (독립 실행 누출 검증, `--strict` 지원)
+- [ ] `commands/status.ts` (노트 공개 판정 이유 출력)
+- [ ] 에러 메시지 file:line 포함
+
+## Step 6 — apps/blog 도그푸드
+- [ ] `astro.config.mjs` + 통합 등록
+- [ ] `obsidian-blog.config.ts` (실 vault 절대경로 — 사용자 확정 필요)
+- [ ] `content.config.ts`
+- [ ] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
+- [ ] 로컬 빌드 성공 + audit 통과
+- [ ] Cloudflare Pages / Vercel 배포
+
+## Step 7 — CI + 릴리스 준비
+- [ ] GitHub Actions: install → typecheck → lint → vitest → build → audit
+- [ ] `LICENSE` (MIT)
+- [ ] `CONTRIBUTING.md`
+- [ ] README 보완 (실 설치 가이드, 스크린샷)
+- [ ] 프로젝트명/npm 네임스페이스 정식 확정
+- [ ] v0.1.0 태그 + 릴리스 노트
+
+## 미결정 / 사용자 확인 필요
+- [ ] 실 Obsidian vault 절대경로 (Step 6 블록)
+- [ ] 정식 프로젝트명 + npm 네임스페이스 (Obsidian 상표 회피)
+- [ ] 배포 도메인 (canonical URL 확정용)
