@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "attachment-filter",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-18T10:14:21+0900",
+      "summary": "privacy/attachmentFilter.ts + 11 tests + public-referrer closure + extension allowlist + deterministic excluded order",
+      "completed_at": "2026-04-18T10:16:30+0900"
     }
   ],
   "created_at": "2026-04-18T09:54:42+0900"
