@@ -7,7 +7,7 @@
       "name": "config-schema",
       "status": "completed",
       "started_at": "2026-04-18T09:01:55+0900",
-      "completed_at": "2026-04-18T09:05:30+0900",
+      "completed_at": "2026-04-18T09:05:51+0900",
       "summary": "config.ts + 14 tests + zod schema + defineConfig/getClassifyRule + frontmatter allowlist union + tripwire derivation"
     },
     {
