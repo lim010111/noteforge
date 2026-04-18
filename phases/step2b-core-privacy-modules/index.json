@@ -32,7 +32,7 @@
       "status": "completed",
       "started_at": "2026-04-18T10:05:06+0900",
       "summary": "privacy/transclude.ts + 12 tests + public expand / private remove / attachment to image / cycle+depth guards",
-      "completed_at": "2026-04-18T10:14:00+0900"
+      "completed_at": "2026-04-18T10:14:21+0900"
     },
     {
       "step": 4,
