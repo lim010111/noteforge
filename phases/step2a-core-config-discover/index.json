@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "parse-note",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-18T09:05:51+0900",
+      "completed_at": "2026-04-18T09:08:30+0900",
+      "summary": "discover/parseNote.ts + 11 tests + BOM/%% strip/malformed YAML fallback/readonly frontmatter"
     },
     {
       "step": 2,
