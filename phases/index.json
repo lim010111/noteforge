@@ -1,0 +1,7 @@
+{
+  "phases": [
+    { "dir": "step2a-core-config-discover", "status": "pending" },
+    { "dir": "step2b-core-privacy-modules", "status": "pending" },
+    { "dir": "step2c-core-integration-fixture", "status": "pending" }
+  ]
+}
