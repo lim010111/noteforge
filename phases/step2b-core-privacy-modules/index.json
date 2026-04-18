@@ -7,7 +7,8 @@
       "name": "frontmatter-filter",
       "status": "completed",
       "started_at": "2026-04-18T09:54:42+0900",
-      "summary": "privacy/frontmatterFilter.ts + 10 tests + allowlist exact match + null preserved / undefined dropped"
+      "summary": "privacy/frontmatterFilter.ts + 10 tests + allowlist exact match + null preserved / undefined dropped",
+      "completed_at": "2026-04-18T09:56:14+0900"
     },
     {
       "step": 1,
