@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-04-18T09:56:14+0900",
       "summary": "privacy/graph.ts + 13 tests + buildGraph dedupe + public subgraph filter + backlinks map",
-      "completed_at": "2026-04-18T09:58:10+0900"
+      "completed_at": "2026-04-18T09:58:32+0900"
     },
     {
       "step": 2,
