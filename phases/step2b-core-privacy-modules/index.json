@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "link-rewriter",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-18T09:58:32+0900",
+      "summary": "privacy/linkRewriter.ts + 14 tests + strip-to-text for private/unresolved + code/inlineCode skipped + embeds untouched",
+      "completed_at": "2026-04-18T10:05:00+0900"
     },
     {
       "step": 3,
