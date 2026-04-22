@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-04-22T17:34:48+0900",
       "summary": "runCorePipeline + 11 integration assert 통과 (HTML 직렬화: mdast-util-to-hast + hast-util-to-html). 전체 184 tests pass. mutation check: commentStrip 약화 → assert 8 실패 재현 OK, linkRewriter 약화 → assert 3 실패 재현 OK.",
-      "completed_at": "2026-04-22T17:38:00+0900"
+      "completed_at": "2026-04-22T17:38:51+0900"
     },
     {
       "step": 2,
