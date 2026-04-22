@@ -2,8 +2,23 @@
   "project": "Obsidian-Publish-OSS",
   "phase": "step2c-core-integration-fixture",
   "steps": [
-    { "step": 0, "name": "fixture-vault-mixed", "status": "pending" },
-    { "step": 1, "name": "integration-pipeline-asserts", "status": "pending" },
-    { "step": 2, "name": "property-based-fuzz", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "fixture-vault-mixed",
+      "status": "completed",
+      "started_at": "2026-04-22T16:47:56+0900",
+      "summary": "vault-mixed fixture: 9 md + 2 png + README, canary 배치 OK"
+    },
+    {
+      "step": 1,
+      "name": "integration-pipeline-asserts",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "property-based-fuzz",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-22T16:47:56+0900"
 }
