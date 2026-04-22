@@ -4,4 +4,3 @@ public: true
 ---
 
 ![[only-public.png]]
-![[only-private.png]]

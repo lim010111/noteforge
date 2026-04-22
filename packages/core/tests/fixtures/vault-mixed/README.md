@@ -13,7 +13,7 @@
 | `another-public.md` | yes (`#public` 태그) | frontmatter `aliases: [구이름]` 포함. 짧은 public 산문 |
 | `Private Secret.md` | **no** (공개 마커 없음) | 본문에 canary A (아래 canary 섹션 참조). 제목 `Private Secret`도 누출 감지 대상 |
 | `private/family-photos.md` | **no** (tripwire) | frontmatter `public: true`지만 `private/` 하위라 강제 private. `unsafeAllowPrivateFolder` 없이 미발행 |
-| `public-with-image.md` | yes | `![[only-public.png]]` + `![[only-private.png]]` 두 첨부 임베드 |
+| `public-with-image.md` | yes | `![[only-public.png]]` 한 첨부 임베드 (only-private.png는 어느 공개 노트도 참조하지 않아야 하므로 여기서 참조하지 않는다) |
 | `public-with-embed.md` | yes | `![[Another Public]]` (public 임베드 — 본문 확장), `![[Private Secret]]` (private 임베드 — 완전 제거) |
 | `public-with-comment.md` | yes | 인라인 `%%...%%` 1회 + 블록 `%%...%%` 1회, 둘 다 canary B (아래 canary 섹션 참조) 포함 |
 | `public-with-extra-fm.md` | yes | frontmatter에 allowlist 밖 필드 `review-date`, `personal-note`, `mood` |

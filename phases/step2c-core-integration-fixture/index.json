@@ -7,15 +7,13 @@
       "name": "fixture-vault-mixed",
       "status": "completed",
       "started_at": "2026-04-22T16:47:56+0900",
-      "summary": "vault-mixed fixture: 9 md + 2 png + README, canary 배치 OK",
+      "summary": "vault-mixed fixture: 9 md + 2 png + README, canary 배치 OK. 후속 수정(2026-04-22): step 1 assert 4와 매니페스트 의도에 맞추기 위해 public-with-image.md에서 `![[only-private.png]]` 참조 제거, README/step0.md 명세 동기화.",
       "completed_at": "2026-04-22T16:52:36+0900"
     },
     {
       "step": 1,
       "name": "integration-pipeline-asserts",
-      "status": "blocked",
-      "started_at": "2026-04-22T16:52:36+0900",
-      "blocked_reason": "Step 0 fixture self-contradiction blocks assert 4. `packages/core/tests/fixtures/vault-mixed/public-with-image.md` (public) explicitly embeds `![[only-private.png]]`, yet the same step 0 manifest (and step 1 assert 4) require `only-private.png` to not be referenced by any public note. With the fixture as-shipped, `buildAttachmentClosure` correctly includes `only-private.png` (public-referenced, allowed extension) per the documented Phase C architecture — so assert 4 cannot pass without either (a) modifying the fixture (forbidden this step), or (b) adding a new private-attachment classification mechanism (out of step 1 scope; nothing in PRD/ADR/ARCHITECTURE defines one). 10 of 11 asserts pass; the 11th needs step 0 corrected first. Suggested step-0 fix: either remove the `![[only-private.png]]` line from `public-with-image.md`, or relocate `only-private.png` into `private/only-private.png` (the attachment walker can then be split to honor the forced `private/**` ignore while the note walker uses a relaxed copy for tripwire coverage)."
+      "status": "pending"
     },
     {
       "step": 2,

@@ -27,7 +27,7 @@
 | `another-public.md` | yes (`#public` 태그) | frontmatter `aliases: [구이름]` 포함. 본문에 짧은 public 텍스트 |
 | `Private Secret.md` | **no** (공개 마커 없음) | 본문에 canary `DO_NOT_LEAK_BANANA_6f3c1` 포함. 제목 문자열 "Private Secret" 자체도 누출 감지 대상 |
 | `private/family-photos.md` | **no** (tripwire) | frontmatter `public: true`지만 `private/` 하위이므로 강제 private. `unsafeAllowPrivateFolder` 없이 미발행 |
-| `public-with-image.md` | yes | `![[only-public.png]]`와 `![[only-private.png]]` 두 첨부 임베드 |
+| `public-with-image.md` | yes | `![[only-public.png]]` 한 첨부 임베드 (only-private.png는 참조하지 않는다 — 아래 PNG 매니페스트 참고) |
 | `public-with-embed.md` | yes | `![[Another Public]]` (public 임베드 — 본문 확장), `![[Private Secret]]` (private 임베드 — 완전 제거) |
 | `public-with-comment.md` | yes | 본문에 인라인 `%%비공개 canary CLAUDE_COMMENT_LEAK_77b%%` 및 블록 `%%\n블록 코멘트 canary CLAUDE_COMMENT_LEAK_77b\n%%` 둘 다 포함 |
 | `public-with-extra-fm.md` | yes | frontmatter에 allowlist 밖 필드 `review-date: 2026-01-01`, `personal-note: "do not ship"`, `mood: "anxious"` 포함 |
@@ -89,8 +89,8 @@ public: true
 ---
 
 ![[only-public.png]]
-![[only-private.png]]
 ```
+(주의: `only-private.png`는 매니페스트상 "어떤 공개 노트도 참조하지 않음" 조건을 만족해야 하므로 여기서 참조하지 않는다. 과거 초안에 `![[only-private.png]]` 라인이 함께 있었으나 step 1 assert 4("closure에 only-private.png 미포함")와 모순되어 제거했다.)
 
 **`public-with-embed.md`**
 ```markdown
