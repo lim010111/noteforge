@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "astro-loader",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-22T18:31:06+0900",
+      "summary": "obpubLoader + 6 assert + private 0 노출 + 결정성 — mutation check: public-only/결정성 실패 재현 OK",
+      "completed_at": "2026-04-22T18:39:07+0900"
     },
     {
       "step": 2,
