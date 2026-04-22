@@ -81,6 +81,15 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
+      hast-util-to-html:
+        specifier: ^9.0.5
+        version: 9.0.5
+      mdast-util-from-markdown:
+        specifier: ^2.0.2
+        version: 2.0.3
+      mdast-util-to-hast:
+        specifier: ^13.2.1
+        version: 13.2.1
       micromatch:
         specifier: ^4.0.8
         version: 4.0.8
@@ -103,9 +112,6 @@ importers:
       '@types/unist':
         specifier: ^3.0.3
         version: 3.0.3
-      mdast-util-from-markdown:
-        specifier: ^2.0.2
-        version: 2.0.3
 
   packages/theme-default:
     dependencies:
