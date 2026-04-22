@@ -7,7 +7,8 @@
       "name": "remark-wikilink",
       "status": "completed",
       "started_at": "2026-04-22T18:22:30+0900",
-      "summary": "remarkWikilink + 7 tests + core linkRewriter 재사용 OK — mutation check: isPublic 반전/rewrite 생략 모두 실패 재현 OK"
+      "summary": "remarkWikilink + 7 tests + core linkRewriter 재사용 OK — mutation check: isPublic 반전/rewrite 생략 모두 실패 재현 OK",
+      "completed_at": "2026-04-22T18:31:06+0900"
     },
     {
       "step": 1,
