@@ -66,6 +66,13 @@ importers:
       chokidar:
         specifier: ^4.0.1
         version: 4.0.3
+    devDependencies:
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
+      mdast-util-from-markdown:
+        specifier: ^2.0.2
+        version: 2.0.3
 
   packages/cli:
     dependencies:
