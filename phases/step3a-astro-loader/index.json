@@ -1,0 +1,9 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step3a-astro-loader",
+  "steps": [
+    { "step": 0, "name": "remark-wikilink", "status": "pending" },
+    { "step": 1, "name": "astro-loader", "status": "pending" },
+    { "step": 2, "name": "astro-integration", "status": "pending" }
+  ]
+}
