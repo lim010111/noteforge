@@ -1,0 +1,32 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step2c-core-integration-fixture",
+  "steps": [
+    {
+      "step": 0,
+      "name": "fixture-vault-mixed",
+      "status": "completed",
+      "started_at": "2026-04-22T16:47:56+0900",
+      "summary": "vault-mixed fixture: 9 md + 2 png + README, canary 배치 OK. 후속 수정(2026-04-22): step 1 assert 4와 매니페스트 의도에 맞추기 위해 public-with-image.md에서 `![[only-private.png]]` 참조 제거, README/step0.md 명세 동기화.",
+      "completed_at": "2026-04-22T16:52:36+0900"
+    },
+    {
+      "step": 1,
+      "name": "integration-pipeline-asserts",
+      "status": "completed",
+      "started_at": "2026-04-22T17:34:48+0900",
+      "summary": "runCorePipeline + 11 integration assert 통과 (HTML 직렬화: mdast-util-to-hast + hast-util-to-html). 전체 184 tests pass. mutation check: commentStrip 약화 → assert 8 실패 재현 OK, linkRewriter 약화 → assert 3 실패 재현 OK.",
+      "completed_at": "2026-04-22T17:38:51+0900"
+    },
+    {
+      "step": 2,
+      "name": "property-based-fuzz",
+      "status": "completed",
+      "started_at": "2026-04-22T17:38:51+0900",
+      "summary": "fast-check 50 runs 통과 (seed=424242), 5 불변식 + mutation check OK (linkRewriter 약화 → property 3 실패 재현, pipeline private-mdast+isPublic 우회 → property 2 실패 재현).",
+      "completed_at": "2026-04-22T17:45:34+0900"
+    }
+  ],
+  "created_at": "2026-04-22T16:47:56+0900",
+  "completed_at": "2026-04-22T17:45:34+0900"
+}

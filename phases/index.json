@@ -7,11 +7,13 @@
     },
     {
       "dir": "step2b-core-privacy-modules",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-18T10:30:33+0900"
     },
     {
       "dir": "step2c-core-integration-fixture",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-22T17:45:34+0900"
     }
   ]
 }
