@@ -5,18 +5,26 @@
   "description": "CLI (obpub dev/build/audit/status) for Obsidian-Publish-OSS.",
   "type": "module",
   "bin": {
-    "obpub": "./src/bin.ts"
+    "obpub": "./dist/bin.js"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=22.6.0"
   },
   "scripts": {
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "obpub": "node --experimental-strip-types ./src/bin.ts"
+    "obpub": "node ./dist/bin.js",
+    "obpub:dev": "node --experimental-strip-types ./src/bin.ts",
+    "prepublishOnly": "pnpm typecheck && pnpm build"
   },
   "dependencies": {
-    "@obpub/core": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {
+    "@obpub/core": "workspace:*",
+    "tsup": "^8.3.0",
     "vitest": "^3.2.0"
   }
 }

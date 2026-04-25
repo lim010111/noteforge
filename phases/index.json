@@ -54,6 +54,10 @@
       "dir": "step7a-ci-actions",
       "status": "completed",
       "completed_at": "2026-04-25T20:11:36+0900"
+    },
+    {
+      "dir": "step7b-cli-build-pipeline",
+      "status": "pending"
     }
   ]
 }

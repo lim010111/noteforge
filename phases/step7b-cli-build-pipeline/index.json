@@ -1,0 +1,15 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step7b-cli-build-pipeline",
+  "steps": [
+    {
+      "step": 0,
+      "name": "cli-tsup-build",
+      "status": "completed",
+      "started_at": "2026-04-25T20:36:55+0900",
+      "completed_at": "2026-04-25T20:40:28+0900",
+      "summary": "tsup으로 packages/cli/dist/bin.js 자체 포함 ESM 빌드(Node 22 target). @obpub/core·gray-matter·zod 등 transitive deps inline. CI에 build + --help smoke 추가. --experimental-strip-types 런타임 의존 제거."
+    }
+  ],
+  "created_at": "2026-04-25T20:36:55+0900"
+}
