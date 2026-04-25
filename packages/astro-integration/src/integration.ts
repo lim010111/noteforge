@@ -45,6 +45,16 @@ export interface ObpubIntegrationOptions {
   onDevInvalidate?: (events: { kind: string; slug: string }[]) => void;
   /** Test seam: replace the watcher factory so tests can inject fakes. */
   createWatcherImpl?: typeof createWatcher;
+  /**
+   * Thin pass-through for the dev watcher's chokidar polling knobs.
+   * `usePolling` is required on WSL `/mnt/c` mounts where inotify is
+   * unreliable. Production builds never boot the watcher, so this option
+   * has no effect outside `astro dev`.
+   */
+  watcher?: {
+    usePolling?: boolean;
+    pollInterval?: number;
+  };
 }
 
 export function obpub(
@@ -93,6 +103,7 @@ export function obpub(
           vaultId: vault.id,
           ignore: vault.ignore,
           config,
+          ...(opts.watcher !== undefined ? { chokidarOptions: opts.watcher } : {}),
           onInvalidate: (events: readonly WatcherEvent[]): void => {
             if (opts.onDevInvalidate !== undefined) {
               opts.onDevInvalidate(

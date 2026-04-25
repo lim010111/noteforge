@@ -74,6 +74,16 @@ export interface WatcherOptions {
     opts: unknown,
   ) => ChokidarLike | Promise<ChokidarLike>;
   readonly readFile?: (absPath: string) => Promise<string>;
+  /**
+   * Thin pass-through for chokidar's polling knobs. Required on WSL `/mnt/c`
+   * mounts where inotify events can be silently dropped — without polling,
+   * vault edits made from the Windows side never reach the dev server.
+   * Production builds do not boot the watcher, so this only affects dev.
+   */
+  readonly chokidarOptions?: {
+    usePolling?: boolean;
+    pollInterval?: number;
+  };
 }
 
 export interface Watcher {
@@ -286,11 +296,17 @@ export function createWatcher(options: WatcherOptions): Watcher {
   return {
     async start(): Promise<void> {
       await primeFromVault();
-      const instance = await chokidarFactory(options.vaultPath, {
+      const baseOpts: Record<string, unknown> = {
         ignored: [...options.ignore],
         ignoreInitial: true,
         persistent: true,
-      });
+      };
+      const co = options.chokidarOptions;
+      if (co !== undefined) {
+        if (co.usePolling !== undefined) baseOpts['usePolling'] = co.usePolling;
+        if (co.pollInterval !== undefined) baseOpts['interval'] = co.pollInterval;
+      }
+      const instance = await chokidarFactory(options.vaultPath, baseOpts);
       chokidarInstance = instance;
       instance.on('add', (p) => {
         void handleUpsert(p);
