@@ -13,12 +13,16 @@
     {
       "step": 1,
       "name": "vault-watcher",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T12:03:04+0900",
+      "summary": "createWatcher + 9 tests + debounce/coalesce/pre-snapshot OK. mutation check: debounce removal fails asserts 2/5/9; mutation 1 (update-wins) and 2 (post-snapshot) are no-ops given current depGraph semantics (incoming reverse preserved on removeNote) — pre-snapshot order kept as defensive.",
+      "completed_at": "2026-04-25T12:17:29+0900"
     },
     {
       "step": 2,
       "name": "integration-wiring",
-      "status": "pending"
+      "status": "pending",
+      "started_at": "2026-04-25T12:17:29+0900"
     }
   ],
   "created_at": "2026-04-25T11:58:18+0900"

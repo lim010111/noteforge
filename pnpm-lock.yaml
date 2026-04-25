@@ -66,10 +66,19 @@ importers:
       chokidar:
         specifier: ^4.0.1
         version: 4.0.3
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
+      picomatch:
+        specifier: ^4.0.2
+        version: 4.0.4
     devDependencies:
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
+      '@types/picomatch':
+        specifier: ^3.0.2
+        version: 3.0.2
       mdast-util-from-markdown:
         specifier: ^2.0.2
         version: 2.0.3
