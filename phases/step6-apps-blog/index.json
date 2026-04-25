@@ -1,0 +1,10 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step6-apps-blog",
+  "steps": [
+    { "step": 0, "name": "blog-scaffold-and-config", "status": "pending" },
+    { "step": 1, "name": "blog-routes-home-and-note", "status": "pending" },
+    { "step": 2, "name": "blog-routes-graph-and-tags", "status": "pending" },
+    { "step": 3, "name": "blog-build-and-audit-verify", "status": "pending" }
+  ]
+}
