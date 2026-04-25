@@ -59,6 +59,10 @@
       "dir": "step7b-cli-build-pipeline",
       "status": "completed",
       "completed_at": "2026-04-25T20:41:14+0900"
+    },
+    {
+      "dir": "step7c-error-messages",
+      "status": "pending"
     }
   ]
 }

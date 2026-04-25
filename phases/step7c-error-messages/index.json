@@ -1,0 +1,19 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step7c-error-messages",
+  "steps": [
+    {
+      "step": 0,
+      "name": "config-error-file-path",
+      "status": "completed",
+      "started_at": "2026-04-25T20:51:39+0900",
+      "summary": "ObpubConfigError를 options 객체 시그니처(configPath/line/column/cause)로 확장하고, defineConfig·assertVaultPathsExist·importConfigFile에 config 파일 절대 경로를 주입해 에디터 cmd-click이 가능한 file:line 형식 에러 메시지로 통일."
+    },
+    {
+      "step": 1,
+      "name": "status-input-error-file-path",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-25T20:51:39+0900"
+}

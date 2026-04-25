@@ -116,22 +116,49 @@ export const obpubConfigSchema = rawConfigSchema.transform((cfg) => {
 export type ObpubConfig = z.infer<typeof obpubConfigSchema>;
 export type ObpubConfigInput = z.input<typeof obpubConfigSchema>;
 
+export interface ObpubConfigErrorOptions {
+  readonly configPath?: string;
+  readonly line?: number;
+  readonly column?: number;
+  readonly cause?: unknown;
+}
+
 export class ObpubConfigError extends Error {
-  readonly configPath: string;
+  readonly configPath: string | undefined;
+  readonly line: number | undefined;
+  readonly column: number | undefined;
   readonly reason: string;
 
-  constructor(reason: string, configPath = '') {
-    super(configPath.length > 0 ? `${configPath}: ${reason}` : reason);
+  constructor(reason: string, opts?: ObpubConfigErrorOptions) {
+    super(formatConfigErrorMessage(reason, opts), opts?.cause !== undefined ? { cause: opts.cause } : undefined);
     this.name = 'ObpubConfigError';
-    this.configPath = configPath;
+    this.configPath = opts?.configPath;
+    this.line = opts?.line;
+    this.column = opts?.line !== undefined ? opts.column : undefined;
     this.reason = reason;
   }
 }
 
-export function defineConfig(input: ObpubConfigInput): ObpubConfig {
+function formatConfigErrorMessage(
+  reason: string,
+  opts: ObpubConfigErrorOptions | undefined,
+): string {
+  const configPath = opts?.configPath;
+  if (configPath === undefined || configPath.length === 0) return reason;
+  const line = opts?.line;
+  if (line === undefined) return `${configPath}: ${reason}`;
+  const column = opts?.column;
+  if (column === undefined) return `${configPath}:${line}: ${reason}`;
+  return `${configPath}:${line}:${column}: ${reason}`;
+}
+
+export function defineConfig(
+  input: ObpubConfigInput,
+  opts?: { configPath?: string },
+): ObpubConfig {
   const result = obpubConfigSchema.safeParse(input);
   if (!result.success) {
-    throw wrapZodError(result.error);
+    throw wrapZodError(result.error, opts?.configPath);
   }
   return result.data;
 }
@@ -150,12 +177,14 @@ export function getClassifyRule(config: ObpubConfig, vaultId: string): ClassifyR
   };
 }
 
-function wrapZodError(error: ZodError): ObpubConfigError {
+function wrapZodError(error: ZodError, configPath?: string): ObpubConfigError {
   const issue = error.issues[0];
   if (issue === undefined) {
-    return new ObpubConfigError('알 수 없는 설정 오류');
+    return new ObpubConfigError('알 수 없는 설정 오류', { configPath });
   }
-  return new ObpubConfigError(issue.message, formatPath(issue.path));
+  const fieldPath = formatPath(issue.path);
+  const reason = fieldPath.length > 0 ? `${fieldPath}: ${issue.message}` : issue.message;
+  return new ObpubConfigError(reason, { configPath });
 }
 
 function formatPath(segments: readonly (string | number)[]): string {
