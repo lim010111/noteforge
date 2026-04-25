@@ -33,7 +33,15 @@ export async function loadConfigWithPath(
   opts: LoadConfigOptions = {},
 ): Promise<LoadedConfig> {
   const cwd = opts.cwd ?? process.cwd();
+  const loaded = await resolveLoaded(cwd, opts);
+  await assertVaultPathsExist(loaded.config);
+  return loaded;
+}
 
+async function resolveLoaded(
+  cwd: string,
+  opts: LoadConfigOptions,
+): Promise<LoadedConfig> {
   if (opts.configPath !== undefined) {
     const explicit = path.isAbsolute(opts.configPath)
       ? opts.configPath
@@ -46,7 +54,10 @@ export async function loadConfigWithPath(
     return { config: await importConfigFile(found), configPath: found };
   }
 
-  process.stderr.write(`obpub: no config found, falling back to defaults at ${cwd}\n`);
+  process.stderr.write(
+    `obpub: no config found, falling back to defaults at ${cwd}\n` +
+      `       hint: pass --config <path> or create obsidian-blog.config.ts in the project root\n`,
+  );
   return {
     config: defineConfig({
       site: {
@@ -63,6 +74,26 @@ export async function loadConfigWithPath(
     }),
     configPath: null,
   };
+}
+
+export async function assertVaultPathsExist(config: ObpubConfig): Promise<void> {
+  for (const vault of config.vaults) {
+    const abs = path.resolve(vault.path);
+    let stat: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      stat = await fs.stat(abs);
+    } catch {
+      throw new Error(
+        `vault path does not exist: ${abs} (vault id: ${vault.id}). ` +
+          `Update vaults[].path in your obsidian-blog.config.ts.`,
+      );
+    }
+    if (!stat.isDirectory()) {
+      throw new Error(
+        `vault path is not a directory: ${abs} (vault id: ${vault.id}).`,
+      );
+    }
+  }
 }
 
 async function findConfigUpwards(start: string): Promise<string | null> {

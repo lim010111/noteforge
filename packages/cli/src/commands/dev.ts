@@ -15,6 +15,10 @@ export interface DevOptions {
  * its own watcher.
  */
 export async function runDev(opts: DevOptions): Promise<number> {
+  // Validate config + vault paths before spawning astro. The result is
+  // discarded — the watcher (registered as an Astro integration in
+  // apps/blog) loads the config itself; we only fail-fast here so users
+  // get a clear error instead of a broken HMR session.
   await loadConfig({ configPath: opts.configPath });
 
   let cwd: string;
