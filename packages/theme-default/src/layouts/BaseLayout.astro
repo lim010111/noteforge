@@ -1,0 +1,34 @@
+---
+import type { BaseLayoutProps } from "./BaseLayout.types";
+import "../styles/base.css";
+
+const { title, description, lang = "ko", canonicalUrl } = Astro.props as BaseLayoutProps;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <slot name="head" />
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-zinc-900 focus:px-3 focus:py-1.5 focus:text-white"
+    >본문으로 건너뛰기</a>
+    <header class="mx-auto w-full max-w-3xl px-4 md:px-6">
+      <nav aria-label="주 메뉴">
+        <slot name="nav" />
+      </nav>
+    </header>
+    <main id="main" class="mx-auto w-full max-w-3xl px-4 md:px-6">
+      <slot />
+    </main>
+    <footer class="mx-auto w-full max-w-3xl px-4 md:px-6">
+      <slot name="footer" />
+    </footer>
+  </body>
+</html>
