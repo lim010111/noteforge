@@ -1,0 +1,10 @@
+{
+  "step": 4,
+  "name": "release-notes-and-readme-polish",
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "",
+  "sealed_manually": true,
+  "sealed_at": "2026-04-25T22:30:00+0900",
+  "seal_reason": "execute.py timed out at 1800s after step 4 had already committed feat code and updated phases/step7d-release-prep/index.json with completed status; this stub backfills the missing per-step output record and the chore metadata commit. See verification_notes in the phase index for AC results."
+}
