@@ -1,4 +1,4 @@
-import type { AuditViolation } from './checks.ts';
+import type { AuditOutcome, AuditViolation } from './checks.ts';
 
 export interface AuditSummary {
   readonly checkedFiles: number;
@@ -34,4 +34,30 @@ function countDistinctLocations(violations: readonly AuditViolation[]): number {
   const seen = new Set<string>();
   for (const v of violations) seen.add(v.location);
   return seen.size;
+}
+
+export interface AuditJsonReport {
+  readonly pass: boolean;
+  readonly strict: boolean;
+  readonly checkedFiles: number;
+  readonly elapsedMs: number;
+  readonly violations: readonly AuditViolation[];
+}
+
+/**
+ * JSON 보고서 — CI/automation 용. message는 redact된 그대로 들어가므로
+ * 사람-친화 출력과 동일한 privacy 표면을 유지한다.
+ */
+export function formatAuditJson(
+  outcome: AuditOutcome,
+  opts: { strict: boolean },
+): string {
+  const report: AuditJsonReport = {
+    pass: outcome.violations.length === 0,
+    strict: opts.strict,
+    checkedFiles: outcome.checkedFiles,
+    elapsedMs: outcome.elapsedMs,
+    violations: outcome.violations,
+  };
+  return JSON.stringify(report);
 }

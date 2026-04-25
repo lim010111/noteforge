@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defineConfig, type ObpubConfig } from '@obpub/core/config';
-import { formatStatusLine, runStatus } from '../src/commands/status.ts';
+import { formatStatusJson, formatStatusLine, runStatus } from '../src/commands/status.ts';
 
 interface Sandbox {
   readonly vaultRoot: string;
@@ -144,7 +144,7 @@ describe('formatStatusLine', () => {
     expect(line).toBe('notes/x.md → PRIVATE (reason: no public marker)');
   });
 
-  it('passes the tripwire reason through unchanged', () => {
+  it('passes the tripwire reason through unchanged and adds [TRIPWIRE] marker', () => {
     const line = formatStatusLine({
       relativePath: 'private/secret.md',
       verdict: 'PRIVATE',
@@ -152,6 +152,48 @@ describe('formatStatusLine', () => {
       tripwireFired: true,
     });
     expect(line).toContain('PRIVATE');
-    expect(line).toContain('tripwire');
+    expect(line).toContain('[TRIPWIRE]');
+    expect(line).toContain('tripwire — note is under a blocked path');
+  });
+
+  it('omits the [TRIPWIRE] marker when tripwireFired is false', () => {
+    const line = formatStatusLine({
+      relativePath: 'foo.md',
+      verdict: 'PUBLIC',
+      reason: 'frontmatter public: true',
+      tripwireFired: false,
+    });
+    expect(line).not.toContain('[TRIPWIRE]');
+  });
+});
+
+describe('formatStatusJson', () => {
+  it('emits a single-line JSON with all four StatusResult fields', () => {
+    const json = formatStatusJson({
+      relativePath: 'a/b.md',
+      verdict: 'PUBLIC',
+      reason: 'tag #public',
+      tripwireFired: false,
+    });
+    expect(json).not.toContain('\n');
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    expect(parsed).toEqual({
+      relativePath: 'a/b.md',
+      verdict: 'PUBLIC',
+      reason: 'tag #public',
+      tripwireFired: false,
+    });
+  });
+
+  it('preserves tripwireFired=true in JSON output', () => {
+    const json = formatStatusJson({
+      relativePath: 'private/x.md',
+      verdict: 'PRIVATE',
+      reason: 'tripwire — note is under a blocked path (private/x.md); public marker (frontmatter public: true) ignored',
+      tripwireFired: true,
+    });
+    const parsed = JSON.parse(json) as { tripwireFired: boolean; verdict: string };
+    expect(parsed.tripwireFired).toBe(true);
+    expect(parsed.verdict).toBe('PRIVATE');
   });
 });

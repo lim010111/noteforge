@@ -54,5 +54,10 @@ export async function runStatus(filePath: string, config: ObpubConfig): Promise<
 }
 
 export function formatStatusLine(result: StatusResult): string {
-  return `${result.relativePath} → ${result.verdict} (reason: ${result.reason})`;
+  const tripwire = result.tripwireFired ? ' [TRIPWIRE]' : '';
+  return `${result.relativePath} → ${result.verdict}${tripwire} (reason: ${result.reason})`;
+}
+
+export function formatStatusJson(result: StatusResult): string {
+  return JSON.stringify(result);
 }

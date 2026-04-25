@@ -4,8 +4,9 @@ import { Command } from 'commander';
 import { runAudit } from './commands/audit.ts';
 import { runBuild } from './commands/build.ts';
 import { runDev } from './commands/dev.ts';
-import { formatStatusLine, runStatus } from './commands/status.ts';
+import { formatStatusJson, formatStatusLine, runStatus } from './commands/status.ts';
 import {
+  formatAuditJson,
   formatFailSummary,
   formatPassSummary,
   formatViolationLines,
@@ -55,10 +56,12 @@ program
   .command('status <file>')
   .description('Show whether a note is PUBLIC or PRIVATE and why')
   .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
-  .action(async (file: string, opts: { config?: string }) => {
+  .option('--json', 'emit machine-readable JSON instead of a human line')
+  .action(async (file: string, opts: { config?: string; json?: boolean }) => {
     const config = await loadConfig({ configPath: opts.config });
     const result = await runStatus(file, config);
-    process.stdout.write(`${formatStatusLine(result)}\n`);
+    const line = opts.json === true ? formatStatusJson(result) : formatStatusLine(result);
+    process.stdout.write(`${line}\n`);
   });
 
 program
@@ -67,23 +70,33 @@ program
   .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
   .option('-d, --dist <path>', 'path to dist directory (default: <config-dir>/dist)')
   .option('--strict', 'fail on weak signals (authored title mentions, etc.)')
-  .action(async (opts: { config?: string; dist?: string; strict?: boolean }) => {
-    const { config, configPath } = await loadConfigWithPath({ configPath: opts.config });
-    const distDir = resolveDistDir(opts.dist, configPath);
+  .option('--json', 'emit machine-readable JSON instead of human-formatted lines')
+  .action(
+    async (opts: { config?: string; dist?: string; strict?: boolean; json?: boolean }) => {
+      const { config, configPath } = await loadConfigWithPath({ configPath: opts.config });
+      const distDir = resolveDistDir(opts.dist, configPath);
+      const strict = opts.strict ?? false;
 
-    const outcome = await runAudit(config, { distDir, strict: opts.strict ?? false });
+      const outcome = await runAudit(config, { distDir, strict });
 
-    if (outcome.violations.length === 0) {
-      process.stdout.write(`${formatPassSummary(outcome)}\n`);
-      return;
-    }
+      if (opts.json === true) {
+        process.stdout.write(`${formatAuditJson(outcome, { strict })}\n`);
+        if (outcome.violations.length > 0) process.exit(1);
+        return;
+      }
 
-    for (const line of formatViolationLines(outcome.violations)) {
-      process.stderr.write(`${line}\n`);
-    }
-    process.stderr.write(`${formatFailSummary(outcome.violations, outcome)}\n`);
-    process.exit(1);
-  });
+      if (outcome.violations.length === 0) {
+        process.stdout.write(`${formatPassSummary(outcome)}\n`);
+        return;
+      }
+
+      for (const line of formatViolationLines(outcome.violations)) {
+        process.stderr.write(`${line}\n`);
+      }
+      process.stderr.write(`${formatFailSummary(outcome.violations, outcome)}\n`);
+      process.exit(1);
+    },
+  );
 
 program
   .command('dev')
