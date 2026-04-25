@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "blog-routes-graph-and-tags",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T17:48:59+0900",
+      "summary": "apps/blog에 graph/tags 라우트 + /api/graph.json endpoint 추가, lib/{pipelineCache,tagAggregation}.ts + tagAggregation 단위 테스트 8건 신규 통과 — 0-public 시 dist/api/graph.json={nodes:[],edges:[]} + tags/graph 빈 페이지 렌더 + nav 슬롯 활성화",
+      "completed_at": "2026-04-25T17:57:36+0900"
     },
     {
       "step": 3,
