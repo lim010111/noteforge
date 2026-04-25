@@ -52,7 +52,8 @@
     },
     {
       "dir": "step7a-ci-actions",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T20:11:36+0900"
     }
   ]
 }
