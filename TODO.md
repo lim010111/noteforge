@@ -66,25 +66,26 @@ v0.1 MVP 작업 체크리스트.
 - [x] `commands/audit.ts` (독립 실행 누출 검증, `--strict` 지원)
 - [x] `commands/status.ts` (노트 공개 판정 이유 출력)
 
-## Step 6 — apps/blog 도그푸드
-- [ ] `astro.config.mjs` + 통합 등록
-- [ ] `obsidian-blog.config.ts` (실 vault 절대경로 — 사용자 확정 필요)
-- [ ] `content.config.ts`
-- [ ] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
-- [ ] 로컬 빌드 성공 + audit 통과
-- [ ] Cloudflare Pages / Vercel 배포
+## Step 6 — apps/blog 도그푸드 ✅
+- [x] `astro.config.mjs` + 통합 등록
+- [x] `obsidian-blog.config.ts` (실 vault 절대경로)
+- [x] `content.config.ts`
+- [x] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
+- [x] 로컬 빌드 성공 + audit 통과
+- [ ] Cloudflare Pages / Vercel 배포 (배포 도메인 미정 — v0.2 작업)
 
-## Step 7 — CI + 릴리스 준비
-- [ ] GitHub Actions: install → typecheck → lint → vitest → build → audit
-- [ ] CLI 빌드 파이프라인 — tsup으로 `dist/bin.js` 생성, `package.json` bin → `dist/bin.js`, `prepublishOnly` 추가 (Node 22 strip-types 의존 제거)
-- [ ] 에러 메시지 file:line 포함 — config 파싱 실패/status 입력 오류 시
-- [ ] `LICENSE` (MIT)
-- [ ] `CONTRIBUTING.md`
-- [ ] README 보완 (실 설치 가이드, 스크린샷)
-- [ ] 프로젝트명/npm 네임스페이스 정식 확정
-- [ ] v0.1.0 태그 + 릴리스 노트
+## Step 7 — CI + 릴리스 준비 ✅
+- [x] GitHub Actions: install → typecheck → lint → vitest → build → audit
+- [x] CLI 빌드 파이프라인 — tsup으로 `dist/bin.js` 생성, `package.json` bin → `dist/bin.js`, `prepublishOnly` 추가 (Node 22 strip-types 의존 제거)
+- [x] 에러 메시지 file:line 포함 — config 파싱 실패/status 입력 오류 시
+- [x] `LICENSE` (MIT)
+- [x] `CONTRIBUTING.md`
+- [x] README 보완 (실 설치 가이드, 스크린샷)
+- [x] 프로젝트명/npm 네임스페이스 정식 확정 (`noteforge` / `@noteforge/*`)
+- [x] v0.1.0 릴리스 노트 작성 (CHANGELOG.md). git tag는 사용자가 직접 푸시:
+      `git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0`
 
 ## 미결정 / 사용자 확인 필요
-- [ ] 실 Obsidian vault 절대경로 (Step 6 블록)
-- [ ] 정식 프로젝트명 + npm 네임스페이스 (Obsidian 상표 회피)
+- [x] 실 Obsidian vault 절대경로 (Step 6에서 처리)
+- [x] 정식 프로젝트명 + npm 네임스페이스 — `noteforge` / `@noteforge/*`
 - [ ] 배포 도메인 (canonical URL 확정용)
