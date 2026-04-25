@@ -1,0 +1,9 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step4a-theme-foundation",
+  "steps": [
+    { "step": 0, "name": "theme-tokens-tailwind", "status": "pending" },
+    { "step": 1, "name": "base-layout-component", "status": "pending" },
+    { "step": 2, "name": "note-and-404", "status": "pending" }
+  ]
+}
