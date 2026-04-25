@@ -1,0 +1,11 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step7d-release-prep",
+  "steps": [
+    { "step": 0, "name": "confirm-project-name-and-npm-availability", "status": "pending" },
+    { "step": 1, "name": "rename-monorepo-to-final-name", "status": "pending" },
+    { "step": 2, "name": "add-license-mit", "status": "pending" },
+    { "step": 3, "name": "add-contributing-md", "status": "pending" },
+    { "step": 4, "name": "release-notes-and-readme-polish", "status": "pending" }
+  ]
+}
