@@ -7,7 +7,8 @@
       "name": "confirm-project-name-and-npm-availability",
       "status": "completed",
       "started_at": "2026-04-25T21:42:49+0900",
-      "summary": "noteforge unscoped + scope @noteforge available on npm; proceed with rename"
+      "summary": "noteforge unscoped + scope @noteforge available on npm; proceed with rename",
+      "completed_at": "2026-04-25T21:43:40+0900"
     },
     {
       "step": 1,
