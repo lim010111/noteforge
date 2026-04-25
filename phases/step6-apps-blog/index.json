@@ -1,0 +1,40 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step6-apps-blog",
+  "steps": [
+    {
+      "step": 0,
+      "name": "blog-scaffold-and-config",
+      "status": "completed",
+      "started_at": "2026-04-25T17:35:35+0900",
+      "summary": "apps/blog 부트스트랩(astro.config + obsidian-blog.config + content collection + tailwind global) 완료, integration/watcher에 WSL polling 옵션 추가 + vitest 5건 신규 통과",
+      "completed_at": "2026-04-25T17:42:13+0900"
+    },
+    {
+      "step": 1,
+      "name": "blog-routes-home-and-note",
+      "status": "completed",
+      "started_at": "2026-04-25T17:42:13+0900",
+      "summary": "apps/blog에 홈/노트/404 라우트 + lib/viewModels.ts(entryToNoteViewModel/sortForHome/filterPublishable/buildBacklinksViewModel) 추가, viewModels 단위 테스트 9건 통과 — 0-public 시나리오 build 성공 + 누설 grep 클린",
+      "completed_at": "2026-04-25T17:48:59+0900"
+    },
+    {
+      "step": 2,
+      "name": "blog-routes-graph-and-tags",
+      "status": "completed",
+      "started_at": "2026-04-25T17:48:59+0900",
+      "summary": "apps/blog에 graph/tags 라우트 + /api/graph.json endpoint 추가, lib/{pipelineCache,tagAggregation}.ts + tagAggregation 단위 테스트 8건 신규 통과 — 0-public 시 dist/api/graph.json={nodes:[],edges:[]} + tags/graph 빈 페이지 렌더 + nav 슬롯 활성화",
+      "completed_at": "2026-04-25T17:58:18+0900"
+    },
+    {
+      "step": 3,
+      "name": "blog-build-and-audit-verify",
+      "status": "completed",
+      "started_at": "2026-04-25T17:58:18+0900",
+      "summary": "실 vault(/mnt/c/Users/shine/Documents/Obsidian) 위 (a) 0-public + (b) ≥1-public 시나리오 모두 build + audit 통과 (canary 3종 grep exit 1), CLI status PRIVATE/PUBLIC 한 줄 출력 OK; audit/checks.ts에 word-boundary 매칭 + ASCII 단어 짧은 제목(<6) 약신호 처리 도입(테스트 +3), README v0.1 도그푸드 가능 + v0.2 후속 명시 + pnpm --filter blog로 명령 정정",
+      "completed_at": "2026-04-25T18:16:32+0900"
+    }
+  ],
+  "created_at": "2026-04-25T17:35:35+0900",
+  "completed_at": "2026-04-25T18:16:32+0900"
+}

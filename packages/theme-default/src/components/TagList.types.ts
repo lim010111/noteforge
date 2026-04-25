@@ -2,7 +2,7 @@
  * View-model for `<TagList />` (used on the tag index page `/tags`).
  *
  * INTENTIONALLY a STRICT SUBSET. Each `TagSummary.tag` is already
- * blocklist-filtered by `@obpub/core/privacy` (see
+ * blocklist-filtered by `@noteforge/core/privacy` (see
  * `PipelineResult.publicTags`). The component MUST NOT re-filter, normalize,
  * or look anything else up.
  *

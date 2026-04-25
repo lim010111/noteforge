@@ -1,0 +1,34 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection } from 'astro:content';
+import { BaseLayout, TagPage, type TagPageEntry } from '@noteforge/theme-default';
+import { filterPublishable } from '../../lib/viewModels.ts';
+import { entriesForTag, summarizeTags } from '../../lib/tagAggregation.ts';
+import '../../styles/global.css';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const publishable = filterPublishable(await getCollection('notes'));
+  const summaries = summarizeTags(publishable);
+  return summaries.map((s) => ({
+    params: { tag: s.tag },
+    props: { tag: s.tag, entries: entriesForTag(s.tag, publishable) },
+  }));
+};
+
+interface Props {
+  tag: string;
+  entries: TagPageEntry[];
+}
+
+const { tag, entries } = Astro.props as Props;
+---
+<BaseLayout title={`#${tag}`}>
+  <Fragment slot="nav">
+    <ul class="flex gap-4 py-4 text-sm">
+      <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
+      <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
+      <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
+    </ul>
+  </Fragment>
+  <TagPage tagpage={{ tag, entries }} />
+</BaseLayout>

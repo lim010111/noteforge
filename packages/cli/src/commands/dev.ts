@@ -10,7 +10,7 @@ export interface DevOptions {
 /**
  * `obpub dev` — load config, locate the astro project, spawn `astro dev`.
  *
- * The watcher itself lives in `@obpub/astro` (registered as an Astro
+ * The watcher itself lives in `@noteforge/astro` (registered as an Astro
  * integration by apps/blog). The CLI only kicks off Astro; it never builds
  * its own watcher.
  */

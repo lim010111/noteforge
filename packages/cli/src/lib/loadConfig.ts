@@ -3,9 +3,10 @@ import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   defineConfig,
+  ObpubConfigError,
   type ObpubConfig,
   type ObpubConfigInput,
-} from '@obpub/core/config';
+} from '@noteforge/core/config';
 
 const CONFIG_BASENAMES = [
   'obsidian-blog.config.ts',
@@ -34,7 +35,9 @@ export async function loadConfigWithPath(
 ): Promise<LoadedConfig> {
   const cwd = opts.cwd ?? process.cwd();
   const loaded = await resolveLoaded(cwd, opts);
-  await assertVaultPathsExist(loaded.config);
+  await assertVaultPathsExist(loaded.config, {
+    configPath: loaded.configPath ?? undefined,
+  });
   return loaded;
 }
 
@@ -76,21 +79,26 @@ async function resolveLoaded(
   };
 }
 
-export async function assertVaultPathsExist(config: ObpubConfig): Promise<void> {
+export async function assertVaultPathsExist(
+  config: ObpubConfig,
+  opts: { configPath?: string } = {},
+): Promise<void> {
   for (const vault of config.vaults) {
     const abs = path.resolve(vault.path);
     let stat: Awaited<ReturnType<typeof fs.stat>>;
     try {
       stat = await fs.stat(abs);
-    } catch {
-      throw new Error(
+    } catch (cause) {
+      throw new ObpubConfigError(
         `vault path does not exist: ${abs} (vault id: ${vault.id}). ` +
           `Update vaults[].path in your obsidian-blog.config.ts.`,
+        { configPath: opts.configPath, cause },
       );
     }
     if (!stat.isDirectory()) {
-      throw new Error(
+      throw new ObpubConfigError(
         `vault path is not a directory: ${abs} (vault id: ${vault.id}).`,
+        { configPath: opts.configPath },
       );
     }
   }
@@ -120,10 +128,57 @@ async function fileExists(p: string): Promise<boolean> {
 
 async function importConfigFile(absPath: string): Promise<ObpubConfig> {
   const url = pathToFileURL(absPath).href;
-  const mod = (await import(url)) as { default?: unknown };
+  let mod: { default?: unknown };
+  try {
+    mod = (await import(url)) as { default?: unknown };
+  } catch (cause) {
+    if (cause instanceof ObpubConfigError) throw cause;
+    const { line, column } = extractLineColumn(cause, absPath);
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    throw new ObpubConfigError(`failed to load config: ${causeMessage}`, {
+      configPath: absPath,
+      line,
+      column,
+      cause,
+    });
+  }
   const exported = mod.default;
   if (exported === undefined || exported === null) {
-    throw new Error(`config file ${absPath} has no default export`);
+    throw new ObpubConfigError(`config file has no default export`, {
+      configPath: absPath,
+    });
   }
-  return defineConfig(exported as ObpubConfigInput);
+  return defineConfig(exported as ObpubConfigInput, { configPath: absPath });
+}
+
+function extractLineColumn(
+  err: unknown,
+  configPath: string,
+): { line: number | undefined; column: number | undefined } {
+  if (!(err instanceof Error)) return { line: undefined, column: undefined };
+  const haystacks = [err.stack, err.message].filter(
+    (s): s is string => typeof s === 'string',
+  );
+  const fileUrl = pathToFileURL(configPath).href;
+  const patterns = [
+    new RegExp(`${escapeRegex(fileUrl)}:(\\d+):(\\d+)`),
+    new RegExp(`${escapeRegex(configPath)}:(\\d+):(\\d+)`),
+  ];
+  for (const text of haystacks) {
+    for (const re of patterns) {
+      const m = re.exec(text);
+      if (m !== null) {
+        const line = Number(m[1]);
+        const column = Number(m[2]);
+        if (Number.isFinite(line) && Number.isFinite(column)) {
+          return { line, column };
+        }
+      }
+    }
+  }
+  return { line: undefined, column: undefined };
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

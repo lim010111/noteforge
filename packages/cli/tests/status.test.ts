@@ -3,8 +3,9 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import { formatStatusJson, formatStatusLine, runStatus } from '../src/commands/status.ts';
+import { ObpubInputError } from '../src/lib/errors.ts';
 
 interface Sandbox {
   readonly vaultRoot: string;
@@ -79,30 +80,63 @@ describe('runStatus', () => {
     expect(result.reason).toMatch(/tripwire/i);
   });
 
-  it('throws when given an absolute path outside the vault root', async () => {
+  it('throws ObpubInputError with file:1 prefix when given an absolute path outside the vault root', async () => {
     const outside = path.join(os.tmpdir(), `outside-${randomUUID()}.md`);
     await fs.writeFile(outside, '---\npublic: true\n---\nbody\n', 'utf8');
     try {
-      await expect(
-        runStatus(outside, makeConfig({ vaultPath: sandbox.vaultRoot })),
-      ).rejects.toThrow(sandbox.vaultRoot);
+      const err = await runStatus(
+        outside,
+        makeConfig({ vaultPath: sandbox.vaultRoot }),
+      ).then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(err).toBeInstanceOf(ObpubInputError);
+      const inputErr = err as ObpubInputError;
+      expect(inputErr.filePath).toBe(outside);
+      expect(inputErr.line).toBe(1);
+      expect(inputErr.column).toBeUndefined();
+      expect(inputErr.message.startsWith(`${outside}:1: `)).toBe(true);
+      expect(inputErr.message).toContain('outside vault root');
+      expect(inputErr.message).toContain(sandbox.vaultRoot);
     } finally {
       await fs.rm(outside, { force: true });
     }
   });
 
-  it('throws when given a non-.md extension', async () => {
+  it('throws ObpubInputError with file:1 prefix when given a non-.md extension', async () => {
     const abs = await writeNote('foo.txt', 'not markdown');
-    await expect(runStatus(abs, makeConfig({ vaultPath: sandbox.vaultRoot }))).rejects.toThrow(
-      /\.md/,
+    const err = await runStatus(
+      abs,
+      makeConfig({ vaultPath: sandbox.vaultRoot }),
+    ).then(
+      () => null,
+      (e: unknown) => e,
     );
+    expect(err).toBeInstanceOf(ObpubInputError);
+    const inputErr = err as ObpubInputError;
+    expect(inputErr.filePath).toBe(abs);
+    expect(inputErr.line).toBe(1);
+    expect(inputErr.message.startsWith(`${abs}:1: `)).toBe(true);
+    expect(inputErr.message).toContain('.md');
   });
 
-  it('throws ENOENT when the file does not exist', async () => {
+  it('throws ObpubInputError with file:1 prefix when the file does not exist (ENOENT rewrap)', async () => {
     const abs = path.join(sandbox.vaultRoot, 'missing.md');
-    await expect(runStatus(abs, makeConfig({ vaultPath: sandbox.vaultRoot }))).rejects.toThrow(
-      /ENOENT/,
+    const err = await runStatus(
+      abs,
+      makeConfig({ vaultPath: sandbox.vaultRoot }),
+    ).then(
+      () => null,
+      (e: unknown) => e,
     );
+    expect(err).toBeInstanceOf(ObpubInputError);
+    const inputErr = err as ObpubInputError;
+    expect(inputErr.filePath).toBe(abs);
+    expect(inputErr.line).toBe(1);
+    expect(inputErr.message.startsWith(`${abs}:1: `)).toBe(true);
+    expect(inputErr.message).toContain('file not found');
+    expect(inputErr.cause).toBeDefined();
   });
 
   it('accepts a vault-relative path and classifies correctly', async () => {

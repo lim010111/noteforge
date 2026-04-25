@@ -4,7 +4,7 @@
 ```
 obsidian_blog/
 ├── packages/
-│   ├── core/                       # @obpub/core — 프레임워크 독립 엔진
+│   ├── core/                       # @noteforge/core — 프레임워크 독립 엔진
 │   │   └── src/
 │   │       ├── config.ts           # defineConfig() + Zod 스키마
 │   │       ├── discover/
@@ -23,18 +23,18 @@ obsidian_blog/
 │   │       │   └── attachmentFilter.ts  # reference closure
 │   │       ├── types.ts
 │   │       └── index.ts
-│   ├── astro-integration/          # @obpub/astro — Astro Content Layer 어댑터
+│   ├── astro-integration/          # @noteforge/astro — Astro Content Layer 어댑터
 │   │   └── src/
 │   │       ├── integration.ts      # astro:config:setup 훅
 │   │       ├── loader.ts           # Content Layer loader
 │   │       ├── remarkWikilink.ts   # MDX 파이프라인 브리지
 │   │       ├── watcher.ts          # chokidar + invalidation
 │   │       └── index.ts
-│   ├── theme-default/              # @obpub/theme-default
+│   ├── theme-default/              # @noteforge/theme-default
 │   │   └── src/
 │   │       ├── layouts/BaseLayout.astro
 │   │       └── components/{Note,Backlinks,Graph,TagList}.astro
-│   └── cli/                        # @obpub/cli
+│   └── cli/                        # @noteforge/cli
 │       └── src/
 │           ├── bin.ts
 │           └── commands/{dev,build,audit,status}.ts
@@ -131,10 +131,10 @@ dist/
 - **캐싱**: Astro Content Layer의 기본 캐시를 사용하되, watcher가 변경된 노트 + 의존 노트를 `invalidate()`로 드랍.
 
 ## 프레임워크 경계
-- `@obpub/core`: Astro, remark AST 타입 외 프레임워크 의존 **없음**. 추후 다른 SSG(11ty, Next.js)에도 재사용 가능.
-- `@obpub/astro`: Astro Integration API + remark 파이프라인 통합. Astro 버전 업 시 여기만 영향.
-- `@obpub/theme-default`: Astro 컴포넌트. 교체 가능한 하나의 테마.
-- `@obpub/cli`: 사용자 진입점. 내부적으로 Astro CLI를 래핑.
+- `@noteforge/core`: Astro, remark AST 타입 외 프레임워크 의존 **없음**. 추후 다른 SSG(11ty, Next.js)에도 재사용 가능.
+- `@noteforge/astro`: Astro Integration API + remark 파이프라인 통합. Astro 버전 업 시 여기만 영향.
+- `@noteforge/theme-default`: Astro 컴포넌트. 교체 가능한 하나의 테마.
+- `@noteforge/cli`: 사용자 진입점. 내부적으로 Astro CLI를 래핑.
 
 ## 다이어그램 (MVP 이후)
 - v0.2: 다중 vault 테마 해석 프로토콜 — 각 vault의 `theme` 경로를 Astro config에 동적으로 merge.

@@ -2,6 +2,7 @@
   "name": "blog",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "astro dev",
@@ -10,10 +11,12 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@obpub/astro": "workspace:*",
-    "@obpub/core": "workspace:*",
-    "@obpub/theme-default": "workspace:*",
-    "astro": "^5.0.0"
+    "@noteforge/astro": "workspace:*",
+    "@noteforge/core": "workspace:*",
+    "@noteforge/theme-default": "workspace:*",
+    "@tailwindcss/vite": "^4.0.0",
+    "astro": "^5.0.0",
+    "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4"

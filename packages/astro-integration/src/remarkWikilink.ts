@@ -1,5 +1,5 @@
 /**
- * Thin bridge between unified's remark pipeline and `@obpub/core`'s privacy-aware
+ * Thin bridge between unified's remark pipeline and `@noteforge/core`'s privacy-aware
  * wikilink rewriter. All AST decisions live in core; this module only:
  *   1. forwards the call with caller-injected resolve / isPublic / hrefFor, and
  *   2. surfaces unresolved-link observations to an Astro-side logger via onWarning.
@@ -11,7 +11,7 @@
  */
 
 import type { Root } from 'mdast';
-import { rewriteWikilinks } from '@obpub/core/privacy/linkRewriter';
+import { rewriteWikilinks } from '@noteforge/core/privacy/linkRewriter';
 
 export interface RemarkWikilinkOptions {
   /** core의 resolveWikilink 래퍼. integration/loader가 vault 인덱스를 클로저로 주입. */

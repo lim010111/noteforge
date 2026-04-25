@@ -1,5 +1,5 @@
 /**
- * Tests for @obpub/astro dep-graph.
+ * Tests for @noteforge/astro dep-graph.
  *
  * The graph tracks forward ("A depends on B") and reverse ("B is depended on by A")
  * edges in lock-step, so the watcher can answer "who must re-render when B changes?"

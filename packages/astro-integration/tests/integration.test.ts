@@ -1,5 +1,5 @@
 /**
- * Tests for the @obpub/astro AstroIntegration factory.
+ * Tests for the @noteforge/astro AstroIntegration factory.
  *
  * We never boot Astro itself — we extract the hook functions from
  * `obpub(config).hooks` and call them directly with structural shims for
@@ -14,7 +14,7 @@
  *     (verified indirectly: updateConfig is only called for `markdown`,
  *     no integrations / vite / build-step config is added).
  *   - astro:build:done is a placeholder — it must not perform real audit
- *     I/O yet (audit lives in @obpub/cli + Phase D).
+ *     I/O yet (audit lives in @noteforge/cli + Phase D).
  *   - astro:server:setup starts the watcher once (idempotent) and forwards
  *     coalesced file events to Vite as a full-reload signal. No Vite
  *     internals are imported — we duck-type `server.ws.send` /
@@ -26,7 +26,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { AstroIntegration } from 'astro';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import { obpub } from '../src/integration.ts';
 import { remarkWikilink } from '../src/remarkWikilink.ts';
 import {
@@ -284,12 +284,12 @@ function makeFakeChokidar(): FakeChokidar {
 }
 
 describe('obpub integration factory', () => {
-  it('(1) returns { name: "@obpub/astro", hooks: { astro:config:setup, astro:build:done } }', () => {
+  it('(1) returns { name: "@noteforge/astro", hooks: { astro:config:setup, astro:build:done } }', () => {
     const integration = obpub(makeConfig());
     expect(
       integration.name,
       'integration name must be the package identifier so users can locate it in Astro logs',
-    ).toBe('@obpub/astro');
+    ).toBe('@noteforge/astro');
     expect(typeof integration.hooks['astro:config:setup']).toBe('function');
     expect(typeof integration.hooks['astro:build:done']).toBe('function');
   });

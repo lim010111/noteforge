@@ -1,9 +1,9 @@
 /**
  * Phase A→C composition helper. Reads a vault from disk, applies the full privacy
  * pipeline, and returns a structured result that downstream adapters
- * (`@obpub/astro` loader, audit CLI) can consume.
+ * (`@noteforge/astro` loader, audit CLI) can consume.
  *
- * Framework-free: imports only `@obpub/core` internals + `mdast-util-from-markdown`,
+ * Framework-free: imports only `@noteforge/core` internals + `mdast-util-from-markdown`,
  * `mdast-util-to-hast`, `hast-util-to-html`. No Astro or browser symbols.
  *
  * privacy-first contract:

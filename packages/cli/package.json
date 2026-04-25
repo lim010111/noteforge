@@ -1,22 +1,40 @@
 {
-  "name": "@obpub/cli",
+  "name": "@noteforge/cli",
   "version": "0.0.0",
   "private": true,
-  "description": "CLI (obpub dev/build/audit/status) for Obsidian-Publish-OSS.",
+  "license": "MIT",
+  "description": "CLI (obpub dev/build/audit/status) for noteforge.",
   "type": "module",
   "bin": {
-    "obpub": "./src/bin.ts"
+    "obpub": "./dist/bin.js"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO#readme",
+  "bugs": {
+    "url": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/issues"
   },
   "scripts": {
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "obpub": "node --experimental-strip-types ./src/bin.ts"
+    "obpub": "node ./dist/bin.js",
+    "obpub:dev": "node --experimental-strip-types ./src/bin.ts",
+    "prepublishOnly": "pnpm typecheck && pnpm build"
   },
   "dependencies": {
-    "@obpub/core": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {
+    "@noteforge/core": "workspace:*",
+    "tsup": "^8.3.0",
     "vitest": "^3.2.0"
   }
 }

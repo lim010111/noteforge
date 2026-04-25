@@ -1,8 +1,9 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { parseNote } from '@obpub/core/discover/parseNote';
-import { classify } from '@obpub/core/privacy/classify';
-import { getClassifyRule, type ObpubConfig } from '@obpub/core/config';
+import { parseNote } from '@noteforge/core/discover/parseNote';
+import { classify } from '@noteforge/core/privacy/classify';
+import { getClassifyRule, ObpubConfigError, type ObpubConfig } from '@noteforge/core/config';
+import { ObpubInputError } from '../lib/errors.ts';
 
 export interface StatusResult {
   readonly relativePath: string;
@@ -14,7 +15,7 @@ export interface StatusResult {
 export async function runStatus(filePath: string, config: ObpubConfig): Promise<StatusResult> {
   const vault = config.vaults[0];
   if (vault === undefined) {
-    throw new Error('config has no vaults; cannot resolve note path');
+    throw new ObpubConfigError('config has no vaults; cannot resolve note path');
   }
 
   const vaultRoot = path.resolve(vault.path);
@@ -22,18 +23,34 @@ export async function runStatus(filePath: string, config: ObpubConfig): Promise<
 
   const relWithSep = path.relative(vaultRoot, absPath);
   if (relWithSep.startsWith('..') || path.isAbsolute(relWithSep)) {
-    throw new Error(
-      `file is outside vault root: ${absPath} is not under ${vaultRoot}`,
+    throw new ObpubInputError(
+      `file is outside vault root ${vaultRoot}`,
+      { filePath: absPath, line: 1 },
     );
   }
 
   if (path.extname(absPath).toLowerCase() !== '.md') {
-    throw new Error(`only .md files can be classified, got: ${absPath}`);
+    throw new ObpubInputError(
+      `only .md files can be classified, got extension '${path.extname(absPath)}'`,
+      { filePath: absPath, line: 1 },
+    );
   }
 
   const relativePath = relWithSep.split(path.sep).join('/');
 
-  const content = await fs.readFile(absPath, 'utf8');
+  let content: string;
+  try {
+    content = await fs.readFile(absPath, 'utf8');
+  } catch (cause) {
+    if (isNodeENOENT(cause)) {
+      throw new ObpubInputError('file not found', {
+        filePath: absPath,
+        line: 1,
+        cause,
+      });
+    }
+    throw cause;
+  }
 
   const note = parseNote({
     path: absPath,
@@ -60,4 +77,13 @@ export function formatStatusLine(result: StatusResult): string {
 
 export function formatStatusJson(result: StatusResult): string {
   return JSON.stringify(result);
+}
+
+function isNodeENOENT(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'ENOENT'
+  );
 }

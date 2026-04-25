@@ -10,7 +10,7 @@
  * Caller responsibilities (the component does NOT re-derive any of these):
  *   - `tags`    has already been filtered through `publishing.tagBlocklist`.
  *   - `body`    is sanitized HTML — link-rewrite, transclude expansion, and the
- *               `%%comment%%` strip have already run in `@obpub/core/privacy`.
+ *               `%%comment%%` strip have already run in `@noteforge/core/privacy`.
  */
 export interface NoteViewModel {
   title: string;

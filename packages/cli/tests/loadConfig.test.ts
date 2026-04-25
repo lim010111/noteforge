@@ -1,15 +1,22 @@
 import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, ObpubConfigError, type ObpubConfig } from '@noteforge/core/config';
 import { assertVaultPathsExist, loadConfigWithPath } from '../src/lib/loadConfig.ts';
+
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const TMP_ROOT = path.join(TEST_DIR, '.tmp');
 
 let sandbox: string;
 
 beforeEach(async () => {
-  sandbox = await fs.mkdtemp(path.join(os.tmpdir(), `obpub-loadconfig-${randomUUID()}-`));
+  // Place fixtures inside the project tree so Vite/vite-node can resolve
+  // dynamic file:// imports (its module resolver rejects paths outside the
+  // project root, e.g. os.tmpdir()).
+  await fs.mkdir(TMP_ROOT, { recursive: true });
+  sandbox = await fs.mkdtemp(path.join(TMP_ROOT, `loadconfig-${randomUUID()}-`));
 });
 
 afterEach(async () => {
@@ -52,6 +59,64 @@ describe('assertVaultPathsExist', () => {
       vaults: [{ id: 'archive', path: ghost }],
     });
     await expect(assertVaultPathsExist(cfg)).rejects.toThrow(/archive/);
+  });
+});
+
+describe('loadConfigWithPath — config-file errors carry configPath', () => {
+  it('rewraps a missing-vault-path failure as ObpubConfigError with configPath', async () => {
+    const ghost = path.join(sandbox, 'no-such-vault');
+    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    await fs.writeFile(
+      cfgPath,
+      `export default {
+  site: { title: 't', url: 'https://e.test', author: 'a' },
+  vaults: [{ id: 'main', path: ${JSON.stringify(ghost)} }],
+};
+`,
+      'utf8',
+    );
+
+    let caught: ObpubConfigError | undefined;
+    try {
+      await loadConfigWithPath({ cwd: sandbox, configPath: cfgPath });
+    } catch (e) {
+      caught = e as ObpubConfigError;
+    }
+    expect(caught).toBeInstanceOf(ObpubConfigError);
+    expect(caught?.configPath).toBe(cfgPath);
+    expect(caught?.message).toContain(cfgPath);
+    expect(caught?.message).toContain('vault path does not exist');
+  });
+
+  it('rewraps a syntax-broken config as ObpubConfigError with configPath', async () => {
+    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    await fs.writeFile(cfgPath, 'this is not ; valid javascript ===\n', 'utf8');
+
+    let caught: ObpubConfigError | undefined;
+    try {
+      await loadConfigWithPath({ cwd: sandbox, configPath: cfgPath });
+    } catch (e) {
+      caught = e as ObpubConfigError;
+    }
+    expect(caught).toBeInstanceOf(ObpubConfigError);
+    expect(caught?.configPath).toBe(cfgPath);
+    expect(caught?.message).toContain(cfgPath);
+  });
+
+  it('rewraps "no default export" as ObpubConfigError with configPath', async () => {
+    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    await fs.writeFile(cfgPath, 'export const notDefault = 1;\n', 'utf8');
+
+    let caught: ObpubConfigError | undefined;
+    try {
+      await loadConfigWithPath({ cwd: sandbox, configPath: cfgPath });
+    } catch (e) {
+      caught = e as ObpubConfigError;
+    }
+    expect(caught).toBeInstanceOf(ObpubConfigError);
+    expect(caught?.configPath).toBe(cfgPath);
+    expect(caught?.message).toContain(cfgPath);
+    expect(caught?.message).toContain('default export');
   });
 });
 

@@ -1,0 +1,31 @@
+---
+import { BaseLayout, Graph as GraphView, type GraphViewModel } from '@noteforge/theme-default';
+import { getPipelineResult } from '../lib/pipelineCache.ts';
+import '../styles/global.css';
+
+const result = await getPipelineResult();
+
+function lastSegment(slug: string): string {
+  const i = slug.lastIndexOf('/');
+  return i === -1 ? slug : slug.slice(i + 1);
+}
+
+const view: GraphViewModel = {
+  nodes: result.publicGraph.nodes.map((slug) => {
+    const fm = result.publicFrontmatter.get(slug);
+    const fmTitle = fm !== undefined && typeof fm['title'] === 'string' ? (fm['title'] as string) : undefined;
+    return { slug, title: fmTitle ?? lastSegment(slug) };
+  }),
+  edges: result.publicGraph.edges.map((e) => ({ source: e.from, target: e.to })),
+};
+---
+<BaseLayout title="그래프">
+  <Fragment slot="nav">
+    <ul class="flex gap-4 py-4 text-sm">
+      <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
+      <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
+      <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
+    </ul>
+  </Fragment>
+  <GraphView graph={view} />
+</BaseLayout>

@@ -18,7 +18,7 @@
  *     `packages/core/src/privacy/classify.ts`; re-deriving it here would split
  *     the rule across two paths (watcher + loader) and is the most common origin
  *     of leak regressions.
- *   - Wikilink parsing/resolution is delegated to `@obpub/core/resolve/wikilink`.
+ *   - Wikilink parsing/resolution is delegated to `@noteforge/core/resolve/wikilink`.
  *     We scan the raw body for `[[...]]` and `![[...]]`, then resolve via the
  *     shared index so the watcher stays consistent with the loader's view.
  *
@@ -31,7 +31,7 @@ import * as pathMod from 'node:path';
 import * as fsPromises from 'node:fs/promises';
 import picomatch from 'picomatch';
 
-import type { ObpubConfig } from '@obpub/core/config';
+import type { ObpubConfig } from '@noteforge/core/config';
 import { walkVault } from '../../core/src/discover/walk.ts';
 import { parseNote } from '../../core/src/discover/parseNote.ts';
 import { computeSlug } from '../../core/src/slug.ts';
@@ -74,6 +74,16 @@ export interface WatcherOptions {
     opts: unknown,
   ) => ChokidarLike | Promise<ChokidarLike>;
   readonly readFile?: (absPath: string) => Promise<string>;
+  /**
+   * Thin pass-through for chokidar's polling knobs. Required on WSL `/mnt/c`
+   * mounts where inotify events can be silently dropped — without polling,
+   * vault edits made from the Windows side never reach the dev server.
+   * Production builds do not boot the watcher, so this only affects dev.
+   */
+  readonly chokidarOptions?: {
+    usePolling?: boolean;
+    pollInterval?: number;
+  };
 }
 
 export interface Watcher {
@@ -286,11 +296,17 @@ export function createWatcher(options: WatcherOptions): Watcher {
   return {
     async start(): Promise<void> {
       await primeFromVault();
-      const instance = await chokidarFactory(options.vaultPath, {
+      const baseOpts: Record<string, unknown> = {
         ignored: [...options.ignore],
         ignoreInitial: true,
         persistent: true,
-      });
+      };
+      const co = options.chokidarOptions;
+      if (co !== undefined) {
+        if (co.usePolling !== undefined) baseOpts['usePolling'] = co.usePolling;
+        if (co.pollInterval !== undefined) baseOpts['interval'] = co.pollInterval;
+      }
+      const instance = await chokidarFactory(options.vaultPath, baseOpts);
       chokidarInstance = instance;
       instance.on('add', (p) => {
         void handleUpsert(p);

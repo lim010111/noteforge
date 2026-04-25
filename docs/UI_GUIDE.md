@@ -1,4 +1,4 @@
-# UI 디자인 가이드 — @obpub/theme-default (v0.1)
+# UI 디자인 가이드 — @noteforge/theme-default (v0.1)
 
 ## 디자인 원칙
 1. **읽기 우선** — 본문이 주인공. 크롬(navigation, 사이드바, 장식)은 최소.

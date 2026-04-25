@@ -2,7 +2,7 @@
  * View-model for `<Backlinks />`.
  *
  * INTENTIONALLY a STRICT SUBSET of the data the privacy pipeline emits.
- * Only entries whose target is PUBLIC may appear here — `@obpub/core/privacy`
+ * Only entries whose target is PUBLIC may appear here — `@noteforge/core/privacy`
  * is the single decider, and the caller must build this object from
  * `PipelineResult.publicGraph` (already public-filtered) so that no private
  * note title or slug ever reaches this component.

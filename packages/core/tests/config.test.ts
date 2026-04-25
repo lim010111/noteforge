@@ -50,7 +50,7 @@ describe('defineConfig', () => {
     expect(cfg.vaults).toHaveLength(1);
     expect(cfg.vaults[0]?.id).toBe('personal');
     expect(cfg.vaults[0]?.urlPrefix).toBe('/');
-    expect(cfg.vaults[0]?.theme).toBe('@obpub/theme-default');
+    expect(cfg.vaults[0]?.theme).toBe('@noteforge/theme-default');
     expect(cfg.publishing.frontmatterKey).toBe('public');
     expect(cfg.publishing.publicTag).toBe('public');
     expect(cfg.publishing.requireExplicitOptIn).toBe(true);
@@ -164,6 +164,83 @@ describe('defineConfig', () => {
     expect(ignore).not.toContain('private/**');
     expect(ignore).toEqual(expect.arrayContaining(['.obsidian/**', '.trash/**']));
     expect(ignore).toHaveLength(2);
+  });
+});
+
+describe('ObpubConfigError', () => {
+  it('formats message with configPath + line + column', () => {
+    const err = new ObpubConfigError('boom', {
+      configPath: '/abs/cfg.ts',
+      line: 5,
+      column: 7,
+    });
+    expect(err.message).toBe('/abs/cfg.ts:5:7: boom');
+    expect(err.configPath).toBe('/abs/cfg.ts');
+    expect(err.line).toBe(5);
+    expect(err.column).toBe(7);
+    expect(err.reason).toBe('boom');
+  });
+
+  it('formats message with configPath + line (no column)', () => {
+    const err = new ObpubConfigError('boom', {
+      configPath: '/abs/cfg.ts',
+      line: 5,
+    });
+    expect(err.message).toBe('/abs/cfg.ts:5: boom');
+    expect(err.column).toBeUndefined();
+  });
+
+  it('ignores column when line is missing', () => {
+    const err = new ObpubConfigError('boom', {
+      configPath: '/abs/cfg.ts',
+      column: 7,
+    });
+    expect(err.message).toBe('/abs/cfg.ts: boom');
+    expect(err.line).toBeUndefined();
+  });
+
+  it('falls back to bare reason when no options', () => {
+    const err = new ObpubConfigError('boom');
+    expect(err.message).toBe('boom');
+    expect(err.configPath).toBeUndefined();
+    expect(err.line).toBeUndefined();
+    expect(err.column).toBeUndefined();
+  });
+
+  it('preserves original cause', () => {
+    const original = new Error('original');
+    const err = new ObpubConfigError('wrapped', { cause: original });
+    expect(err.cause).toBe(original);
+  });
+});
+
+describe('defineConfig with configPath', () => {
+  it('prefixes the error message with configPath', () => {
+    let caught: ObpubConfigError | undefined;
+    try {
+      defineConfig(baseInput({ vaults: [{ id: 'a', path: 'rel/path' }] }), {
+        configPath: '/abs/cfg.ts',
+      });
+    } catch (e) {
+      caught = e as ObpubConfigError;
+    }
+    expect(caught).toBeInstanceOf(ObpubConfigError);
+    expect(caught?.message).toBe(
+      '/abs/cfg.ts: vaults[0].path: 절대 경로여야 합니다',
+    );
+    expect(caught?.configPath).toBe('/abs/cfg.ts');
+    expect(caught?.reason).toBe('vaults[0].path: 절대 경로여야 합니다');
+  });
+
+  it('matches the original message when configPath is omitted', () => {
+    let caught: ObpubConfigError | undefined;
+    try {
+      defineConfig(baseInput({ vaults: [{ id: 'a', path: 'rel/path' }] }));
+    } catch (e) {
+      caught = e as ObpubConfigError;
+    }
+    expect(caught?.message).toBe('vaults[0].path: 절대 경로여야 합니다');
+    expect(caught?.configPath).toBeUndefined();
   });
 });
 

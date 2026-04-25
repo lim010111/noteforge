@@ -1,6 +1,6 @@
 # TODO
 
-v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/public-fizzy-patterson.md`.
+v0.1 MVP 작업 체크리스트.
 
 ## Step 0 — 문서 선행 ✅
 - [x] `CLAUDE.md` 실내용 작성
@@ -22,7 +22,7 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `apps/blog` 스켈레톤
 - [x] `pnpm install` 성공, `pnpm -r typecheck` 통과, `pnpm lint`/`pnpm test` 통과
 
-## Step 2 — @obpub/core privacy 엔진 (TDD) ✅
+## Step 2 — @noteforge/core privacy 엔진 (TDD) ✅
 각 항목은 **실패 테스트 → 통과 구현** 순서. fixture vault는 통합 테스트 직전에 준비.
 
 - [x] `types.ts` — ParsedNote, ClassifyRule, Classification 타입
@@ -42,14 +42,14 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert (`pipeline.ts` + `tests/integration/`)
 - [x] Property-based fuzz test (50회, fast-check seed=424242, 5 불변식)
 
-## Step 3 — @obpub/astro integration ✅
+## Step 3 — @noteforge/astro integration ✅
 - [x] `integration.ts` — AstroIntegration factory + 훅 등록 (step3a-step2)
 - [x] `loader.ts` — Content Layer loader (core 파이프라인 호출) (step3a-step1)
 - [x] `remarkWikilink.ts` — MDX 파이프라인 브리지 (step3a-step0)
 - [x] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce (step3b-step0/1)
 - [x] HMR 통합 테스트 (server:setup/done + Vite hot dispatch + e2e coalesce) (step3b-step2)
 
-## Step 4 — @obpub/theme-default ✅
+## Step 4 — @noteforge/theme-default ✅
 - [x] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
 - [x] `BaseLayout.astro` (nav, main, footer, semantic HTML)
 - [x] `Note.astro` (prose 본문, 메타, 태그 칩)
@@ -59,32 +59,33 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] 404 페이지 (private 존재 누설 금지 문구)
 - [x] 모바일 반응형 점검
 
-## Step 5 — @obpub/cli ✅
+## Step 5 — @noteforge/cli ✅
 - [x] `bin.ts` + commander/clipanion 진입점
 - [x] `commands/dev.ts` (astro dev 래핑)
 - [x] `commands/build.ts` (astro build + audit + 종료 리포트)
 - [x] `commands/audit.ts` (독립 실행 누출 검증, `--strict` 지원)
 - [x] `commands/status.ts` (노트 공개 판정 이유 출력)
 
-## Step 6 — apps/blog 도그푸드
-- [ ] `astro.config.mjs` + 통합 등록
-- [ ] `obsidian-blog.config.ts` (실 vault 절대경로 — 사용자 확정 필요)
-- [ ] `content.config.ts`
-- [ ] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
-- [ ] 로컬 빌드 성공 + audit 통과
-- [ ] Cloudflare Pages / Vercel 배포
+## Step 6 — apps/blog 도그푸드 ✅
+- [x] `astro.config.mjs` + 통합 등록
+- [x] `obsidian-blog.config.ts` (실 vault 절대경로)
+- [x] `content.config.ts`
+- [x] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
+- [x] 로컬 빌드 성공 + audit 통과
+- [ ] Cloudflare Pages / Vercel 배포 (배포 도메인 미정 — v0.2 작업)
 
-## Step 7 — CI + 릴리스 준비
-- [ ] GitHub Actions: install → typecheck → lint → vitest → build → audit
-- [ ] CLI 빌드 파이프라인 — tsup으로 `dist/bin.js` 생성, `package.json` bin → `dist/bin.js`, `prepublishOnly` 추가 (Node 22 strip-types 의존 제거)
-- [ ] 에러 메시지 file:line 포함 — config 파싱 실패/status 입력 오류 시
-- [ ] `LICENSE` (MIT)
-- [ ] `CONTRIBUTING.md`
-- [ ] README 보완 (실 설치 가이드, 스크린샷)
-- [ ] 프로젝트명/npm 네임스페이스 정식 확정
-- [ ] v0.1.0 태그 + 릴리스 노트
+## Step 7 — CI + 릴리스 준비 ✅
+- [x] GitHub Actions: install → typecheck → lint → vitest → build → audit
+- [x] CLI 빌드 파이프라인 — tsup으로 `dist/bin.js` 생성, `package.json` bin → `dist/bin.js`, `prepublishOnly` 추가 (Node 22 strip-types 의존 제거)
+- [x] 에러 메시지 file:line 포함 — config 파싱 실패/status 입력 오류 시
+- [x] `LICENSE` (MIT)
+- [x] `CONTRIBUTING.md`
+- [x] README 보완 (실 설치 가이드, 스크린샷)
+- [x] 프로젝트명/npm 네임스페이스 정식 확정 (`noteforge` / `@noteforge/*`)
+- [x] v0.1.0 릴리스 노트 작성 (CHANGELOG.md). git tag는 사용자가 직접 푸시:
+      `git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0`
 
 ## 미결정 / 사용자 확인 필요
-- [ ] 실 Obsidian vault 절대경로 (Step 6 블록)
-- [ ] 정식 프로젝트명 + npm 네임스페이스 (Obsidian 상표 회피)
+- [x] 실 Obsidian vault 절대경로 (Step 6에서 처리)
+- [x] 정식 프로젝트명 + npm 네임스페이스 — `noteforge` / `@noteforge/*`
 - [ ] 배포 도메인 (canonical URL 확정용)

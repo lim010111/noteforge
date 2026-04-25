@@ -1,9 +1,19 @@
 {
-  "name": "@obpub/core",
+  "name": "@noteforge/core",
   "version": "0.0.0",
   "private": true,
-  "description": "Framework-independent privacy pipeline for Obsidian-Publish-OSS.",
+  "license": "MIT",
+  "description": "Framework-independent privacy pipeline for noteforge.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO#readme",
+  "bugs": {
+    "url": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/issues"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./config": "./src/config.ts",
