@@ -42,12 +42,12 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert (`pipeline.ts` + `tests/integration/`)
 - [x] Property-based fuzz test (50회, fast-check seed=424242, 5 불변식)
 
-## Step 3 — @obpub/astro integration
-- [ ] `integration.ts` — AstroIntegration factory + 훅 등록
-- [ ] `loader.ts` — Content Layer loader (core 파이프라인 호출)
-- [ ] `remarkWikilink.ts` — MDX 파이프라인 브리지
-- [ ] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce
-- [ ] HMR 통합 테스트 (토글 → 브라우저 반영)
+## Step 3 — @obpub/astro integration ✅
+- [x] `integration.ts` — AstroIntegration factory + 훅 등록 (step3a-step2)
+- [x] `loader.ts` — Content Layer loader (core 파이프라인 호출) (step3a-step1)
+- [x] `remarkWikilink.ts` — MDX 파이프라인 브리지 (step3a-step0)
+- [x] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce (step3b-step0/1)
+- [x] HMR 통합 테스트 (server:setup/done + Vite hot dispatch + e2e coalesce) (step3b-step2)
 
 ## Step 4 — @obpub/theme-default
 - [ ] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
