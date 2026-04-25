@@ -79,6 +79,14 @@ export interface PipelineResult {
   publicGraph: PublicGraph;
   /** Vault-relative paths of attachments included in the public closure. */
   attachmentClosure: Set<string>;
+  /**
+   * Title-shaped strings of every private note (frontmatter `title` and the bare
+   * filename, both included). Audit consumers scan rendered HTML for these to detect
+   * leaked private-note mentions.
+   */
+  privateNoteTitles: Set<string>;
+  /** Vault-relative paths of all discovered attachments (public + private). */
+  allAttachments: Set<string>;
   /** Structured diagnostics (tripwire hits, unresolved links, etc.). */
   warnings: PipelineWarning[];
 }
@@ -286,6 +294,25 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allowedExtensions: config.attachments.allowedExtensions,
   });
 
+  // Private note titles + bare filenames — surfaced for downstream audit so that
+  // independent dist scanners can detect leaked private mentions without re-running
+  // classification (privacy-first: classify once, consume everywhere).
+  const privateNoteTitles = new Set<string>();
+  for (const n of notes) {
+    const slug = slugByRelPath.get(n.relativePath);
+    if (slug === undefined) continue;
+    if (publicSlugs.has(slug)) continue;
+    const title = n.frontmatter['title'];
+    if (typeof title === 'string') {
+      const cleaned = title.trim();
+      if (cleaned.length > 0) privateNoteTitles.add(cleaned);
+    }
+    const basename = path.posix
+      .basename(n.relativePath)
+      .replace(MD_EXT_RE, '');
+    if (basename.length > 0) privateNoteTitles.add(basename);
+  }
+
   return {
     notes,
     publicSlugs,
@@ -297,6 +324,8 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
       edges: pubGraph.edges.map((e) => ({ from: e.from, to: e.to })),
     },
     attachmentClosure: new Set(closure.included),
+    privateNoteTitles,
+    allAttachments: new Set(attachments),
     warnings,
   };
 }

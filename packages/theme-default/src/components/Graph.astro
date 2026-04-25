@@ -1,0 +1,66 @@
+---
+/**
+ * Public-notes graph — view-only static SVG.
+ *
+ * Privacy contract: every entry in `graph.nodes`/`graph.edges` is already
+ * PUBLIC. Caller (typically `apps/blog` or `@obpub/astro`) builds the
+ * `GraphViewModel` from `PipelineResult.publicGraph`. This component MUST
+ * NOT re-derive isPublic, look up additional data, or emit any field of
+ * `node` other than the declared `slug`/`title` (positioned coords come
+ * from `computeCircularLayout`, which is itself allowlist-clean).
+ *
+ * Empty state: when `graph.nodes` is empty we render a single inline
+ * notice instead of an empty <svg>. An empty <svg> would still be a
+ * visible frame, suggesting "something was filtered out" — the silent
+ * notice mirrors the empty-state policy of Backlinks/TagList.
+ *
+ * v0.1 hard rules (PRD): static SVG, no client JS, no D3/canvas/WebGL.
+ */
+import type { GraphProps } from "./Graph.types";
+import { computeCircularLayout } from "./Graph.layout.ts";
+
+const {
+  graph,
+  emptyMessage = "아직 공개된 글이 없습니다.",
+  className = "w-full md:max-w-3xl md:mx-auto",
+} = Astro.props as GraphProps;
+
+const positioned = computeCircularLayout(graph);
+const { viewBox } = positioned;
+const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
+---
+{graph.nodes.length === 0 ? (
+  <p class="text-zinc-500 text-sm">{emptyMessage}</p>
+) : (
+  <figure class={className}>
+    <svg
+      viewBox={viewBoxAttr}
+      width="100%"
+      height="auto"
+      role="img"
+      aria-label="공개 노트 그래프"
+    >
+      {positioned.edges.map((e) => (
+        <line
+          x1={e.x1}
+          y1={e.y1}
+          x2={e.x2}
+          y2={e.y2}
+          stroke="#a1a1aa"
+          stroke-width="1"
+        />
+      ))}
+      {positioned.nodes.map((n) => (
+        <a href={`/${n.slug}`}>
+          <circle
+            cx={n.x}
+            cy={n.y}
+            r="4"
+            class="fill-zinc-900 hover:fill-blue-600"
+          />
+          <title>{n.title}</title>
+        </a>
+      ))}
+    </svg>
+  </figure>
+)}

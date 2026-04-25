@@ -32,7 +32,18 @@
     },
     {
       "dir": "step4b-theme-discovery",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T13:30:34+0900"
+    },
+    {
+      "dir": "step4c-theme-graph-and-polish",
+      "status": "completed",
+      "completed_at": "2026-04-25T14:24:39+0900"
+    },
+    {
+      "dir": "step5-cli-commands",
+      "status": "completed",
+      "completed_at": "2026-04-25T15:11:39+0900"
     }
   ]
 }

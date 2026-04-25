@@ -1,0 +1,32 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step4c-theme-graph-and-polish",
+  "steps": [
+    {
+      "step": 0,
+      "name": "graph-data-builder",
+      "status": "completed",
+      "started_at": "2026-04-25T14:04:59+0900",
+      "summary": "Graph.layout.ts (computeCircularLayout, deterministic, no external libs) + 9 vitest tests incl. fast-check fuzz (50 runs); mutation check A/B/C/D 재현 OK",
+      "completed_at": "2026-04-25T14:09:51+0900"
+    },
+    {
+      "step": 1,
+      "name": "graph-component",
+      "status": "completed",
+      "started_at": "2026-04-25T14:09:51+0900",
+      "summary": "Graph.astro + Graph.types + 9 Container tests + index re-export; canary/script 부재 검증; mutation A/B/C/D 재현 OK",
+      "completed_at": "2026-04-25T14:17:54+0900"
+    },
+    {
+      "step": 2,
+      "name": "theme-mobile-responsive-pass",
+      "status": "completed",
+      "started_at": "2026-04-25T14:17:54+0900",
+      "summary": "7 component root classes 점검·보강 + 7 viewport-class 단언 추가 + AI-slop scan 0 hits; mutation A/B/C/D 재현 OK",
+      "completed_at": "2026-04-25T14:24:39+0900"
+    }
+  ],
+  "created_at": "2026-04-25T14:04:59+0900",
+  "completed_at": "2026-04-25T14:24:39+0900"
+}

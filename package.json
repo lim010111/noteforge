@@ -5,7 +5,7 @@
   "description": "Monorepo root for Obsidian-Publish-OSS — privacy-first Astro SSG for selective Obsidian vault publishing.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.6.0"
   },
   "scripts": {
     "typecheck": "pnpm -r --parallel typecheck",

@@ -49,23 +49,22 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce (step3b-step0/1)
 - [x] HMR 통합 테스트 (server:setup/done + Vite hot dispatch + e2e coalesce) (step3b-step2)
 
-## Step 4 — @obpub/theme-default
-- [ ] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
-- [ ] `BaseLayout.astro` (nav, main, footer, semantic HTML)
-- [ ] `Note.astro` (prose 본문, 메타, 태그 칩)
-- [ ] `Backlinks.astro` (필터된 그래프 데이터 입력)
-- [ ] `TagList.astro` + 태그 인덱스 페이지 로직
-- [ ] `Graph.astro` (정적 SVG, 노드 클릭 가능)
-- [ ] 404 페이지 (private 존재 누설 금지 문구)
-- [ ] 모바일 반응형 점검
+## Step 4 — @obpub/theme-default ✅
+- [x] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
+- [x] `BaseLayout.astro` (nav, main, footer, semantic HTML)
+- [x] `Note.astro` (prose 본문, 메타, 태그 칩)
+- [x] `Backlinks.astro` (필터된 그래프 데이터 입력)
+- [x] `TagList.astro` + 태그 인덱스 페이지 로직
+- [x] `Graph.astro` (정적 SVG, 노드 클릭 가능)
+- [x] 404 페이지 (private 존재 누설 금지 문구)
+- [x] 모바일 반응형 점검
 
-## Step 5 — @obpub/cli
-- [ ] `bin.ts` + commander/clipanion 진입점
-- [ ] `commands/dev.ts` (astro dev 래핑)
-- [ ] `commands/build.ts` (astro build + audit + 종료 리포트)
-- [ ] `commands/audit.ts` (독립 실행 누출 검증, `--strict` 지원)
-- [ ] `commands/status.ts` (노트 공개 판정 이유 출력)
-- [ ] 에러 메시지 file:line 포함
+## Step 5 — @obpub/cli ✅
+- [x] `bin.ts` + commander/clipanion 진입점
+- [x] `commands/dev.ts` (astro dev 래핑)
+- [x] `commands/build.ts` (astro build + audit + 종료 리포트)
+- [x] `commands/audit.ts` (독립 실행 누출 검증, `--strict` 지원)
+- [x] `commands/status.ts` (노트 공개 판정 이유 출력)
 
 ## Step 6 — apps/blog 도그푸드
 - [ ] `astro.config.mjs` + 통합 등록
@@ -77,6 +76,8 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 
 ## Step 7 — CI + 릴리스 준비
 - [ ] GitHub Actions: install → typecheck → lint → vitest → build → audit
+- [ ] CLI 빌드 파이프라인 — tsup으로 `dist/bin.js` 생성, `package.json` bin → `dist/bin.js`, `prepublishOnly` 추가 (Node 22 strip-types 의존 제거)
+- [ ] 에러 메시지 file:line 포함 — config 파싱 실패/status 입력 오류 시
 - [ ] `LICENSE` (MIT)
 - [ ] `CONTRIBUTING.md`
 - [ ] README 보완 (실 설치 가이드, 스크린샷)

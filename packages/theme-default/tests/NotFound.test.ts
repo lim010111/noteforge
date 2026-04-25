@@ -81,4 +81,17 @@ describe('NotFound', () => {
     expect(html).not.toContain('/projects/private-thing');
     expect(html).not.toContain('CALLER_PROVIDED_TITLE_PROBE');
   });
+
+  it('(5) <section> root carries mobile + desktop viewport classes (UI_GUIDE: standalone page must own its container)', async () => {
+    const html = await render();
+    const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
+    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = sectionMatch![1]!;
+    for (const token of ['w-full', 'px-4', 'md:max-w-3xl', 'md:mx-auto', 'md:px-6']) {
+      expect(
+        cls,
+        `<section> class must include "${token}" — NotFound is rendered standalone (no BaseLayout assumed) and must own its mobile/desktop container`,
+      ).toContain(token);
+    }
+  });
 });
