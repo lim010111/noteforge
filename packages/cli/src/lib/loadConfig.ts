@@ -18,35 +18,51 @@ export interface LoadConfigOptions {
   readonly configPath?: string;
 }
 
+export interface LoadedConfig {
+  readonly config: ObpubConfig;
+  /** Absolute path of the loaded config file, or `null` when fallback defaults were used. */
+  readonly configPath: string | null;
+}
+
 export async function loadConfig(opts: LoadConfigOptions = {}): Promise<ObpubConfig> {
+  const { config } = await loadConfigWithPath(opts);
+  return config;
+}
+
+export async function loadConfigWithPath(
+  opts: LoadConfigOptions = {},
+): Promise<LoadedConfig> {
   const cwd = opts.cwd ?? process.cwd();
 
   if (opts.configPath !== undefined) {
     const explicit = path.isAbsolute(opts.configPath)
       ? opts.configPath
       : path.resolve(cwd, opts.configPath);
-    return importConfigFile(explicit);
+    return { config: await importConfigFile(explicit), configPath: explicit };
   }
 
   const found = await findConfigUpwards(cwd);
   if (found !== null) {
-    return importConfigFile(found);
+    return { config: await importConfigFile(found), configPath: found };
   }
 
   process.stderr.write(`obpub: no config found, falling back to defaults at ${cwd}\n`);
-  return defineConfig({
-    site: {
-      title: 'obpub',
-      url: 'https://example.com',
-      author: 'unknown',
-    },
-    vaults: [
-      {
-        id: 'default',
-        path: cwd,
+  return {
+    config: defineConfig({
+      site: {
+        title: 'obpub',
+        url: 'https://example.com',
+        author: 'unknown',
       },
-    ],
-  });
+      vaults: [
+        {
+          id: 'default',
+          path: cwd,
+        },
+      ],
+    }),
+    configPath: null,
+  };
 }
 
 async function findConfigUpwards(start: string): Promise<string | null> {
