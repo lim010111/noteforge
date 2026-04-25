@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "taglist-and-tag-page",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T13:25:16+0900",
+      "summary": "TagList + TagPage + 4 view-model files + 12 Container-API tests + empty-state silence (TagList) / 안내문구 (TagPage) + allowlist 강제; mutation check: A/B/D/E 실패 재현 OK",
+      "completed_at": "2026-04-25T13:30:00+0900"
     }
   ],
   "created_at": "2026-04-25T13:20:29+0900"

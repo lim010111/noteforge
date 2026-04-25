@@ -1,0 +1,29 @@
+---
+/**
+ * Tag index — view-only.
+ *
+ * Privacy contract: `taglist.tags` is already blocklist-filtered upstream
+ * (`@obpub/core/privacy` via `publishing.tagBlocklist`). This component
+ * MUST NOT re-filter or look up anything else.
+ *
+ * Empty state: render NOTHING when `tags` is empty. A "태그 없음" placeholder
+ * could suggest that hidden tags exist; silence is the safe default.
+ */
+import type { TagListProps } from "./TagList.types";
+const { taglist } = Astro.props as TagListProps;
+---
+{taglist.tags.length > 0 && (
+  <section aria-label="태그 목록" class="space-y-4">
+    <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">태그</h1>
+    <ul class="flex flex-wrap gap-2">
+      {taglist.tags.map((t) => (
+        <li>
+          <a
+            href={`/tags/${encodeURIComponent(t.tag)}`}
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          >#{t.tag} <span class="ml-1 text-zinc-400">{t.count}</span></a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
