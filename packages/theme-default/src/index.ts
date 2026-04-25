@@ -5,6 +5,19 @@ export { default as NotFound } from './components/NotFound.astro';
 export { default as Backlinks } from './components/Backlinks.astro';
 export { default as TagList } from './components/TagList.astro';
 export { default as TagPage } from './components/TagPage.astro';
+export { default as Graph } from './components/Graph.astro';
+export type { GraphProps } from './components/Graph.types.ts';
+export type {
+  GraphViewModel,
+  GraphNode,
+  GraphEdge,
+  PositionedGraph,
+  PositionedNode,
+  PositionedEdge,
+  ViewBox,
+  LayoutOptions,
+} from './components/Graph.layout.ts';
+export { computeCircularLayout } from './components/Graph.layout.ts';
 export type { NoteProps, NoteViewModel } from './components/Note.types.ts';
 export type {
   BacklinksProps,
