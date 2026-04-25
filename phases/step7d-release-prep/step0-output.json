@@ -1,0 +1,11 @@
+{
+  "name": "noteforge",
+  "scope": "@noteforge",
+  "results": {
+    "noteforge": "available",
+    "@noteforge/core": "available",
+    "@noteforge/astro": "available",
+    "@noteforge/theme-default": "available",
+    "@noteforge/cli": "available"
+  }
+}
