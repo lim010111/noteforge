@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-04-25T14:47:25+0900",
       "summary": "obpub audit CLI — scanDist/checks/report modules + runAudit orchestrator covering 6 dist-leak rules + strict-only authored title mention. PipelineResult exposes privateNoteTitles + allAttachments so audit consumes (not re-classifies) privacy verdicts. 20 new vitest cases (5 scanDist, 12 checks, 3 vault-mixed integration green/red).",
-      "completed_at": "2026-04-25T15:00:30+0900"
+      "completed_at": "2026-04-25T15:00:25+0900"
     },
     {
       "step": 2,
