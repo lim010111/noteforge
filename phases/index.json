@@ -42,7 +42,8 @@
     },
     {
       "dir": "step5-cli-commands",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T15:11:39+0900"
     }
   ]
 }
