@@ -6,7 +6,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./config": "./src/config.ts"
+    "./config": "./src/config.ts",
+    "./pipeline": "./src/pipeline.ts",
+    "./privacy/linkRewriter": "./src/privacy/linkRewriter.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

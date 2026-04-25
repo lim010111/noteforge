@@ -4,5 +4,5 @@
     "types": ["node"],
     "jsx": "preserve"
   },
-  "include": ["src/**/*.ts", "src/**/*.astro"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.astro", "tests/**/*.ts"]
 }

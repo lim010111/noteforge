@@ -1,0 +1,19 @@
+---
+/**
+ * 404 body component.
+ *
+ * Privacy contract (PRD / UI_GUIDE):
+ *   - Wording must NOT disclose whether a note ever lived at this path.
+ *   - Forbidden vocabulary: "비공개", "삭제됨", "private", "deleted".
+ *     The replacement phrasing is intentionally ambiguous — covers both
+ *     "never existed" and "previously public, now unpublished".
+ *   - The component reads NO props. The slug / request path / referrer are
+ *     all considered information; echoing any of them back to the user can
+ *     confirm a guess about a private note's existence.
+ */
+---
+<section>
+  <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">페이지를 찾을 수 없습니다</h1>
+  <p class="mt-4 text-zinc-800">요청하신 페이지가 존재하지 않거나, 더 이상 공개되지 않습니다.</p>
+  <p class="mt-2"><a href="/">홈으로 돌아가기</a></p>
+</section>

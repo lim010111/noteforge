@@ -22,7 +22,7 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `apps/blog` 스켈레톤
 - [x] `pnpm install` 성공, `pnpm -r typecheck` 통과, `pnpm lint`/`pnpm test` 통과
 
-## Step 2 — @obpub/core privacy 엔진 (TDD)
+## Step 2 — @obpub/core privacy 엔진 (TDD) ✅
 각 항목은 **실패 테스트 → 통과 구현** 순서. fixture vault는 통합 테스트 직전에 준비.
 
 - [x] `types.ts` — ParsedNote, ClassifyRule, Classification 타입
@@ -31,23 +31,23 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `slug.ts` — 한국어/공백 처리 (18 tests)
 - [x] `resolve/wikilink.ts` — case-insensitive 타겟 해석 + aliases (18 tests)
 - [x] `privacy/commentStrip.ts` — `%%...%%` 제거 (10 tests)
-- [ ] `config.ts` — defineConfig + Zod 스키마 + 강제 private ignore + allowlist/blocklist
-- [ ] `discover/parseNote.ts` — gray-matter + 코멘트 스트리핑 + 태그 추출 (엔드투엔드)
-- [ ] `discover/walk.ts` — ignore glob 적용 vault walker
-- [ ] `privacy/frontmatterFilter.ts` — allowlist 필터
-- [ ] `privacy/graph.ts` — full/filtered 그래프
-- [ ] `privacy/linkRewriter.ts` — wikilink remark plugin (private → strip-to-text)
-- [ ] `privacy/transclude.ts` — public 임베드 재귀/private 임베드 제거 (cycle detection)
-- [ ] `privacy/attachmentFilter.ts` — reference closure
-- [ ] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert
-- [ ] Property-based fuzz test (50회)
+- [x] `config.ts` — defineConfig + Zod 스키마 + 강제 private ignore + allowlist/blocklist (14 tests)
+- [x] `discover/parseNote.ts` — gray-matter + 코멘트 스트리핑 + 태그 추출 (11 tests)
+- [x] `discover/walk.ts` — ignore glob 적용 vault walker (9 tests)
+- [x] `privacy/frontmatterFilter.ts` — allowlist 필터 (10 tests)
+- [x] `privacy/graph.ts` — full/filtered 그래프 (13 tests)
+- [x] `privacy/linkRewriter.ts` — wikilink remark plugin (private → strip-to-text) (14 tests)
+- [x] `privacy/transclude.ts` — public 임베드 재귀/private 임베드 제거 (cycle detection) (12 tests)
+- [x] `privacy/attachmentFilter.ts` — reference closure (11 tests)
+- [x] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert (`pipeline.ts` + `tests/integration/`)
+- [x] Property-based fuzz test (50회, fast-check seed=424242, 5 불변식)
 
-## Step 3 — @obpub/astro integration
-- [ ] `integration.ts` — AstroIntegration factory + 훅 등록
-- [ ] `loader.ts` — Content Layer loader (core 파이프라인 호출)
-- [ ] `remarkWikilink.ts` — MDX 파이프라인 브리지
-- [ ] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce
-- [ ] HMR 통합 테스트 (토글 → 브라우저 반영)
+## Step 3 — @obpub/astro integration ✅
+- [x] `integration.ts` — AstroIntegration factory + 훅 등록 (step3a-step2)
+- [x] `loader.ts` — Content Layer loader (core 파이프라인 호출) (step3a-step1)
+- [x] `remarkWikilink.ts` — MDX 파이프라인 브리지 (step3a-step0)
+- [x] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce (step3b-step0/1)
+- [x] HMR 통합 테스트 (server:setup/done + Vite hot dispatch + e2e coalesce) (step3b-step2)
 
 ## Step 4 — @obpub/theme-default
 - [ ] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
