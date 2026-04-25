@@ -3,5 +3,12 @@ import { BaseLayout, NotFound } from '@obpub/theme-default';
 import '../styles/global.css';
 ---
 <BaseLayout title="찾을 수 없습니다">
+  <Fragment slot="nav">
+    <ul class="flex gap-4 py-4 text-sm">
+      <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
+      <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
+      <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
+    </ul>
+  </Fragment>
   <NotFound />
 </BaseLayout>
