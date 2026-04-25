@@ -7,7 +7,7 @@
  *      replace) the user's plugin array, so we pass our plugin only — passing
  *      existing plugins back would duplicate them after the merge.
  *   2. astro:build:done — placeholder hook that records intent. The real audit
- *      lives in `@obpub/cli` + Phase D; doing it here would couple the integration
+ *      lives in `@noteforge/cli` + Phase D; doing it here would couple the integration
  *      to filesystem layout it has no business owning.
  *
  * Things this file deliberately does NOT do:
@@ -30,7 +30,7 @@
  */
 
 import type { AstroIntegration } from 'astro';
-import type { ObpubConfig } from '@obpub/core/config';
+import type { ObpubConfig } from '@noteforge/core/config';
 import { remarkWikilink, type RemarkWikilinkOptions } from './remarkWikilink.ts';
 import { createWatcher, type Watcher, type WatcherEvent } from './watcher.ts';
 
@@ -70,7 +70,7 @@ export function obpub(
   let watcher: Watcher | undefined;
 
   return {
-    name: '@obpub/astro',
+    name: '@noteforge/astro',
     hooks: {
       'astro:config:setup': ({ updateConfig, logger }) => {
         const wikilinkOptions: RemarkWikilinkOptions = {
@@ -142,7 +142,7 @@ export function obpub(
       },
       'astro:build:done': ({ logger }) => {
         logger.info(
-          'obpub: build done — audit placeholder (audit arrives in @obpub/cli phase)',
+          'obpub: build done — audit placeholder (audit arrives in @noteforge/cli phase)',
         );
       },
     },

@@ -1,6 +1,6 @@
 # vault-mixed fixture
 
-`@obpub/core` privacy 파이프라인의 통합/프로퍼티 테스트가 의존하는 **고정된 모의 vault**.
+`@noteforge/core` privacy 파이프라인의 통합/프로퍼티 테스트가 의존하는 **고정된 모의 vault**.
 `packages/core/tests/` 하위의 통합 테스트와 fuzz 테스트가 이 디렉토리를 vault 루트로 로드한다.
 
 이 파일들은 테스트 산출물이다. **의도 없이 수정하지 말 것.** 내용/파일명/tags/frontmatter 필드를 손대면 다음 step들의 assert가 깨진다. 변경이 필요하면 해당 step의 테스트 코드와 함께 갱신할 것.
@@ -35,4 +35,4 @@ tripwire(`private/family-photos.md`)는 canary를 심지 **않는다**. tripwire
 ## 주의
 
 - 각 Markdown 파일 **본문에는 설명/주석을 넣지 말 것.** canary 0회 assert가 본문 설명 문자열에 오염되지 않도록 하기 위함. 모든 맥락은 이 README에만 기록.
-- PNG 파일은 `@obpub/core`의 exports나 빌드 산출물에 포함되지 않는다 (테스트 전용).
+- PNG 파일은 `@noteforge/core`의 exports나 빌드 산출물에 포함되지 않는다 (테스트 전용).

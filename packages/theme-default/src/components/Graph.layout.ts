@@ -5,7 +5,7 @@
  * Callers (apps/blog or astro-integration) build `GraphViewModel` from
  * `PipelineResult.publicGraph` and MUST guarantee that every `slug` and
  * `title` is PUBLIC. Neither the component nor this layout calculator
- * re-runs `isPublic` — privacy decisions live in `@obpub/core/privacy`.
+ * re-runs `isPublic` — privacy decisions live in `@noteforge/core/privacy`.
  *
  * The layout itself is a pure function of its inputs: same `GraphViewModel`
  * (regardless of input order) always yields the same `PositionedGraph`.

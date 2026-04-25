@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineConfig, ObpubConfigError, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, ObpubConfigError, type ObpubConfig } from '@noteforge/core/config';
 import { assertVaultPathsExist, loadConfigWithPath } from '../src/lib/loadConfig.ts';
 
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));

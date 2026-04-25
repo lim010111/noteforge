@@ -6,7 +6,7 @@ import {
   ObpubConfigError,
   type ObpubConfig,
   type ObpubConfigInput,
-} from '@obpub/core/config';
+} from '@noteforge/core/config';
 
 const CONFIG_BASENAMES = [
   'obsidian-blog.config.ts',

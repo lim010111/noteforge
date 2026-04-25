@@ -1,5 +1,5 @@
 /**
- * Astro 5 Content Layer adapter for `@obpub/core`'s privacy pipeline.
+ * Astro 5 Content Layer adapter for `@noteforge/core`'s privacy pipeline.
  *
  * Single responsibility: take the structured PipelineResult (which has already
  * decided what is public, filtered frontmatter through the allowlist, applied
@@ -19,8 +19,8 @@
  */
 
 import type { Loader } from 'astro/loaders';
-import { runCorePipeline } from '@obpub/core/pipeline';
-import type { ObpubConfig } from '@obpub/core/config';
+import { runCorePipeline } from '@noteforge/core/pipeline';
+import type { ObpubConfig } from '@noteforge/core/config';
 
 interface ObpubEntry {
   id: string;
@@ -38,7 +38,7 @@ interface ObpubEntry {
 
 export function obpubLoader(config: ObpubConfig): Loader {
   return {
-    name: '@obpub/astro/loader',
+    name: '@noteforge/astro/loader',
     async load(context): Promise<void> {
       const result = await runCorePipeline(config);
 

@@ -4,8 +4,8 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
-import { runCorePipeline, type PipelineResult } from '@obpub/core/pipeline';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
+import { runCorePipeline, type PipelineResult } from '@noteforge/core/pipeline';
 import { runAudit } from '../../src/commands/audit.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

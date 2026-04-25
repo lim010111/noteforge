@@ -99,14 +99,16 @@ MIT. 코드는 자유롭게 사용/수정/재배포 가능합니다.
 
 ## 상태
 
-v0.1 MVP 도그푸드 가능. CI/배포는 이후 단계. 정식 계획은 [plan 파일](/.claude/plans/public-fizzy-patterson.md) 참고.
+<!-- TODO: confirm GitHub repo URL after repo rename -->
+
+v0.1 MVP 도그푸드 가능. CI/배포는 이후 단계.
 
 - [x] Step 0: 문서 구조
 - [x] Step 1: monorepo 스켈레톤
-- [x] Step 2: `@obpub/core` privacy 엔진 (TDD)
-- [x] Step 3: `@obpub/astro` integration
-- [x] Step 4: `@obpub/theme-default`
-- [x] Step 5: `@obpub/cli`
+- [x] Step 2: `@noteforge/core` privacy 엔진 (TDD)
+- [x] Step 3: `@noteforge/astro` integration
+- [x] Step 4: `@noteforge/theme-default`
+- [x] Step 5: `@noteforge/cli`
 - [x] Step 6: `apps/blog` 도그푸드 (로컬 빌드 + audit 통과)
 - [ ] Step 7: CI + 릴리스 준비
 

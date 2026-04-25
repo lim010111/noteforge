@@ -1,5 +1,5 @@
 /**
- * Tests for @obpub/astro/loader.
+ * Tests for @noteforge/astro/loader.
  *
  * The loader bridges `runCorePipeline()` into Astro 5's Content Layer by writing
  * one entry per *public* slug into `context.store`. This file uses test-local
@@ -16,7 +16,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Loader } from 'astro/loaders';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import { obpubLoader } from '../src/loader.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

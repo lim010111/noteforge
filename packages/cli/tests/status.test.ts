@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import { formatStatusJson, formatStatusLine, runStatus } from '../src/commands/status.ts';
 import { ObpubInputError } from '../src/lib/errors.ts';
 

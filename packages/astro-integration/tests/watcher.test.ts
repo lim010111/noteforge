@@ -1,5 +1,5 @@
 /**
- * Tests for @obpub/astro vault watcher.
+ * Tests for @noteforge/astro vault watcher.
  *
  * The watcher is the dev-time glue between the vault on disk and the Astro
  * Content Layer. It never decides public/private (that lives in core) — it
@@ -18,7 +18,7 @@
 
 import { EventEmitter } from 'node:events';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import {
   createWatcher,
   type ChokidarLike,

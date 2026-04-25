@@ -1,6 +1,6 @@
 # TODO
 
-v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/public-fizzy-patterson.md`.
+v0.1 MVP 작업 체크리스트.
 
 ## Step 0 — 문서 선행 ✅
 - [x] `CLAUDE.md` 실내용 작성
@@ -22,7 +22,7 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `apps/blog` 스켈레톤
 - [x] `pnpm install` 성공, `pnpm -r typecheck` 통과, `pnpm lint`/`pnpm test` 통과
 
-## Step 2 — @obpub/core privacy 엔진 (TDD) ✅
+## Step 2 — @noteforge/core privacy 엔진 (TDD) ✅
 각 항목은 **실패 테스트 → 통과 구현** 순서. fixture vault는 통합 테스트 직전에 준비.
 
 - [x] `types.ts` — ParsedNote, ClassifyRule, Classification 타입
@@ -42,14 +42,14 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] `tests/fixtures/vault-mixed/` 구축 + 통합 테스트 11 assert (`pipeline.ts` + `tests/integration/`)
 - [x] Property-based fuzz test (50회, fast-check seed=424242, 5 불변식)
 
-## Step 3 — @obpub/astro integration ✅
+## Step 3 — @noteforge/astro integration ✅
 - [x] `integration.ts` — AstroIntegration factory + 훅 등록 (step3a-step2)
 - [x] `loader.ts` — Content Layer loader (core 파이프라인 호출) (step3a-step1)
 - [x] `remarkWikilink.ts` — MDX 파이프라인 브리지 (step3a-step0)
 - [x] `watcher.ts` — chokidar + 의존 그래프 invalidation + 200ms debounce (step3b-step0/1)
 - [x] HMR 통합 테스트 (server:setup/done + Vite hot dispatch + e2e coalesce) (step3b-step2)
 
-## Step 4 — @obpub/theme-default ✅
+## Step 4 — @noteforge/theme-default ✅
 - [x] Tailwind v4 설정 + tokens.css (UI_GUIDE 참조)
 - [x] `BaseLayout.astro` (nav, main, footer, semantic HTML)
 - [x] `Note.astro` (prose 본문, 메타, 태그 칩)
@@ -59,7 +59,7 @@ v0.1 MVP 작업 체크리스트. 정식 계획은 `/home/shine/.claude/plans/pub
 - [x] 404 페이지 (private 존재 누설 금지 문구)
 - [x] 모바일 반응형 점검
 
-## Step 5 — @obpub/cli ✅
+## Step 5 — @noteforge/cli ✅
 - [x] `bin.ts` + commander/clipanion 진입점
 - [x] `commands/dev.ts` (astro dev 래핑)
 - [x] `commands/build.ts` (astro build + audit + 종료 리포트)

@@ -1,5 +1,5 @@
 import { defineCollection, z } from 'astro:content';
-import { obpubLoader } from '@obpub/astro';
+import { obpubLoader } from '@noteforge/astro';
 import obpubConfig from '../obsidian-blog.config.ts';
 
 const notes = defineCollection({

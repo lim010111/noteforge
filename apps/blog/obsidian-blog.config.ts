@@ -1,4 +1,4 @@
-import { defineConfig } from '@obpub/core/config';
+import { defineConfig } from '@noteforge/core/config';
 
 export default defineConfig({
   site: {
@@ -11,7 +11,7 @@ export default defineConfig({
       id: 'shine',
       path: '/mnt/c/Users/shine/Documents/Obsidian',
       urlPrefix: '/',
-      theme: '@obpub/theme-default',
+      theme: '@noteforge/theme-default',
       ignore: [
         'Templates/**',
         'Excalidraw/**',

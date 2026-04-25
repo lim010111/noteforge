@@ -1,8 +1,8 @@
 {
-  "name": "obsidian-publish-oss",
+  "name": "noteforge",
   "version": "0.0.0",
   "private": true,
-  "description": "Monorepo root for Obsidian-Publish-OSS — privacy-first Astro SSG for selective Obsidian vault publishing.",
+  "description": "Monorepo root for noteforge — privacy-first Astro SSG for selective Obsidian vault publishing.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.6.0"
@@ -15,7 +15,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "obpub": "pnpm --filter @obpub/cli obpub"
+    "obpub": "pnpm --filter @noteforge/cli obpub"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

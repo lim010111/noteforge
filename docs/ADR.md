@@ -14,7 +14,7 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 - 생태계/호스팅 호환성 우수 (Vercel/Netlify/Cloudflare).
 - Node.js/TS 네이티브라 remark 파이프라인 제어가 자연스러움.
 **대안**: Quartz 자체 빌드(Vite+Preact) — 자유도 높지만 MVP에 과함. Next.js `output: 'export'` — 콘텐츠 사이트에 무거움. Eleventy — JS 생태계 약함.
-**트레이드오프**: Astro 버전 업에 어댑터 영향. 대응: `@obpub/astro`에 의존 격리.
+**트레이드오프**: Astro 버전 업에 어댑터 영향. 대응: `@noteforge/astro`에 의존 격리.
 
 ---
 
@@ -62,7 +62,7 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 ---
 
 ### ADR-007: 자체 remark plugin (remark-wiki-link 미사용)
-**결정**: `@obpub/core/src/privacy/linkRewriter.ts`를 직접 구현. 기존 `remark-wiki-link` 사용하지 않음.
+**결정**: `@noteforge/core/src/privacy/linkRewriter.ts`를 직접 구현. 기존 `remark-wiki-link` 사용하지 않음.
 **이유**: private 타겟 탐지 + 3가지 동작(resolved / privateTarget / notFound) 구분 + 정확한 AST 치환 제어가 필수. 라이브러리 래퍼로는 테스트가 어려움.
 **대안**: `remark-wiki-link` + post-processing — 복잡도 분산되고 회귀 추적 어려움.
 **트레이드오프**: ~100줄 자체 코드 유지 필요. 그만큼 프라이버시 동작을 테스트로 완전 제어.

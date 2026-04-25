@@ -50,7 +50,7 @@ describe('defineConfig', () => {
     expect(cfg.vaults).toHaveLength(1);
     expect(cfg.vaults[0]?.id).toBe('personal');
     expect(cfg.vaults[0]?.urlPrefix).toBe('/');
-    expect(cfg.vaults[0]?.theme).toBe('@obpub/theme-default');
+    expect(cfg.vaults[0]?.theme).toBe('@noteforge/theme-default');
     expect(cfg.publishing.frontmatterKey).toBe('public');
     expect(cfg.publishing.publicTag).toBe('public');
     expect(cfg.publishing.requireExplicitOptIn).toBe(true);

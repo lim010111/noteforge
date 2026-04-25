@@ -11,7 +11,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi } from 'vitest';
 import type { AstroIntegration } from 'astro';
-import { defineConfig, type ObpubConfig } from '@obpub/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
 import { obpub } from '../src/integration.ts';
 import type {
   Watcher,

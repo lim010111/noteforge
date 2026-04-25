@@ -10,7 +10,7 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   noExternal: [
-    '@obpub/core',
+    '@noteforge/core',
     'gray-matter',
     'hast-util-to-html',
     'mdast-util-from-markdown',

@@ -41,13 +41,13 @@ importers:
 
   apps/blog:
     dependencies:
-      '@obpub/astro':
+      '@noteforge/astro':
         specifier: workspace:*
         version: link:../../packages/astro-integration
-      '@obpub/core':
+      '@noteforge/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@obpub/theme-default':
+      '@noteforge/theme-default':
         specifier: workspace:*
         version: link:../../packages/theme-default
       '@tailwindcss/vite':
@@ -66,7 +66,7 @@ importers:
 
   packages/astro-integration:
     dependencies:
-      '@obpub/core':
+      '@noteforge/core':
         specifier: workspace:*
         version: link:../core
       astro:
@@ -98,7 +98,7 @@ importers:
         specifier: ^12.1.0
         version: 12.1.0
     devDependencies:
-      '@obpub/core':
+      '@noteforge/core':
         specifier: workspace:*
         version: link:../core
       tsup:
@@ -150,7 +150,7 @@ importers:
 
   packages/theme-default:
     dependencies:
-      '@obpub/core':
+      '@noteforge/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

@@ -4,10 +4,10 @@
  * INTENTIONALLY a STRICT SUBSET of the data the privacy pipeline emits.
  * The component receives a `GraphViewModel` (declared in `Graph.layout.ts`)
  * whose `nodes[i].slug` and `nodes[i].title` are guaranteed PUBLIC by the
- * caller — typically `apps/blog` or `@obpub/astro` building from
+ * caller — typically `apps/blog` or `@noteforge/astro` building from
  * `PipelineResult.publicGraph`. Neither the component nor the layout
  * calculator re-runs `isPublic`; privacy decisions live in
- * `@obpub/core/privacy` (CLAUDE.md CRITICAL: 결정은 한 곳).
+ * `@noteforge/core/privacy` (CLAUDE.md CRITICAL: 결정은 한 곳).
  *
  * Caller responsibilities (the component does NOT re-derive any of these):
  *   - every `slug`/`title` is a PUBLIC slug/title (verified upstream).

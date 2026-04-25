@@ -18,7 +18,7 @@
  *     `packages/core/src/privacy/classify.ts`; re-deriving it here would split
  *     the rule across two paths (watcher + loader) and is the most common origin
  *     of leak regressions.
- *   - Wikilink parsing/resolution is delegated to `@obpub/core/resolve/wikilink`.
+ *   - Wikilink parsing/resolution is delegated to `@noteforge/core/resolve/wikilink`.
  *     We scan the raw body for `[[...]]` and `![[...]]`, then resolve via the
  *     shared index so the watcher stays consistent with the loader's view.
  *
@@ -31,7 +31,7 @@ import * as pathMod from 'node:path';
 import * as fsPromises from 'node:fs/promises';
 import picomatch from 'picomatch';
 
-import type { ObpubConfig } from '@obpub/core/config';
+import type { ObpubConfig } from '@noteforge/core/config';
 import { walkVault } from '../../core/src/discover/walk.ts';
 import { parseNote } from '../../core/src/discover/parseNote.ts';
 import { computeSlug } from '../../core/src/slug.ts';

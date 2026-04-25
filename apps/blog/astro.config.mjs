@@ -1,7 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
-import { obpub } from '@obpub/astro';
+import { obpub } from '@noteforge/astro';
 import obpubConfig from './obsidian-blog.config.ts';
 
 export default defineConfig({

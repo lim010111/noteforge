@@ -1,5 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
-import type { TagPageEntry, TagSummary } from '@obpub/theme-default';
+import type { TagPageEntry, TagSummary } from '@noteforge/theme-default';
 
 type NotesEntry = CollectionEntry<'notes'>;
 

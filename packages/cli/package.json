@@ -1,8 +1,8 @@
 {
-  "name": "@obpub/cli",
+  "name": "@noteforge/cli",
   "version": "0.0.0",
   "private": true,
-  "description": "CLI (obpub dev/build/audit/status) for Obsidian-Publish-OSS.",
+  "description": "CLI (obpub dev/build/audit/status) for noteforge.",
   "type": "module",
   "bin": {
     "obpub": "./dist/bin.js"
@@ -10,6 +10,15 @@
   "files": ["dist", "README.md", "LICENSE"],
   "engines": {
     "node": ">=22.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO#readme",
+  "bugs": {
+    "url": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/issues"
   },
   "scripts": {
     "build": "tsup",
@@ -23,7 +32,7 @@
     "commander": "^12.1.0"
   },
   "devDependencies": {
-    "@obpub/core": "workspace:*",
+    "@noteforge/core": "workspace:*",
     "tsup": "^8.3.0",
     "vitest": "^3.2.0"
   }

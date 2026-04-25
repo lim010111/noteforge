@@ -39,7 +39,7 @@ const vaultSchema = z.object({
     .min(1, '빈 문자열은 허용되지 않습니다')
     .refine((p) => path.isAbsolute(p), '절대 경로여야 합니다'),
   urlPrefix: z.string().default('/'),
-  theme: z.string().default('@obpub/theme-default'),
+  theme: z.string().default('@noteforge/theme-default'),
   ignore: z.array(z.string()).default([]),
 });
 

@@ -3,7 +3,7 @@ import type {
   BacklinkEntry,
   BacklinksViewModel,
   NoteViewModel,
-} from '@obpub/theme-default';
+} from '@noteforge/theme-default';
 
 export type NotesEntry = CollectionEntry<'notes'>;
 
@@ -19,7 +19,7 @@ function lastSegment(slug: string): string {
 /**
  * Content Layer entry → `<Note />` view-model.
  *
- * The privacy pipeline in `@obpub/core/privacy` already filtered `frontmatter`
+ * The privacy pipeline in `@noteforge/core/privacy` already filtered `frontmatter`
  * through the allowlist and `tags` through the blocklist. This function maps
  * those pre-filtered fields into the strict subset that `NoteViewModel`
  * exposes — anything outside the subset is simply not read, which is the

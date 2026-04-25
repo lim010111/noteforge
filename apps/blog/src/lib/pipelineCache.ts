@@ -1,4 +1,4 @@
-import { runCorePipeline, type PipelineResult } from '@obpub/core/pipeline';
+import { runCorePipeline, type PipelineResult } from '@noteforge/core/pipeline';
 import obpubConfig from '../../obsidian-blog.config.ts';
 
 let cached: Promise<PipelineResult> | undefined;

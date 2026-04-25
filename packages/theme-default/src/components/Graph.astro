@@ -3,7 +3,7 @@
  * Public-notes graph — view-only static SVG.
  *
  * Privacy contract: every entry in `graph.nodes`/`graph.edges` is already
- * PUBLIC. Caller (typically `apps/blog` or `@obpub/astro`) builds the
+ * PUBLIC. Caller (typically `apps/blog` or `@noteforge/astro`) builds the
  * `GraphViewModel` from `PipelineResult.publicGraph`. This component MUST
  * NOT re-derive isPublic, look up additional data, or emit any field of
  * `node` other than the declared `slug`/`title` (positioned coords come
