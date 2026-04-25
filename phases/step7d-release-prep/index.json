@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-04-25T21:43:40+0900",
       "summary": "monorepo renamed @obpub → @noteforge (root: noteforge), all imports/configs/docs synced; CLI bin obpub retained; lockfile regenerated; AC pass",
-      "completed_at": "2026-04-25T21:50:00+0900"
+      "completed_at": "2026-04-25T21:50:27+0900"
     },
     {
       "step": 2,
