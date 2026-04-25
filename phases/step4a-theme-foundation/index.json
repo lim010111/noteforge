@@ -7,7 +7,8 @@
       "name": "theme-tokens-tailwind",
       "status": "completed",
       "started_at": "2026-04-25T12:32:24+0900",
-      "summary": "tokens.css + base.css + tailwindcss v4 deps OK; UI_GUIDE 토큰 1:1"
+      "summary": "tokens.css + base.css + tailwindcss v4 deps OK; UI_GUIDE 토큰 1:1",
+      "completed_at": "2026-04-25T12:34:38+0900"
     },
     {
       "step": 1,
