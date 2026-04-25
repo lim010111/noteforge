@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "status-input-error-file-path",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T20:57:58+0900",
+      "summary": "ObpubInputError(filePath/line/column/cause) 클래스를 packages/cli/src/lib/errors.ts에 도입하고, runStatus의 vault-out, non-md, ENOENT 입력 검증 에러를 absPath:1 prefix 메시지로 throw하도록 교체 (vault 부재는 ObpubConfigError로 격상). bin.ts는 무변경.",
+      "completed_at": "2026-04-25T21:00:30+0900"
     }
   ],
   "created_at": "2026-04-25T20:51:39+0900"
