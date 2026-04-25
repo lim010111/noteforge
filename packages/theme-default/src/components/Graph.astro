@@ -22,7 +22,7 @@ import { computeCircularLayout } from "./Graph.layout.ts";
 const {
   graph,
   emptyMessage = "아직 공개된 글이 없습니다.",
-  className = "max-w-3xl mx-auto",
+  className = "w-full md:max-w-3xl md:mx-auto",
 } = Astro.props as GraphProps;
 
 const positioned = computeCircularLayout(graph);

@@ -242,4 +242,21 @@ describe('Graph', () => {
       'no <script> tag may appear — v0.1 contract is static SVG, JS is a new leak surface',
     ).toBe(0);
   });
+
+  it('(10) <figure> root default className carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl md:mx-auto)', async () => {
+    const graph: GraphViewModel = {
+      nodes: [{ slug: 'a', title: 'A' }],
+      edges: [],
+    };
+    const html = await render({ graph });
+    const figureMatch = html.match(/<figure\s[^>]*\bclass="([^"]*)"/);
+    expect(figureMatch, '<figure> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = figureMatch![1]!;
+    for (const token of ['w-full', 'md:max-w-3xl', 'md:mx-auto']) {
+      expect(
+        cls,
+        `<figure> default className must include "${token}" — UI_GUIDE: graph fits inside body measure on desktop, full-width on mobile`,
+      ).toContain(token);
+    }
+  });
 });

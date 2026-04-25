@@ -151,4 +151,17 @@ describe('TagPage', () => {
       'escaped form (&lt;img …&gt;) must appear instead',
     ).toMatch(/&lt;img/);
   });
+
+  it('(7) <section> root carries mobile + desktop viewport classes (UI_GUIDE: 단일 태그 = 본문 측정폭 md:max-w-3xl)', async () => {
+    const html = await render({ tag: 'rust', entries: [] });
+    const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
+    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = sectionMatch![1]!;
+    for (const token of ['w-full', 'md:max-w-3xl']) {
+      expect(
+        cls,
+        `<section> class must include "${token}" — UI_GUIDE: 단일 태그 페이지는 본문과 같은 측정폭 (md:max-w-3xl)`,
+      ).toContain(token);
+    }
+  });
 });

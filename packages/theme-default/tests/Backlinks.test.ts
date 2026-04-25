@@ -147,4 +147,17 @@ describe('Backlinks', () => {
       'escaped form (&lt;script&gt;) must appear instead',
     ).toMatch(/&lt;script&gt;/);
   });
+
+  it('(7) <aside> root carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl)', async () => {
+    const html = await render({ entries: [{ slug: 'a', title: 'A' }] });
+    const asideMatch = html.match(/<aside\s[^>]*\bclass="([^"]*)"/);
+    expect(asideMatch, '<aside> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = asideMatch![1]!;
+    for (const token of ['w-full', 'md:max-w-3xl']) {
+      expect(
+        cls,
+        `<aside> class must include "${token}" — UI_GUIDE: parent BaseLayout supplies mx-auto, component owns its width`,
+      ).toContain(token);
+    }
+  });
 });

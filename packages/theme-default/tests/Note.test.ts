@@ -130,6 +130,19 @@ describe('Note', () => {
     expect(html).toContain('Visible Title');
   });
 
+  it('(8) <article> root carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl)', async () => {
+    const html = await render({ title: 'T', tags: [], body: '' });
+    const articleMatch = html.match(/<article\s[^>]*\bclass="([^"]*)"/);
+    expect(articleMatch, '<article> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = articleMatch![1]!;
+    for (const token of ['w-full', 'md:max-w-3xl']) {
+      expect(
+        cls,
+        `<article> class must include "${token}" — UI_GUIDE: parent BaseLayout supplies mx-auto, component owns its width`,
+      ).toContain(token);
+    }
+  });
+
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
     const raw = await fs.readFile(`${FIXTURE_DIR}public-with-comment.md`, 'utf8');
     const bodyOnly = raw.replace(/^---[\s\S]*?---\s*/, '');

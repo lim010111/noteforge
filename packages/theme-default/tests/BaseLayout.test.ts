@@ -93,4 +93,17 @@ describe('BaseLayout', () => {
       'skip link must be the FIRST element inside <body> so a fresh Tab press lands on it (UI_GUIDE: keyboard-first a11y)',
     ).toMatch(/^<a\b[^>]*\bhref="#main"/);
   });
+
+  it('(6) <main> root carries mobile + desktop viewport classes (UI_GUIDE: 모바일 w-full px-4 / 데스크톱 md:max-w-3xl md:mx-auto md:px-6)', async () => {
+    const html = await render({ title: 'T' });
+    const mainMatch = html.match(/<main\s[^>]*\bclass="([^"]*)"/);
+    expect(mainMatch, '<main> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = mainMatch![1]!;
+    for (const token of ['w-full', 'px-4', 'md:max-w-3xl', 'md:mx-auto', 'md:px-6']) {
+      expect(
+        cls,
+        `<main> class must include "${token}" — UI_GUIDE: mobile = w-full px-4, desktop = md:max-w-3xl md:mx-auto md:px-6`,
+      ).toContain(token);
+    }
+  });
 });

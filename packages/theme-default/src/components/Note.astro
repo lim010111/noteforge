@@ -14,7 +14,7 @@ import type { NoteProps } from "./Note.types";
 
 const { note } = Astro.props as NoteProps;
 ---
-<article>
+<article class="w-full md:max-w-3xl">
   <header>
     <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">{note.title}</h1>
     {note.date && (

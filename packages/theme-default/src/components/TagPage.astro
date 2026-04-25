@@ -14,7 +14,7 @@
 import type { TagPageProps } from "./TagPage.types";
 const { tagpage } = Astro.props as TagPageProps;
 ---
-<section class="space-y-4">
+<section class="w-full md:max-w-3xl space-y-4">
   <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">#{tagpage.tag}</h1>
   {tagpage.entries.length > 0 ? (
     <ul class="space-y-2">

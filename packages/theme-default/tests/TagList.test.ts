@@ -155,4 +155,17 @@ describe('TagList', () => {
       'href must percent-encode the tag — raw < or > in href is unsafe',
     ).toMatch(/href="\/tags\/%3Cscript%3E/);
   });
+
+  it('(7) <section> root carries mobile + desktop viewport classes (UI_GUIDE: 인덱스 페이지는 md:max-w-4xl)', async () => {
+    const html = await render({ tags: [{ tag: 'rust', count: 1 }] });
+    const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
+    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    const cls = sectionMatch![1]!;
+    for (const token of ['w-full', 'md:max-w-4xl']) {
+      expect(
+        cls,
+        `<section> class must include "${token}" — UI_GUIDE: 홈/태그 인덱스는 max-w-4xl (본문 max-w-3xl보다 넓은 인덱스 폭)`,
+      ).toContain(token);
+    }
+  });
 });

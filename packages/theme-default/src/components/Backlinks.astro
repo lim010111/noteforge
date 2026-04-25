@@ -17,7 +17,7 @@ import type { BacklinksProps } from "./Backlinks.types";
 const { backlinks } = Astro.props as BacklinksProps;
 ---
 {backlinks.entries.length > 0 && (
-  <aside aria-label="백링크" class="mt-10 border-l-2 border-zinc-300 pl-3">
+  <aside aria-label="백링크" class="w-full md:max-w-3xl mt-10 border-l-2 border-zinc-300 pl-3">
     <h2 class="text-lg font-medium text-zinc-900 mt-6 mb-2">이 노트를 참조하는 노트</h2>
     <ul class="space-y-1">
       {backlinks.entries.map((e) => (
