@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "blog-routes-home-and-note",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T17:42:13+0900",
+      "summary": "apps/blog에 홈/노트/404 라우트 + lib/viewModels.ts(entryToNoteViewModel/sortForHome/filterPublishable/buildBacklinksViewModel) 추가, viewModels 단위 테스트 9건 통과 — 0-public 시나리오 build 성공 + 누설 grep 클린",
+      "completed_at": "2026-04-25T17:48:20+0900"
     },
     {
       "step": 2,
