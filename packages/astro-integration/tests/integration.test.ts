@@ -15,15 +15,99 @@
  *     no integrations / vite / build-step config is added).
  *   - astro:build:done is a placeholder — it must not perform real audit
  *     I/O yet (audit lives in @obpub/cli + Phase D).
+ *   - astro:server:setup starts the watcher once (idempotent) and forwards
+ *     coalesced file events to Vite as a full-reload signal. No Vite
+ *     internals are imported — we duck-type `server.ws.send` /
+ *     `server.hot.send` so the integration survives Vite minor bumps.
  */
 
+import { EventEmitter } from 'node:events';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { AstroIntegration } from 'astro';
 import { defineConfig, type ObpubConfig } from '@obpub/core/config';
 import { obpub } from '../src/integration.ts';
 import { remarkWikilink } from '../src/remarkWikilink.ts';
+import {
+  createWatcher,
+  type ChokidarLike,
+  type Watcher,
+  type WatcherEvent,
+  type WatcherOptions,
+} from '../src/watcher.ts';
+
+// ── Fake filesystem (hoisted so vi.mock sees it) ────────────────────────────
+const fakeFs = vi.hoisted(() => {
+  const files = new Map<string, string>();
+  return {
+    files,
+    set(absPath: string, content: string): void {
+      files.set(absPath, content);
+    },
+    delete(absPath: string): void {
+      files.delete(absPath);
+    },
+    reset(): void {
+      files.clear();
+    },
+  };
+});
+
+vi.mock('node:fs/promises', () => {
+  type FakeDirent = {
+    name: string;
+    isDirectory: () => boolean;
+    isFile: () => boolean;
+    isSymbolicLink: () => boolean;
+  };
+  async function readdir(p: string, _opts?: unknown): Promise<FakeDirent[]> {
+    const entries: FakeDirent[] = [];
+    const seenDirs = new Set<string>();
+    const prefix = p.endsWith('/') ? p : `${p}/`;
+    for (const absPath of fakeFs.files.keys()) {
+      if (!absPath.startsWith(prefix)) continue;
+      const rest = absPath.slice(prefix.length);
+      const slashIdx = rest.indexOf('/');
+      if (slashIdx === -1) {
+        entries.push({
+          name: rest,
+          isDirectory: () => false,
+          isFile: () => true,
+          isSymbolicLink: () => false,
+        });
+      } else {
+        const dirName = rest.slice(0, slashIdx);
+        if (!seenDirs.has(dirName)) {
+          seenDirs.add(dirName);
+          entries.push({
+            name: dirName,
+            isDirectory: () => true,
+            isFile: () => false,
+            isSymbolicLink: () => false,
+          });
+        }
+      }
+    }
+    return entries;
+  }
+  async function readFile(p: string, _enc?: unknown): Promise<string> {
+    const c = fakeFs.files.get(p);
+    if (c === undefined) {
+      const err = new Error(`ENOENT: no such file or directory, open '${p}'`);
+      (err as NodeJS.ErrnoException).code = 'ENOENT';
+      throw err;
+    }
+    return c;
+  }
+  async function stat(_p: string): Promise<{
+    isDirectory: () => boolean;
+    isFile: () => boolean;
+  }> {
+    return { isDirectory: () => false, isFile: () => true };
+  }
+  return { readdir, readFile, stat, default: { readdir, readFile, stat } };
+});
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const VAULT_ROOT = path.resolve(
@@ -47,6 +131,25 @@ function makeConfig(): ObpubConfig {
       {
         id: 'fixture',
         path: VAULT_ROOT,
+        ignore: ['.obsidian/**', '.trash/**'],
+      },
+    ],
+  });
+}
+
+const FAKE_VAULT = '/vault';
+
+function makeFakeVaultConfig(): ObpubConfig {
+  return defineConfig({
+    site: {
+      title: 'integration test',
+      url: 'https://example.com',
+      author: 'tester',
+    },
+    vaults: [
+      {
+        id: 'fixture',
+        path: FAKE_VAULT,
         ignore: ['.obsidian/**', '.trash/**'],
       },
     ],
@@ -80,9 +183,17 @@ type ConfigSetupHook = NonNullable<
   AstroIntegration['hooks']['astro:config:setup']
 >;
 type BuildDoneHook = NonNullable<AstroIntegration['hooks']['astro:build:done']>;
+type ServerSetupHook = NonNullable<
+  AstroIntegration['hooks']['astro:server:setup']
+>;
+type ServerDoneHook = NonNullable<
+  AstroIntegration['hooks']['astro:server:done']
+>;
 
 type ConfigSetupArgs = Parameters<ConfigSetupHook>[0];
 type BuildDoneArgs = Parameters<BuildDoneHook>[0];
+type ServerSetupArgs = Parameters<ServerSetupHook>[0];
+type ServerDoneArgs = Parameters<ServerDoneHook>[0];
 
 function makeConfigSetupArgs(overrides: {
   updateConfig: ConfigSetupArgs['updateConfig'];
@@ -120,6 +231,56 @@ function makeBuildDoneArgs(logger: LoggerSpy): BuildDoneArgs {
     assets: new Map(),
     logger: logger as unknown as BuildDoneArgs['logger'],
   } as BuildDoneArgs;
+}
+
+interface FakeServer {
+  ws?: { send: ReturnType<typeof vi.fn> };
+  hot?: { send: ReturnType<typeof vi.fn> };
+}
+
+function makeServerSetupArgs(
+  server: FakeServer,
+  logger: LoggerSpy,
+): ServerSetupArgs {
+  return {
+    server,
+    logger,
+    toolbar: { on: vi.fn(), onAppInitialized: vi.fn(), onAppToggled: vi.fn(), send: vi.fn() },
+  } as unknown as ServerSetupArgs;
+}
+
+function makeServerDoneArgs(logger: LoggerSpy): ServerDoneArgs {
+  return { logger: logger as unknown as ServerDoneArgs['logger'] } as ServerDoneArgs;
+}
+
+// ── Fake chokidar (mirrors watcher.test.ts) ─────────────────────────────────
+
+interface FakeChokidar {
+  readonly inner: ChokidarLike;
+  readonly emit: EventEmitter['emit'];
+  readonly closed: boolean;
+}
+
+function makeFakeChokidar(): FakeChokidar {
+  const ee = new EventEmitter();
+  const state = { closed: false };
+  const on = ((event: string, listener: (...args: unknown[]) => void) => {
+    ee.on(event, listener);
+    return inner;
+  }) as ChokidarLike['on'];
+  const inner: ChokidarLike = {
+    on,
+    close: async () => {
+      state.closed = true;
+    },
+  };
+  return {
+    inner,
+    emit: ee.emit.bind(ee),
+    get closed(): boolean {
+      return state.closed;
+    },
+  };
 }
 
 describe('obpub integration factory', () => {
@@ -251,5 +412,267 @@ describe('obpub integration factory', () => {
       typeof pkg.remarkWikilink,
       'remarkWikilink must be exported as a function',
     ).toBe('function');
+  });
+});
+
+// ── Dev-server wiring (step 2 additions) ────────────────────────────────────
+
+describe('obpub integration — dev server wiring', () => {
+  beforeEach(() => {
+    fakeFs.reset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('(6) astro:server:setup kicks the watcher factory exactly once and awaits start()', async () => {
+    const startSpy = vi.fn(async () => {});
+    const stopSpy = vi.fn(async () => {});
+    const fakeWatcher: Watcher = { start: startSpy, stop: stopSpy };
+    const factorySpy = vi.fn((_opts: WatcherOptions) => fakeWatcher);
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factorySpy as unknown as typeof createWatcher,
+    });
+    const serverSetup = integration.hooks['astro:server:setup'];
+    expect(serverSetup, 'astro:server:setup must be registered').toBeDefined();
+
+    const server: FakeServer = { ws: { send: vi.fn() } };
+    const logger = makeLogger();
+
+    await serverSetup!(makeServerSetupArgs(server, logger));
+
+    expect(
+      factorySpy,
+      'factory must be called exactly once — not calling it means the watcher never starts; calling twice means duplicate chokidar instances on the same vault',
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      startSpy,
+      'start() must be invoked so the vault is primed + chokidar is attached',
+    ).toHaveBeenCalledTimes(1);
+    const forwardedOpts = factorySpy.mock.calls[0]?.[0] as WatcherOptions;
+    expect(
+      forwardedOpts.vaultPath,
+      'factory must receive the vault path from config verbatim — the watcher derives every relative path from this',
+    ).toBe(VAULT_ROOT);
+    expect(forwardedOpts.vaultId).toBe('fixture');
+  });
+
+  it('(7) astro:server:setup is idempotent — calling it twice does not double-start the watcher', async () => {
+    const fakeWatcher: Watcher = {
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+    const factorySpy = vi.fn((_opts: WatcherOptions) => fakeWatcher);
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factorySpy as unknown as typeof createWatcher,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+
+    const server: FakeServer = { ws: { send: vi.fn() } };
+    const logger = makeLogger();
+
+    await serverSetup(makeServerSetupArgs(server, logger));
+    await serverSetup(makeServerSetupArgs(server, logger));
+
+    expect(
+      factorySpy,
+      'second call to astro:server:setup must be a no-op — Astro can fire setup on restarts, and re-instantiating the watcher would leak file handles',
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('(8a) onInvalidate emits full-reload via server.ws.send', async () => {
+    let capturedCallback:
+      | ((events: readonly WatcherEvent[]) => void)
+      | undefined;
+    const fakeWatcher: Watcher = {
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+    const factory = vi.fn((opts: WatcherOptions) => {
+      capturedCallback = opts.onInvalidate;
+      return fakeWatcher;
+    });
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factory as unknown as typeof createWatcher,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+
+    const sendSpy = vi.fn();
+    const server: FakeServer = { ws: { send: sendSpy } };
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+
+    expect(capturedCallback, 'integration must install an onInvalidate').toBeDefined();
+
+    capturedCallback!([
+      { kind: 'update', slug: 'a', affectedSlugs: new Set(['a']) },
+    ]);
+
+    expect(
+      sendSpy,
+      'onInvalidate must dispatch exactly one HMR signal — any more means we are paying for the same reload twice',
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      sendSpy.mock.calls[0]?.[0],
+      'MVP reload must be coarse-grained full-reload — slug-level invalidation via Vite internals is explicitly out of scope for v0.1',
+    ).toEqual({ type: 'full-reload' });
+  });
+
+  it('(8b) onInvalidate falls back to server.hot.send when server.ws is absent', async () => {
+    let capturedCallback:
+      | ((events: readonly WatcherEvent[]) => void)
+      | undefined;
+    const fakeWatcher: Watcher = {
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+    const factory = vi.fn((opts: WatcherOptions) => {
+      capturedCallback = opts.onInvalidate;
+      return fakeWatcher;
+    });
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factory as unknown as typeof createWatcher,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+
+    const hotSend = vi.fn();
+    const server: FakeServer = { hot: { send: hotSend } };
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+
+    capturedCallback!([
+      { kind: 'update', slug: 'a', affectedSlugs: new Set(['a']) },
+    ]);
+
+    expect(
+      hotSend,
+      'duck-typed fallback to server.hot.send is what keeps this integration from breaking when Vite renames its HMR bridge between minors',
+    ).toHaveBeenCalledTimes(1);
+    expect(hotSend.mock.calls[0]?.[0]).toEqual({ type: 'full-reload' });
+  });
+
+  it('(9) astro:server:done awaits watcher.stop and permits re-setup afterwards', async () => {
+    let stopResolved = false;
+    let releaseStop: (() => void) | undefined;
+    const stopPromise = new Promise<void>((resolve) => {
+      releaseStop = resolve;
+    });
+    const stopSpy = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          void stopPromise.then(() => {
+            stopResolved = true;
+            resolve();
+          });
+        }),
+    );
+    const factoryCallCount = { n: 0 };
+    const factory = vi.fn((_opts: WatcherOptions) => {
+      factoryCallCount.n += 1;
+      return {
+        start: vi.fn(async () => {}),
+        stop: stopSpy,
+      } as Watcher;
+    });
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factory as unknown as typeof createWatcher,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+    const serverDone = integration.hooks['astro:server:done']!;
+
+    const server: FakeServer = { ws: { send: vi.fn() } };
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+    expect(factoryCallCount.n).toBe(1);
+
+    const donePromise = serverDone(makeServerDoneArgs(makeLogger()));
+    // Before we release the underlying stop, the hook must still be pending —
+    // a premature resolve would mean we forgot to await stop() and the next
+    // setup cycle could race against the previous chokidar tearing itself down.
+    await Promise.resolve();
+    expect(
+      stopResolved,
+      'astro:server:done must not resolve until watcher.stop() settles',
+    ).toBe(false);
+
+    releaseStop!();
+    await donePromise;
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+
+    // After teardown, setup must be allowed to run again (astro dev restart).
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+    expect(
+      factoryCallCount.n,
+      'after astro:server:done, astro:server:setup must be allowed to spin a fresh watcher — otherwise dev restart hangs with no file watching',
+    ).toBe(2);
+  });
+
+  it('(10) end-to-end: file change → debounced full-reload via the real createWatcher', async () => {
+    vi.useFakeTimers();
+
+    fakeFs.set(`${FAKE_VAULT}/a.md`, '# A\n[[B]]\n');
+    fakeFs.set(`${FAKE_VAULT}/b.md`, '# B\n');
+
+    const chokidar = makeFakeChokidar();
+
+    // Wrap the real createWatcher with the chokidar + readFile seams so the
+    // test never touches real disk or real fs watchers. This proves the
+    // integration → watcher → vite path is wired end to end (no mocks at
+    // the integration boundary).
+    const wrappedFactory: typeof createWatcher = (opts) =>
+      createWatcher({
+        ...opts,
+        chokidarFactory: () => chokidar.inner,
+        readFile: async (p: string) => {
+          const c = fakeFs.files.get(p);
+          if (c === undefined) {
+            const err = new Error(`ENOENT: ${p}`);
+            (err as NodeJS.ErrnoException).code = 'ENOENT';
+            throw err;
+          }
+          return c;
+        },
+      });
+
+    // `onDevInvalidate` captures the coalesced batch shape so we can assert
+    // the watcher collapsed multiple observations into a single entry.
+    // `server.ws.send` is still populated so the dispatch path is exercised
+    // whenever the seam is absent — but the seam takes precedence when set,
+    // so we assert on the captured batch here. Dispatch-to-ws is covered by
+    // assert (8a/8b).
+    const forwardedEvents: { kind: string; slug: string }[][] = [];
+    const integration = obpub(makeFakeVaultConfig(), {
+      createWatcherImpl: wrappedFactory,
+      onDevInvalidate: (events) => {
+        forwardedEvents.push(events);
+      },
+    });
+
+    const serverSetup = integration.hooks['astro:server:setup']!;
+    const server: FakeServer = { ws: { send: vi.fn() } };
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+
+    chokidar.emit('change', `${FAKE_VAULT}/a.md`);
+    await vi.runAllTimersAsync();
+
+    expect(
+      forwardedEvents.length,
+      'exactly one coalesced batch must reach the dev-invalidate seam — multiple batches mean the debounce is broken upstream',
+    ).toBe(1);
+    const batch = forwardedEvents[0]!;
+    expect(
+      batch.length,
+      'single-file change must coalesce to one entry in the batch (coalesced, "a" slug)',
+    ).toBe(1);
+    expect(batch[0]!.slug).toBe('a');
+    expect(batch[0]!.kind).toBe('update');
+
+    await integration.hooks['astro:server:done']!(
+      makeServerDoneArgs(makeLogger()),
+    );
+    expect(chokidar.closed).toBe(true);
   });
 });

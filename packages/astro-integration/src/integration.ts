@@ -32,13 +32,32 @@
 import type { AstroIntegration } from 'astro';
 import type { ObpubConfig } from '@obpub/core/config';
 import { remarkWikilink, type RemarkWikilinkOptions } from './remarkWikilink.ts';
+import { createWatcher, type Watcher, type WatcherEvent } from './watcher.ts';
 
-export function obpub(_config: ObpubConfig): AstroIntegration {
+export interface ObpubIntegrationOptions {
+  /**
+   * Test seam: override the default Vite full-reload dispatch. When provided,
+   * the integration forwards coalesced events here instead of poking
+   * `server.ws.send` / `server.hot.send`. Events are re-shaped to drop the
+   * `affectedSlugs` Set — the MVP reload path is coarse (full page), so
+   * per-slug invalidation data would be misleading if it leaked out.
+   */
+  onDevInvalidate?: (events: { kind: string; slug: string }[]) => void;
+  /** Test seam: replace the watcher factory so tests can inject fakes. */
+  createWatcherImpl?: typeof createWatcher;
+}
+
+export function obpub(
+  config: ObpubConfig,
+  opts: ObpubIntegrationOptions = {},
+): AstroIntegration {
   const resolveStub: RemarkWikilinkOptions['resolve'] = () => ({
     resolved: false,
   });
   const isPublicStub: RemarkWikilinkOptions['isPublic'] = () => false;
   const hrefForStub: RemarkWikilinkOptions['hrefFor'] = (id) => `/${id}`;
+
+  let watcher: Watcher | undefined;
 
   return {
     name: '@obpub/astro',
@@ -58,6 +77,57 @@ export function obpub(_config: ObpubConfig): AstroIntegration {
             remarkPlugins: [[remarkWikilink, wikilinkOptions]],
           },
         });
+      },
+      'astro:server:setup': async ({ server, logger }) => {
+        if (watcher !== undefined) return;
+
+        const factory = opts.createWatcherImpl ?? createWatcher;
+        const vault = config.vaults[0];
+        if (vault === undefined) {
+          logger.warn('obpub: watcher not started — config has no vault');
+          return;
+        }
+
+        watcher = factory({
+          vaultPath: vault.path,
+          vaultId: vault.id,
+          ignore: vault.ignore,
+          config,
+          onInvalidate: (events: readonly WatcherEvent[]): void => {
+            if (opts.onDevInvalidate !== undefined) {
+              opts.onDevInvalidate(
+                events.map((e) => ({ kind: e.kind, slug: e.slug })),
+              );
+              return;
+            }
+            logger.info(
+              `obpub: vault changed (${events.length} event${events.length === 1 ? '' : 's'}) — full reload`,
+            );
+            // Vite v5 uses `server.ws.send`; some environments expose only
+            // `server.hot.send`. Duck-type against both to survive either
+            // without importing Vite internals (whose API surface is not
+            // contractual across minor versions).
+            const viteHot = server as unknown as {
+              ws?: { send: (payload: unknown) => void };
+              hot?: { send: (payload: unknown) => void };
+            };
+            const sender =
+              viteHot.ws?.send?.bind(viteHot.ws) ??
+              viteHot.hot?.send?.bind(viteHot.hot);
+            sender?.({ type: 'full-reload' });
+          },
+          onWarning: (msg: string): void => {
+            logger.warn(`obpub watcher: ${msg}`);
+          },
+        });
+        await watcher.start();
+        logger.info(`obpub: watching vault at ${vault.path}`);
+      },
+      'astro:server:done': async () => {
+        if (watcher === undefined) return;
+        const w = watcher;
+        watcher = undefined;
+        await w.stop();
       },
       'astro:build:done': ({ logger }) => {
         logger.info(
