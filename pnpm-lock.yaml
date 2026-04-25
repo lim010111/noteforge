@@ -94,6 +94,10 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+    devDependencies:
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.17)(jiti@2.6.1)(lightningcss@1.32.0)(yaml@2.8.3)
 
   packages/core:
     dependencies:

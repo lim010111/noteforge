@@ -9,10 +9,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "obpub": "node --experimental-strip-types ./src/bin.ts"
   },
   "dependencies": {
     "@obpub/core": "workspace:*",
     "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
   }
 }

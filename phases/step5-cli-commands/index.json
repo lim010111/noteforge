@@ -1,0 +1,24 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step5-cli-commands",
+  "steps": [
+    {
+      "step": 0,
+      "name": "cli-status-command",
+      "status": "completed",
+      "started_at": "2026-04-25T14:42:27+0900",
+      "summary": "obpub status <file> CLI — commander entry point + runStatus/formatStatusLine via core parseNote+classify, with config auto-discover and unsafeAllowPrivateFolder respected; 12 new vitest cases covering frontmatter/tag/tripwire/vault-bounds/relative paths."
+    },
+    {
+      "step": 1,
+      "name": "cli-audit-command",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "cli-dev-build-commands",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-25T14:42:27+0900"
+}
