@@ -34,6 +34,10 @@
       "dir": "step4b-theme-discovery",
       "status": "completed",
       "completed_at": "2026-04-25T13:30:34+0900"
+    },
+    {
+      "dir": "step4c-theme-graph-and-polish",
+      "status": "pending"
     }
   ]
 }
