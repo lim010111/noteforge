@@ -62,7 +62,8 @@
     },
     {
       "dir": "step7c-error-messages",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T21:00:14+0900"
     }
   ]
 }
