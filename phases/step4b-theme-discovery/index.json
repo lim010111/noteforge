@@ -7,7 +7,8 @@
       "name": "backlinks-component",
       "status": "completed",
       "started_at": "2026-04-25T13:20:29+0900",
-      "summary": "Backlinks.astro + Backlinks.types + 6 Container-API tests + empty-state silence + allowlist 강제; mutation check: A/B/D/E 실패 재현 OK"
+      "summary": "Backlinks.astro + Backlinks.types + 6 Container-API tests + empty-state silence + allowlist 강제; mutation check: A/B/D/E 실패 재현 OK",
+      "completed_at": "2026-04-25T13:25:16+0900"
     },
     {
       "step": 1,
