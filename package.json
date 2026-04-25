@@ -2,6 +2,7 @@
   "name": "noteforge",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Monorepo root for noteforge — privacy-first Astro SSG for selective Obsidian vault publishing.",
   "packageManager": "pnpm@10.33.0",
   "engines": {

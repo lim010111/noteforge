@@ -2,6 +2,7 @@
   "name": "@noteforge/cli",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "CLI (obpub dev/build/audit/status) for noteforge.",
   "type": "module",
   "bin": {
