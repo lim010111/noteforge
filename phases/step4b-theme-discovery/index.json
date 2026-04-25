@@ -1,0 +1,8 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step4b-theme-discovery",
+  "steps": [
+    { "step": 0, "name": "backlinks-component", "status": "pending" },
+    { "step": 1, "name": "taglist-and-tag-page", "status": "pending" }
+  ]
+}
