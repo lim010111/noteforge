@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "add-license-mit",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T21:50:27+0900",
+      "summary": "MIT LICENSE added at root, license:MIT field added to 4 publishable packages + apps/blog, README link updated",
+      "completed_at": "2026-04-25T21:52:30+0900"
     },
     {
       "step": 3,
