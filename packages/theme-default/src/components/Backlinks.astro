@@ -1,0 +1,33 @@
+---
+/**
+ * Backlinks (incoming references) — view-only.
+ *
+ * privacy contract: every entry in `backlinks.entries` is already PUBLIC
+ * (the caller filters via `@obpub/core/privacy` — typically by passing only
+ * targets present in `PipelineResult.publicGraph.nodes`). This component
+ * MUST NOT re-derive isPublic, look up additional data, or emit anything
+ * other than the declared fields of `BacklinkEntry`.
+ *
+ * Empty state: when there are no entries we render NOTHING — no <aside>,
+ * no heading, no "백링크 없음" placeholder. An empty section header could
+ * suggest that backlinks were filtered out, which would itself leak
+ * information about private references.
+ */
+import type { BacklinksProps } from "./Backlinks.types";
+const { backlinks } = Astro.props as BacklinksProps;
+---
+{backlinks.entries.length > 0 && (
+  <aside aria-label="백링크" class="mt-10 border-l-2 border-zinc-300 pl-3">
+    <h2 class="text-lg font-medium text-zinc-900 mt-6 mb-2">이 노트를 참조하는 노트</h2>
+    <ul class="space-y-1">
+      {backlinks.entries.map((e) => (
+        <li>
+          <a
+            href={`/${e.slug}`}
+            class="text-blue-600 hover:text-blue-700 underline decoration-1 underline-offset-2"
+          >{e.title}</a>
+        </li>
+      ))}
+    </ul>
+  </aside>
+)}

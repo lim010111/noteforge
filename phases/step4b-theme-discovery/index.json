@@ -2,7 +2,18 @@
   "project": "Obsidian-Publish-OSS",
   "phase": "step4b-theme-discovery",
   "steps": [
-    { "step": 0, "name": "backlinks-component", "status": "pending" },
-    { "step": 1, "name": "taglist-and-tag-page", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "backlinks-component",
+      "status": "completed",
+      "started_at": "2026-04-25T13:20:29+0900",
+      "summary": "Backlinks.astro + Backlinks.types + 6 Container-API tests + empty-state silence + allowlist 강제; mutation check: A/B/D/E 실패 재현 OK"
+    },
+    {
+      "step": 1,
+      "name": "taglist-and-tag-page",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-25T13:20:29+0900"
 }
