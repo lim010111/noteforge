@@ -74,9 +74,17 @@ function checkPrivateTitleInHtml(view: DistView, input: AuditInput): AuditViolat
   const violations: AuditViolation[] = [];
   for (const title of input.privateTitles) {
     if (title.length === 0) continue;
-    const isShort = title.length < 3 || !/[a-z0-9]/i.test(title);
+    // "Short" = unlikely to be a distinctive title; common short English words
+    // (note, code, dev, page, file, ...) are weak signals per ADR-004 and are
+    // only flagged under --strict as authored-private-title-mention. We treat
+    // ASCII-letter-only titles up to length 5 as short for this purpose.
+    const isShort =
+      title.length < 3 ||
+      !/[a-z0-9]/i.test(title) ||
+      (title.length < 6 && /^[A-Za-z]+$/.test(title));
+    const matches = buildTitleMatcher(title);
     for (const file of view.htmlFiles) {
-      if (!file.content.includes(title)) continue;
+      if (!matches(file.content)) continue;
       if (isShort) {
         if (input.strict) {
           violations.push({
@@ -219,6 +227,25 @@ function checkTagBlocklist(view: DistView, input: AuditInput): AuditViolation[] 
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+
+// Word-boundary-aware substring matcher for private note titles. Plain
+// `String.includes` produced false positives on short ASCII titles (e.g. a
+// note titled "dev" matching `device-width` in viewport meta). For titles
+// whose outer characters are ASCII alphanumerics we anchor the boundary
+// with a negative look-around; non-ASCII edges (e.g. Korean) fall back to
+// substring because `\b` is undefined for them in JS regex.
+function buildTitleMatcher(title: string): (text: string) => boolean {
+  const startsAlnum = /^[A-Za-z0-9]/.test(title);
+  const endsAlnum = /[A-Za-z0-9]$/.test(title);
+  if (!startsAlnum && !endsAlnum) {
+    return (text) => text.includes(title);
+  }
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const left = startsAlnum ? '(?<![A-Za-z0-9])' : '';
+  const right = endsAlnum ? '(?![A-Za-z0-9])' : '';
+  const re = new RegExp(`${left}${escaped}${right}`);
+  return (text) => re.test(text);
+}
 
 function redactTitle(title: string): string {
   if (title.length === 0) return '[REDACTED:empty]';

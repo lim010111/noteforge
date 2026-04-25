@@ -185,6 +185,55 @@ describe('runAuditChecks', () => {
     expect(matches).toHaveLength(0);
   });
 
+  it('does not flag a long ASCII title when only embedded in an unrelated word (word boundary)', async () => {
+    await writeFile(
+      'index.html',
+      '<html><body><p>see developer for details</p></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ privateTitles: new Set(['develop']) }),
+    );
+
+    const matches = violations.filter(
+      (v) =>
+        v.rule === 'private-note-title-in-html' ||
+        v.rule === 'authored-private-title-mention',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
+  it('still flags long ASCII titles that appear as a standalone word', async () => {
+    await writeFile(
+      'index.html',
+      '<html><body><p>see develop for details</p></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ privateTitles: new Set(['develop']) }),
+    );
+
+    const matches = violations.filter((v) => v.rule === 'private-note-title-in-html');
+    expect(matches).toHaveLength(1);
+  });
+
+  it('skips common short English titles (length<6, ASCII letters) in non-strict', async () => {
+    await writeFile(
+      'index.html',
+      '<html><body><p>see note and code and page for details</p></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({
+        privateTitles: new Set(['note', 'code', 'page']),
+        strict: false,
+      }),
+    );
+
+    const matches = violations.filter((v) => v.rule === 'private-note-title-in-html');
+    expect(matches).toHaveLength(0);
+  });
+
   it('flags short private titles under --strict as authored-private-title-mention', async () => {
     await writeFile('index.html', '<html><body><p>AI is everywhere</p></body></html>');
 
