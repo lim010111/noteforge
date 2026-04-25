@@ -1,0 +1,24 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step3b-astro-watcher",
+  "steps": [
+    {
+      "step": 0,
+      "name": "dep-graph",
+      "status": "completed",
+      "started_at": "2026-04-25T11:58:18+0900",
+      "summary": "depGraph + 10 tests + defensive copy OK. mutation check: stale-reverse/ext-reverse/defensive-copy 모두 실패 재현 OK"
+    },
+    {
+      "step": 1,
+      "name": "vault-watcher",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "integration-wiring",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-25T11:58:18+0900"
+}

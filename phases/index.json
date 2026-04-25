@@ -19,6 +19,10 @@
       "dir": "step3a-astro-loader",
       "status": "completed",
       "completed_at": "2026-04-22T18:45:33+0900"
+    },
+    {
+      "dir": "step3b-astro-watcher",
+      "status": "pending"
     }
   ]
 }
