@@ -27,7 +27,8 @@
     },
     {
       "dir": "step4a-theme-foundation",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T13:09:10+0900"
     }
   ]
 }
