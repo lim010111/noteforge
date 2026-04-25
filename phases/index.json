@@ -47,7 +47,8 @@
     },
     {
       "dir": "step6-apps-blog",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T18:16:32+0900"
     }
   ]
 }
