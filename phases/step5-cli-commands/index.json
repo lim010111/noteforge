@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "cli-dev-build-commands",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T15:00:25+0900",
+      "summary": "obpub dev/build CLI — astroRunner spawns local node_modules/.bin/astro (PATH fallback) with SIGINT forwarding, resolveAstroCwd locates apps/blog or root config, runDev/runBuild orchestrate spawn → optional post-build runAudit with proper exit-code propagation; 20 new vitest cases (4 cwd resolution, 7 spawn/binary/SIGINT, 3 dev forwarding, 6 build/audit interaction).",
+      "completed_at": "2026-04-25T15:11:00+0900"
     }
   ],
   "created_at": "2026-04-25T14:42:27+0900"
