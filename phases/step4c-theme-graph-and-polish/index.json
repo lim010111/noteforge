@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-04-25T14:09:51+0900",
       "summary": "Graph.astro + Graph.types + 9 Container tests + index re-export; canary/script 부재 검증; mutation A/B/C/D 재현 OK",
-      "completed_at": "2026-04-25T14:17:23+0900"
+      "completed_at": "2026-04-25T14:17:54+0900"
     },
     {
       "step": 2,
