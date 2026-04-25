@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "note-and-404",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T12:48:59+0900",
+      "summary": "Note.astro + NotFound.astro + Note.types (NoteViewModel = allowlist subset) + 11 Container-API tests (Note 7 / NotFound 4) covering allowlist enforcement, set:html-only-on-body, canary CLAUDE_COMMENT_LEAK_77b/DO_NOT_LEAK_BANANA_6f3c1 抑止, ambiguous 404 wording (no 비공개/private/삭제), props ignored on NotFound; mutation check: A(dup-article)/B(set:html→{}-text)/C(/tag/-typo)/D(비공개 추가) 실패 재현 OK; 244/244 tests, typecheck clean, lint clean",
+      "completed_at": "2026-04-25T12:55:24+0900"
     }
   ],
   "created_at": "2026-04-25T12:32:24+0900"

@@ -1,0 +1,37 @@
+---
+/**
+ * Single-note body component.
+ *
+ * View-only: the privacy pipeline (`@obpub/core/privacy`) has already decided
+ * what is allowed to appear here. This component MUST NOT re-derive isPublic,
+ * re-run link rewriting, re-strip comments, or read fields outside NoteViewModel.
+ *
+ * `set:html` is permitted on `note.body` ONLY. `body` is the single
+ * sanitized-HTML field in the contract; piping any other value through `set:html`
+ * would open a raw-injection / stored-XSS path.
+ */
+import type { NoteProps } from "./Note.types";
+
+const { note } = Astro.props as NoteProps;
+---
+<article>
+  <header>
+    <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">{note.title}</h1>
+    {note.date && (
+      <time datetime={note.date} class="text-sm text-zinc-500">{note.date}</time>
+    )}
+    {note.tags.length > 0 && (
+      <ul aria-label="태그" class="mt-2 flex flex-wrap gap-2">
+        {note.tags.map((t) => (
+          <li>
+            <a
+              href={`/tags/${encodeURIComponent(t)}`}
+              class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            >#{t}</a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </header>
+  <div set:html={note.body} />
+</article>
