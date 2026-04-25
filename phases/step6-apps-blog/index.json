@@ -29,7 +29,10 @@
     {
       "step": 3,
       "name": "blog-build-and-audit-verify",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T17:58:18+0900",
+      "summary": "실 vault(/mnt/c/Users/shine/Documents/Obsidian) 위 (a) 0-public + (b) ≥1-public 시나리오 모두 build + audit 통과 (canary 3종 grep exit 1), CLI status PRIVATE/PUBLIC 한 줄 출력 OK; audit/checks.ts에 word-boundary 매칭 + ASCII 단어 짧은 제목(<6) 약신호 처리 도입(테스트 +3), README v0.1 도그푸드 가능 + v0.2 후속 명시 + pnpm --filter blog로 명령 정정",
+      "completed_at": "2026-04-25T18:15:29+0900"
     }
   ],
   "created_at": "2026-04-25T17:35:35+0900"
