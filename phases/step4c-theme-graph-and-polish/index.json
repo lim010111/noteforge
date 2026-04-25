@@ -7,7 +7,8 @@
       "name": "graph-data-builder",
       "status": "completed",
       "started_at": "2026-04-25T14:04:59+0900",
-      "summary": "Graph.layout.ts (computeCircularLayout, deterministic, no external libs) + 9 vitest tests incl. fast-check fuzz (50 runs); mutation check A/B/C/D 재현 OK"
+      "summary": "Graph.layout.ts (computeCircularLayout, deterministic, no external libs) + 9 vitest tests incl. fast-check fuzz (50 runs); mutation check A/B/C/D 재현 OK",
+      "completed_at": "2026-04-25T14:09:51+0900"
     },
     {
       "step": 1,
