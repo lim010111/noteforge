@@ -7,7 +7,8 @@
       "name": "dep-graph",
       "status": "completed",
       "started_at": "2026-04-25T11:58:18+0900",
-      "summary": "depGraph + 10 tests + defensive copy OK. mutation check: stale-reverse/ext-reverse/defensive-copy 모두 실패 재현 OK"
+      "summary": "depGraph + 10 tests + defensive copy OK. mutation check: stale-reverse/ext-reverse/defensive-copy 모두 실패 재현 OK",
+      "completed_at": "2026-04-25T12:03:04+0900"
     },
     {
       "step": 1,
