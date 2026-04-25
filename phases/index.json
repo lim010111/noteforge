@@ -22,7 +22,8 @@
     },
     {
       "dir": "step3b-astro-watcher",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T12:25:20+0900"
     }
   ]
 }
