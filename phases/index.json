@@ -37,7 +37,8 @@
     },
     {
       "dir": "step4c-theme-graph-and-polish",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-04-25T14:24:39+0900"
     }
   ]
 }
