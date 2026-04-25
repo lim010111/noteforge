@@ -26,13 +26,17 @@ export interface AstroRunOptions {
   readonly stdio?: 'inherit' | 'pipe';
 }
 
+const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'] as const;
+type ForwardedSignal = (typeof FORWARDED_SIGNALS)[number];
+
 /**
  * Astro CLI를 spawn 한다.
  *
  * - astro 바이너리는 cwd의 node_modules/.bin/astro를 우선 사용.
  *   없으면 'astro' PATH 검색. 없으면 즉시 throw.
- * - 부모 SIGINT는 자식에 forward — 좀비 프로세스를 만들지 않도록.
- * - exit code를 그대로 전달 (Astro가 1을 주면 1).
+ * - 부모 SIGINT/SIGTERM은 자식에 동일 시그널로 forward — process supervisor
+ *   환경에서도 좀비 자식이 남지 않도록.
+ * - exit code를 그대로 전달 (Astro가 1을 주면 1; signal 종료는 128+signum).
  */
 export function runAstro(opts: AstroRunOptions): Promise<AstroRunResult> {
   const binary = resolveAstroBinary(opts.cwd);
@@ -46,17 +50,23 @@ export function runAstro(opts: AstroRunOptions): Promise<AstroRunResult> {
   return new Promise<AstroRunResult>((resolve, reject) => {
     let settled = false;
 
-    const onSigint = (): void => {
-      try {
-        child.kill('SIGINT');
-      } catch {
-        // child may already be gone — nothing useful to do here.
-      }
-    };
-    process.on('SIGINT', onSigint);
+    const handlers = new Map<ForwardedSignal, () => void>();
+    for (const sig of FORWARDED_SIGNALS) {
+      const handler = (): void => {
+        try {
+          child.kill(sig);
+        } catch {
+          // child may already be gone — nothing useful to do here.
+        }
+      };
+      handlers.set(sig, handler);
+      process.on(sig, handler);
+    }
 
     const cleanup = (): void => {
-      process.off('SIGINT', onSigint);
+      for (const [sig, handler] of handlers) {
+        process.off(sig, handler);
+      }
     };
 
     child.on('error', (err: Error) => {
@@ -71,7 +81,15 @@ export function runAstro(opts: AstroRunOptions): Promise<AstroRunResult> {
       settled = true;
       cleanup();
       const exitCode =
-        code !== null ? code : signal === 'SIGINT' ? 130 : signal !== null ? 1 : 0;
+        code !== null
+          ? code
+          : signal === 'SIGINT'
+            ? 130
+            : signal === 'SIGTERM'
+              ? 143
+              : signal !== null
+                ? 1
+                : 0;
       resolve({ exitCode, elapsedMs: Date.now() - startedAt });
     });
   });

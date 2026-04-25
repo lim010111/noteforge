@@ -40,7 +40,6 @@ export interface AuditOutcome {
   readonly elapsedMs: number;
 }
 
-const DATA_FM_RE = /\bdata-fm-([a-z0-9_-]+)\s*=/gi;
 const COMMENT_RE = /%%[\s\S]*?%%/;
 const HASHED_TITLE_BYTES = 6;
 
@@ -157,10 +156,10 @@ function checkFrontmatterAllowlist(view: DistView, input: AuditInput): AuditViol
   for (const k of input.frontmatterAllowlist) allowedLower.add(k.toLowerCase());
 
   for (const file of view.htmlFiles) {
-    DATA_FM_RE.lastIndex = 0;
+    const re = /\bdata-fm-([a-z0-9_-]+)\s*=/gi;
     const seen = new Set<string>();
     let match: RegExpExecArray | null;
-    while ((match = DATA_FM_RE.exec(file.content)) !== null) {
+    while ((match = re.exec(file.content)) !== null) {
       const key = (match[1] ?? '').toLowerCase();
       if (key.length === 0) continue;
       if (allowedLower.has(key)) continue;

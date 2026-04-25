@@ -131,6 +131,21 @@ describe('runAuditChecks', () => {
     expect(matches[0]?.message.toLowerCase()).toContain('secret');
   });
 
+  it('returns the same data-fm violations on consecutive calls (no shared regex state)', async () => {
+    await writeFile(
+      'index.html',
+      '<html><body data-fm-title="ok" data-fm-secret="leak">x</body></html>',
+    );
+
+    const first = await runAuditChecks(baseInput());
+    const second = await runAuditChecks(baseInput());
+
+    const firstFm = first.filter((v) => v.rule === 'frontmatter-allowlist-violation');
+    const secondFm = second.filter((v) => v.rule === 'frontmatter-allowlist-violation');
+    expect(secondFm).toHaveLength(firstFm.length);
+    expect(secondFm[0]?.message).toBe(firstFm[0]?.message);
+  });
+
   it('flags %%...%% obsidian comment leaks in HTML', async () => {
     await writeFile('index.html', '<html><body><p>before %%hidden note%% after</p></body></html>');
 

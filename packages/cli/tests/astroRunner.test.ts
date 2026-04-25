@@ -164,7 +164,7 @@ describe('runAstro — argument forwarding and exit codes', () => {
   });
 });
 
-describe('runAstro — SIGINT forwarding', () => {
+describe('runAstro — SIGINT/SIGTERM forwarding', () => {
   async function setupLocalAstro(): Promise<void> {
     const binDir = path.join(sandbox, 'node_modules', '.bin');
     await fs.mkdir(binDir, { recursive: true });
@@ -201,6 +201,36 @@ describe('runAstro — SIGINT forwarding', () => {
 
     // Ensure cleanup removed our listener.
     const final = process.listeners('SIGINT');
+    expect(final.filter((l) => !before.includes(l))).toHaveLength(0);
+  });
+
+  it('forwards SIGTERM received on the parent to the spawned child', async () => {
+    await setupLocalAstro();
+    const before = process.listeners('SIGTERM').slice();
+
+    const { fn, child } = makeFakeSpawn();
+    const promise = runAstro({
+      cwd: sandbox,
+      subcommand: 'dev',
+      extraArgs: [],
+      spawn: fn,
+    });
+    await new Promise((r) => setImmediate(r));
+
+    const after = process.listeners('SIGTERM');
+    const added = after.filter((l) => !before.includes(l));
+    expect(added).toHaveLength(1);
+
+    (added[0] as () => void)();
+
+    expect(child.killed).toBe(true);
+    expect(child.killSignal).toBe('SIGTERM');
+
+    child.emit('exit', null, 'SIGTERM');
+    const result = await promise;
+    expect(result.exitCode).toBe(143);
+
+    const final = process.listeners('SIGTERM');
     expect(final.filter((l) => !before.includes(l))).toHaveLength(0);
   });
 });
