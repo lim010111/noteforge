@@ -41,6 +41,7 @@ export async function runAudit(
     frontmatterAllowlist: new Set(config.publishing.frontmatterAllowlist),
     tagBlocklist: new Set(config.publishing.tagBlocklist),
     publicTitles: collectPublicTitles(pipeline),
+    siteOrigin: config.site.url,
     strict: opts.strict ?? false,
   };
 

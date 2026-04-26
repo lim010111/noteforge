@@ -156,16 +156,36 @@ describe('TagList', () => {
     ).toMatch(/href="\/tags\/%3Cscript%3E/);
   });
 
-  it('(7) <section> root carries mobile + desktop viewport classes (UI_GUIDE: 인덱스 페이지는 md:max-w-4xl)', async () => {
+  it('(7) <section> root carries v0.2 token-based class (UI_GUIDE v0.2: BaseLayout owns container; component owns visual class only)', async () => {
     const html = await render({ tags: [{ tag: 'rust', count: 1 }] });
     const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
-    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
-    const cls = sectionMatch![1]!;
-    for (const token of ['w-full', 'md:max-w-4xl']) {
+    expect(sectionMatch, '<section> must carry a class attribute pointing to components.css').not.toBeNull();
+    expect(
+      sectionMatch![1]!,
+      '<section> class must be "tag-index" — UI_GUIDE v0.2: width comes from BaseLayout `.site-main`, not the component',
+    ).toContain('tag-index');
+  });
+
+  it('(8) v0.2 visual: tag chips use the .tag-chip class and no v0.1 zinc/blue Tailwind palette tokens reach the DOM', async () => {
+    const html = await render({
+      tags: [
+        { tag: 'rust', count: 3 },
+        { tag: '한국어', count: 1 },
+      ],
+    });
+    expect(
+      countMatches(html, /<a\s[^>]*\bclass="[^"]*\btag-chip\b/g),
+      'every tag link must carry the .tag-chip class — UI_GUIDE v0.2: visual rules live in components.css',
+    ).toBe(2);
+    expect(
+      html,
+      'inline hex must not appear — light/dark token transition relies on CSS variables',
+    ).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+    for (const token of ['text-zinc-', 'bg-zinc-', 'hover:bg-zinc-']) {
       expect(
-        cls,
-        `<section> class must include "${token}" — UI_GUIDE: 홈/태그 인덱스는 max-w-4xl (본문 max-w-3xl보다 넓은 인덱스 폭)`,
-      ).toContain(token);
+        html,
+        `v0.1 Tailwind palette class "${token}*" must not appear — v0.2 uses semantic class names referencing CSS vars`,
+      ).not.toContain(token);
     }
   });
 });

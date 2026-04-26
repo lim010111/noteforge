@@ -1,0 +1,266 @@
+/*
+ * Component visuals — v0.2.
+ * SSOT: phases/step9-design-overhaul/design/COMPONENTS.md
+ *
+ * Scope: Backlinks, TagList (index), TagPage (per-tag), Graph (static SVG),
+ * NotFound (404). All values reference tokens.css variables; mode switching
+ * happens at the token layer so no light/dark branches live here.
+ *
+ * Privacy contract (UI_GUIDE §14): the data layer (`@noteforge/core/privacy`)
+ * has already filtered every input to public-only. No rule in this file
+ * surfaces additional metadata, hover tooltips, or count badges that could
+ * disclose private state.
+ */
+
+/* ---------- Backlinks ---------- */
+
+.backlinks {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+.backlinks__heading {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.backlinks__list {
+  margin-top: var(--space-3);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.backlinks__item {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-text-body);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.backlinks__arrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  color: var(--color-text-faded);
+  flex-shrink: 0;
+}
+.backlinks__link {
+  color: var(--color-text-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.backlinks__link:hover {
+  color: var(--color-text-link-hover);
+}
+
+/* ---------- TagList (index page) ---------- */
+
+.tag-index {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.tag-index__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+.tag-index__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  color: var(--color-text-body);
+  text-decoration: none;
+  transition: background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+.tag-chip:hover {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+}
+.tag-chip__count {
+  color: var(--color-text-faded);
+}
+
+/* ---------- TagPage (per-tag listing) ----------
+   Shared list visuals live under .note-list (used by both home and TagPage).
+   .tag-page only owns the section container and the page heading. */
+
+.tag-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.tag-page__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+
+/* ---------- NoteList (shared listing primitive) ---------- */
+
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.note-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-text-body);
+}
+.note-list__date {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-faded);
+  flex-shrink: 0;
+}
+.note-list__arrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  color: var(--color-text-faded);
+  flex-shrink: 0;
+}
+.note-list__link {
+  color: var(--color-text-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.note-list__link:hover {
+  color: var(--color-text-link-hover);
+}
+.note-list__empty {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  margin: 0;
+}
+
+/* ---------- Graph (static SVG) ---------- */
+
+.graph {
+  margin: 0;
+}
+.graph__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.graph__edge {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+.graph__node {
+  fill: var(--color-text-heading);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  transition: fill var(--duration-base) var(--ease-out);
+}
+.graph__node-link:hover .graph__node,
+.graph__node-link:focus-visible .graph__node {
+  fill: var(--color-accent);
+}
+.graph__empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---------- NotFound (404) ---------- */
+
+.not-found {
+  max-width: var(--measure-prose);
+  margin-inline: auto;
+  padding-block: var(--space-8);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: baseline;
+}
+@media (min-width: 1024px) {
+  .not-found {
+    grid-template-columns: 8rem 1fr;
+    gap: var(--space-6);
+  }
+}
+.not-found__numeral {
+  font-family: var(--font-mono);
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--color-text-faded);
+  user-select: none;
+}
+@media (min-width: 1024px) {
+  .not-found__numeral {
+    font-size: 5rem;
+  }
+}
+.not-found__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: var(--weight-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  color: var(--color-text-heading);
+  margin: 0;
+}
+.not-found__body {
+  margin-top: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--color-text-body);
+}
+.not-found__home {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+}

@@ -407,6 +407,93 @@ describe('runAuditChecks', () => {
     expect(matches).toHaveLength(0);
   });
 
+  it('flags a same-origin absolute redirect URL whose target is missing in dist', async () => {
+    // Regression: previously `http(s)://*` redirects short-circuited to true,
+    // so a future change emitting `<meta refresh url=https://site/...>` would
+    // silently bypass the broken-target check for the project's own URLs.
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=https://noteforge.pages.dev/note-with-alias">',
+        '</head><body><main><p>이동.</p></main></body></html>',
+      ].join(''),
+    );
+    // Intentionally do NOT create note-with-alias.
+
+    const violations = await runAuditChecks(
+      baseInput({ siteOrigin: 'https://noteforge.pages.dev' }),
+    );
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(1);
+  });
+
+  it('passes a same-origin absolute redirect URL whose target exists in dist', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=https://noteforge.pages.dev/note-with-alias">',
+        '</head><body><main><p>이동.</p></main></body></html>',
+      ].join(''),
+    );
+    await writeFile(
+      'note-with-alias/index.html',
+      '<!doctype html><html><body><main><p>note body</p></main></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ siteOrigin: 'https://noteforge.pages.dev' }),
+    );
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
+  it('still treats different-origin absolute redirects as out-of-scope (assumes existent)', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=https://elsewhere.example.com/anything">',
+        '</head><body><main><p>이동.</p></main></body></html>',
+      ].join(''),
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ siteOrigin: 'https://noteforge.pages.dev' }),
+    );
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
+  it('falls back to short-circuit when siteOrigin is not provided (backward compatibility)', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=https://noteforge.pages.dev/note-with-alias">',
+        '</head><body><main><p>이동.</p></main></body></html>',
+      ].join(''),
+    );
+    // No siteOrigin → all absolute URLs treated as external (existent).
+
+    const violations = await runAuditChecks(baseInput());
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
   it('ignores HTML files without a meta refresh (alias checks are scoped to redirect pages)', async () => {
     await writeFile(
       'index.html',

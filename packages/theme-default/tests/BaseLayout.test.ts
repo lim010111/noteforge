@@ -83,7 +83,7 @@ describe('BaseLayout', () => {
     ).toMatch(/<main[^>]*\bid="main"/);
   });
 
-  it('(5) skip link <a href="#main"> is the first child of <body>', async () => {
+  it('(5) skip link is the first child of <body> and carries the .skip-link class', async () => {
     const html = await render({ title: 'T' });
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/);
     expect(bodyMatch, '<body> must be present in the rendered document').not.toBeNull();
@@ -92,19 +92,129 @@ describe('BaseLayout', () => {
       bodyInner,
       'skip link must be the FIRST element inside <body> so a fresh Tab press lands on it (UI_GUIDE: keyboard-first a11y)',
     ).toMatch(/^<a\b[^>]*\bhref="#main"/);
+    expect(
+      bodyInner,
+      'skip link must carry the .skip-link class — visually-hidden until focused (layout.css)',
+    ).toMatch(/^<a\b[^>]*\bclass="skip-link"/);
   });
 
-  it('(6) <main> root carries mobile + desktop viewport classes (UI_GUIDE: 모바일 w-full px-4 / 데스크톱 md:max-w-3xl md:mx-auto md:px-6)', async () => {
+  it('(6) <main> root carries the v0.2 site-main container class', async () => {
     const html = await render({ title: 'T' });
     const mainMatch = html.match(/<main\s[^>]*\bclass="([^"]*)"/);
-    expect(mainMatch, '<main> must carry a class attribute for the viewport-responsive container').not.toBeNull();
+    expect(mainMatch, '<main> must carry a class attribute for the v0.2 layout container').not.toBeNull();
     const cls = mainMatch![1]!;
-    for (const token of ['w-full', 'px-4', 'md:max-w-3xl', 'md:mx-auto', 'md:px-6']) {
-      expect(
-        cls,
-        `<main> class must include "${token}" — UI_GUIDE: mobile = w-full px-4, desktop = md:max-w-3xl md:mx-auto md:px-6`,
-      ).toContain(token);
-    }
+    expect(
+      cls,
+      '<main> class must include "site-main" — owns max-width / padding via layout.css tokens (TOKENS.md: --container-main, --space-4/5/8)',
+    ).toContain('site-main');
+  });
+
+  it('(7) emits og:url, og:type, og:title (and conditionally og:description, og:site_name) when canonicalUrl is provided', async () => {
+    const html = await render({
+      title: 'Article Title',
+      description: 'A short note.',
+      canonicalUrl: 'https://example.com/posts/hello',
+      ogType: 'article',
+      siteName: 'shine notes',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:url"\s+content="https:\/\/example\.com\/posts\/hello"/g),
+      'canonicalUrl must surface as <meta property="og:url"> for OpenGraph crawlers (Facebook, Slack, Discord) — without it, link unfurls fall back to <title> only',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:type"\s+content="article"/g),
+      'ogType="article" must be reflected verbatim — note pages need og:type=article so social cards render with article-style framing',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:title"\s+content="Article Title"/g),
+      'props.title must echo into og:title byte-for-byte — the unfurl preview shows this exact string',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:description"\s+content="A short note\."/g),
+      'description prop must mirror into og:description when present — same content as <meta name="description">',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:site_name"\s+content="shine notes"/g),
+      'siteName prop must mirror into og:site_name when present — distinguishes which site the article belongs to in the unfurl',
+    ).toBe(1);
+  });
+
+  it('(8) emits zero og:* meta when canonicalUrl is omitted (gates on canonicalUrl, mirroring the <link rel="canonical"> guard pattern)', async () => {
+    const html = await render({
+      title: 'T',
+      description: 'desc',
+      ogType: 'article',
+      siteName: 'shine notes',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:[^"]+"/g),
+      'no canonicalUrl ⇒ no OpenGraph meta of any kind — pages without a stable absolute URL (e.g. 404) must not emit partial OG metadata',
+    ).toBe(0);
+  });
+
+  it('(9) defaults ogType to "website" when canonicalUrl is provided but ogType is omitted', async () => {
+    const html = await render({
+      title: 'Home',
+      canonicalUrl: 'https://example.com/',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:type"\s+content="website"/g),
+      'ogType default must be "website" — index/tag/graph pages are not articles',
+    ).toBe(1);
+  });
+
+  it('(10) emits exactly one <link rel="canonical"> (regression: must not be duplicated by the OG block)', async () => {
+    const html = await render({
+      title: 'T',
+      canonicalUrl: 'https://example.com/posts/hello',
+    });
+    expect(
+      countMatches(html, /<link\s+rel="canonical"/g),
+      '<link rel="canonical"> must be emitted exactly once — search engines treat duplicate canonicals as a signal to ignore the page (or pick arbitrarily)',
+    ).toBe(1);
+  });
+
+  it('(11) header carries a labelled <nav aria-label="주 메뉴"> for screen readers', async () => {
+    const html = await render({ title: 'T' });
+    const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/);
+    expect(headerMatch, 'BaseLayout must render a <header> region').not.toBeNull();
+    expect(
+      headerMatch![1]!,
+      'header must contain a <nav> with aria-label so AT users can jump to primary navigation',
+    ).toMatch(/<nav[^>]*\baria-label="[^"]+"/);
+  });
+
+  it('(12) inlines themeInitScript inside <head> (FOUC prevention runs before <body> paints)', async () => {
+    const html = await render({ title: 'T' });
+    const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/);
+    expect(headMatch, 'BaseLayout must render a <head> region').not.toBeNull();
+    const headInner = headMatch![1]!;
+    expect(
+      headInner,
+      'theme-init must be inlined as <script> inside <head> — external/deferred scripts cannot prevent FOUC',
+    ).toMatch(/<script\b[^>]*>[^<]*localStorage\.getItem\("theme"\)[^<]*<\/script>/);
+  });
+
+  it('(13) does NOT set [data-theme] on <html> in the SSR result (sync inline script owns first paint)', async () => {
+    const html = await render({ title: 'T' });
+    const openTag = html.match(/<html[^>]*>/);
+    expect(openTag, '<html> open tag must be present').not.toBeNull();
+    expect(
+      openTag![0]!,
+      'SSR must NOT bake a data-theme attribute — that responsibility belongs solely to the inline FOUC script reading localStorage at runtime',
+    ).not.toMatch(/\bdata-theme=/);
+  });
+
+  it('(14) renders a theme-toggle button + a JS-less <details> mobile menu', async () => {
+    const html = await render({ title: 'T' });
+    expect(
+      html,
+      'theme toggle button must exist and carry an accessible label',
+    ).toMatch(/<button\b[^>]*\bid="theme-toggle"[^>]*\baria-label="[^"]+"/);
+    expect(
+      html,
+      'mobile menu must use semantic <details> so it works without JS',
+    ).toMatch(/<details\b[^>]*\bclass="[^"]*\bmobile-menu\b/);
   });
 
   it('(7) emits og:url, og:type, og:title (and conditionally og:description, og:site_name) when canonicalUrl is provided', async () => {

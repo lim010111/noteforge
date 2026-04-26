@@ -148,16 +148,27 @@ describe('Backlinks', () => {
     ).toMatch(/&lt;script&gt;/);
   });
 
-  it('(7) <aside> root carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl)', async () => {
+  it('(7) <aside> root carries v0.2 token-based class (UI_GUIDE v0.2: BaseLayout owns container; component owns visual class only)', async () => {
     const html = await render({ entries: [{ slug: 'a', title: 'A' }] });
     const asideMatch = html.match(/<aside\s[^>]*\bclass="([^"]*)"/);
-    expect(asideMatch, '<aside> must carry a class attribute for the viewport-responsive container').not.toBeNull();
-    const cls = asideMatch![1]!;
-    for (const token of ['w-full', 'md:max-w-3xl']) {
+    expect(asideMatch, '<aside> must carry a class attribute pointing to components.css').not.toBeNull();
+    expect(
+      asideMatch![1]!,
+      '<aside> class must be "backlinks" — UI_GUIDE v0.2: width comes from BaseLayout `.site-main` (max-width: --container-main), not the component',
+    ).toContain('backlinks');
+  });
+
+  it('(8) v0.2 visual: no hardcoded hex colours and no v0.1 zinc/blue Tailwind palette tokens reach the DOM', async () => {
+    const html = await render({ entries: [{ slug: 'a', title: 'A' }] });
+    expect(
+      html,
+      'inline hex must not appear — light/dark token transition relies on CSS variables in components.css',
+    ).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+    for (const token of ['text-zinc-', 'bg-zinc-', 'text-blue-', 'hover:text-blue-']) {
       expect(
-        cls,
-        `<aside> class must include "${token}" — UI_GUIDE: parent BaseLayout supplies mx-auto, component owns its width`,
-      ).toContain(token);
+        html,
+        `v0.1 Tailwind palette class "${token}*" must not appear — v0.2 uses semantic class names referencing CSS vars`,
+      ).not.toContain(token);
     }
   });
 });

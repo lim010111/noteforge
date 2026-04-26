@@ -1,4 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
+import { isPublishable } from '@noteforge/core/privacy/publishable';
 import type {
   BacklinkEntry,
   BacklinksViewModel,
@@ -81,17 +82,21 @@ export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {
 }
 
 /**
- * Narrows `notes` collection entries to note-kind, non-draft items. Alias
- * redirects are filtered out here (and *only* here) — listing pages must never
- * see alias entries. The `kind` discriminator carries through TypeScript so
- * downstream callers safely access `data.frontmatter`, `data.tags`, etc.
+ * Narrows `notes` collection entries to publishable note-kind items. Alias
+ * redirects are filtered out here (and *only* here) — listing pages must
+ * never see alias entries. The draft check delegates to
+ * `@noteforge/core/privacy/publishable` so the publishability rule lives in
+ * one place; all adapters/themes/feeds must call through it (see CLAUDE.md
+ * single-source-of-truth contract). The `kind` discriminator carries through
+ * TypeScript so downstream callers safely access `data.frontmatter`,
+ * `data.tags`, etc.
  */
 export function filterPublishable(
   entries: readonly NotesEntry[],
 ): NoteEntry[] {
   return entries.filter(
     (e): e is NoteEntry =>
-      e.data.kind === 'note' && e.data.frontmatter['draft'] !== true,
+      e.data.kind === 'note' && isPublishable(e.data.frontmatter),
   );
 }
 

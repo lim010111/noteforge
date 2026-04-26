@@ -17,15 +17,13 @@ import type { BacklinksProps } from "./Backlinks.types";
 const { backlinks } = Astro.props as BacklinksProps;
 ---
 {backlinks.entries.length > 0 && (
-  <aside aria-label="백링크" class="w-full md:max-w-3xl mt-10 border-l-2 border-zinc-300 pl-3">
-    <h2 class="text-lg font-medium text-zinc-900 mt-6 mb-2">이 노트를 참조하는 노트</h2>
-    <ul class="space-y-1">
+  <aside aria-label="백링크" class="backlinks">
+    <h2 class="backlinks__heading">referenced by · 이 노트를 참조하는 노트</h2>
+    <ul class="backlinks__list">
       {backlinks.entries.map((e) => (
-        <li>
-          <a
-            href={`/${e.slug}`}
-            class="text-blue-600 hover:text-blue-700 underline decoration-1 underline-offset-2"
-          >{e.title}</a>
+        <li class="backlinks__item">
+          <span class="backlinks__arrow" aria-hidden="true">→</span>
+          <a href={`/${e.slug}`} class="backlinks__link">{e.title}</a>
         </li>
       ))}
     </ul>

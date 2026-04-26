@@ -13,15 +13,15 @@ import type { TagListProps } from "./TagList.types";
 const { taglist } = Astro.props as TagListProps;
 ---
 {taglist.tags.length > 0 && (
-  <section aria-label="태그 목록" class="w-full md:max-w-4xl space-y-4">
-    <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">태그</h1>
-    <ul class="flex flex-wrap gap-2">
+  <section aria-label="태그 목록" class="tag-index">
+    <h1 class="tag-index__heading">tags</h1>
+    <ul class="tag-index__list">
       {taglist.tags.map((t) => (
         <li>
-          <a
-            href={`/tags/${encodeURIComponent(t.tag)}`}
-            class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-          >#{t.tag} <span class="ml-1 text-zinc-400">{t.count}</span></a>
+          <a href={`/tags/${encodeURIComponent(t.tag)}`} class="tag-chip">
+            <span>#{t.tag}</span>
+            <span class="tag-chip__count">{t.count}</span>
+          </a>
         </li>
       ))}
     </ul>

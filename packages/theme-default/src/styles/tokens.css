@@ -1,39 +1,216 @@
 /*
- * Design tokens — single source of truth: docs/UI_GUIDE.md
- * Tailwind v4 CSS-first @theme directive (no tailwind.config.js).
+ * Design tokens — v0.2 (light + dark).
+ * SSOT: phases/step9-design-overhaul/design/TOKENS.md  (this file mirrors it 1:1).
+ *
+ * Mode resolution
+ *   default (no [data-theme])     → @media (prefers-color-scheme) decides
+ *   :root[data-theme="light"]     → light forced, OS preference ignored
+ *   :root[data-theme="dark"]      → dark forced, OS preference ignored
+ *
+ * Why dark values appear twice (the [data-theme="dark"] block AND the
+ * prefers-color-scheme media query): keeps the cascade boringly predictable
+ * across Tailwind v4 + Vite without depending on the modern light-dark()
+ * function (browser-support tradeoff). The duplication cost is low because
+ * TOKENS.md is the human SSOT — these blocks are mechanical mirrors.
+ *
+ * @theme registers light defaults (and mode-independent tokens) so Tailwind v4
+ * exposes them as utilities (e.g. bg-[var(--color-bg-page)] arbitrary values
+ * in components). Dark redefinitions below override via cascade — the
+ * generated utility resolves through the CSS variable at runtime, so a single
+ * utility class works in both modes without a `dark:` variant.
  */
 
 @theme {
-  /* Background */
-  --color-bg-page: #fafafa;
-  --color-bg-card: #ffffff;
-  --color-bg-code: #f4f4f5;
+  /* Color — Background (light defaults) */
+  --color-bg-page: #f9f6f1;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-strong: #f1ede5;
+  --color-bg-code: #f1ede4;
 
-  /* Text */
-  --color-text-body: #18181b;
-  --color-text-heading: #09090b;
-  --color-text-muted: #52525b;
-  --color-text-faded: #a1a1aa;
-  --color-text-link: #2563eb;
-  --color-text-link-hover: #1d4ed8;
+  /* Color — Text (light defaults) */
+  --color-text-body: #1b1d22;
+  --color-text-heading: #0a0c10;
+  --color-text-muted: #5a5e68;
+  --color-text-faded: #8a8e98;
+  --color-text-link: #a83612;
+  --color-text-link-hover: #7c2810;
+  --color-text-code: #1b1d22;
 
-  /* Semantic */
-  --color-success: #16a34a;
-  --color-warn: #d97706;
-  --color-error: #dc2626;
-  --color-border: #e4e4e7;
+  /* Color — Semantic + chrome */
+  --color-success: #0f7a3a;
+  --color-warn: #9a5a06;
+  --color-error: #a51b1b;
+  --color-border: #e4dfd3;
+  --color-border-strong: #c9c1ad;
+  --color-focus-ring: #a83612;
+
+  /* Color — Accent (single brand: iron oxide) */
+  --color-accent: #a83612;
+  --color-accent-soft: #f3e1d6;
+
+  /* Typography — font stacks. All web families self-hosted under
+     apps/blog/public/fonts/ — never CDN (referrer/IP leak). */
+  --font-sans:
+    Inter, "Pretendard Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+  --font-serif:
+    "Source Serif 4", "Noto Serif KR", ui-serif, Georgia,
+    "Apple SD Gothic Neo", serif;
+  --font-mono:
+    "JetBrains Mono", "D2Coding", ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+
+  /* Type scale — sizes (modular ≈ 1.25 ratio anchored at 17px body) */
+  --text-h1: 2rem;
+  --text-h2: 1.5rem;
+  --text-h3: 1.25rem;
+  --text-h4: 1.0625rem;
+  --text-body: 1.0625rem;
+  --text-small: 0.875rem;
+  --text-meta: 0.75rem;
+  --text-code: 0.9375rem;
+
+  /* Type scale — line heights */
+  --lh-h1: 1.2;
+  --lh-h2: 1.3;
+  --lh-h3: 1.35;
+  --lh-h4: 1.4;
+  --lh-body: 1.7;
+  --lh-small: 1.5;
+  --lh-meta: 1.4;
+  --lh-code: 1.6;
+
+  /* Type scale — letter spacing */
+  --ls-h1: -0.01em;
+  --ls-h2: -0.005em;
+  --ls-h3: 0;
+  --ls-h4: 0.005em;
+  --ls-body: 0;
+  --ls-small: 0;
+  --ls-meta: 0.04em;
+  --ls-code: 0;
+
+  /* Type scale — weights */
+  --weight-h1: 600;
+  --weight-h2: 600;
+  --weight-h3: 600;
+  --weight-h4: 600;
+  --weight-body: 400;
+  --weight-meta: 500;
+
+  /* Spacing scale — 8-base, --space-1 = 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  /* Radius — three tiers only; deliberately no `xl`/`full` so call sites
+     cannot synthesise a uniform pill. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* Elevation — single hairline. No multi-step shadow scale: cards rely on
+     1px borders for depth instead of SaaS-style lift. */
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+
+  /* Motion — durations + eases. No --duration-slow / spring tokens by design. */
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-menu: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-linear: linear;
 
   /* Layout containers */
-  --container-prose: 48rem; /* max-w-3xl — body */
-  --container-index: 56rem; /* max-w-4xl — home / tag index */
-
-  /* Typography — system font stack with Korean fallbacks (UI_GUIDE) */
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR",
-    "Apple SD Gothic Neo", sans-serif;
-
-  /* Reading measure & line-height (UI_GUIDE: ~65ch, body 1.7, heading 1.25) */
-  --measure-prose: 65ch;
-  --leading-body: 1.7;
-  --leading-heading: 1.25;
+  --measure-prose: 68ch;
+  --container-main: 72ch;
+  --container-index: 56rem;
+  --margin-col-w: 12rem;
 }
+
+/*
+ * Explicit user toggle: light pinned, OS preference ignored.
+ * Values mirror @theme so the cascade is unambiguous when toggling back from dark.
+ */
+:root[data-theme="light"] {
+  --color-bg-page: #f9f6f1;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-strong: #f1ede5;
+  --color-bg-code: #f1ede4;
+  --color-text-body: #1b1d22;
+  --color-text-heading: #0a0c10;
+  --color-text-muted: #5a5e68;
+  --color-text-faded: #8a8e98;
+  --color-text-link: #a83612;
+  --color-text-link-hover: #7c2810;
+  --color-text-code: #1b1d22;
+  --color-success: #0f7a3a;
+  --color-warn: #9a5a06;
+  --color-error: #a51b1b;
+  --color-border: #e4dfd3;
+  --color-border-strong: #c9c1ad;
+  --color-focus-ring: #a83612;
+  --color-accent: #a83612;
+  --color-accent-soft: #f3e1d6;
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Explicit user toggle: dark pinned, OS preference ignored. */
+:root[data-theme="dark"] {
+  --color-bg-page: #0f1115;
+  --color-bg-surface: #161922;
+  --color-bg-surface-strong: #1c2030;
+  --color-bg-code: #1a1d27;
+  --color-text-body: #dcdee2;
+  --color-text-heading: #f1f2f5;
+  --color-text-muted: #9aa0ad;
+  --color-text-faded: #6b7180;
+  --color-text-link: #f0a373;
+  --color-text-link-hover: #f5be94;
+  --color-text-code: #dcdee2;
+  --color-success: #5fd599;
+  --color-warn: #f0b860;
+  --color-error: #f08080;
+  --color-border: #262a36;
+  --color-border-strong: #3a4054;
+  --color-focus-ring: #f0a373;
+  --color-accent: #f0a373;
+  --color-accent-soft: #3a261b;
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/*
+ * No explicit toggle → follow OS. The :not([data-theme="light"]) guard means a
+ * pinned light theme always beats the system preference.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg-page: #0f1115;
+    --color-bg-surface: #161922;
+    --color-bg-surface-strong: #1c2030;
+    --color-bg-code: #1a1d27;
+    --color-text-body: #dcdee2;
+    --color-text-heading: #f1f2f5;
+    --color-text-muted: #9aa0ad;
+    --color-text-faded: #6b7180;
+    --color-text-link: #f0a373;
+    --color-text-link-hover: #f5be94;
+    --color-text-code: #dcdee2;
+    --color-success: #5fd599;
+    --color-warn: #f0b860;
+    --color-error: #f08080;
+    --color-border: #262a36;
+    --color-border-strong: #3a4054;
+    --color-focus-ring: #f0a373;
+    --color-accent: #f0a373;
+    --color-accent-soft: #3a261b;
+    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+  }
+}
+

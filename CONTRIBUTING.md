@@ -79,7 +79,7 @@ PR을 열기 전 다음을 확인하세요:
 
 ## 이슈 리포팅
 
-- 일반 버그/기능 요청: [GitHub Issues](https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/issues)에 등록해주세요.
+- 일반 버그/기능 요청: [GitHub Issues](https://github.com/lim010111/obsidian-blog/issues)에 등록해주세요.
 - **프라이버시 누출 가능성**이 의심되는 케이스도 현재는 GitHub Issues로 보고하되, 다음을 지켜주세요:
   - 실제 vault 데이터(노트 제목/본문/첨부 파일명 등)가 노출될 수 있는 재현 자료는 첨부하지 마세요.
   - 가능하면 합성 fixture로 재현해주세요.

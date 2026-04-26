@@ -1,63 +1,75 @@
 /*
  * Base styles — applied site-wide via `@noteforge/theme-default/styles/base.css`.
- * Only rules explicitly mandated by docs/UI_GUIDE.md belong here.
+ * This file owns the single Tailwind v4 import for the site; never import
+ * "tailwindcss" again from app or theme entries (duplicate registration).
+ *
+ * Component visual styling lives in *.astro files (steps 3–5). Only true
+ * site-wide infrastructure rules belong here.
  */
 
 @import "tailwindcss";
+@import "./fonts.css";
 @import "./tokens.css";
+@import "./layout.css";
+@import "./prose.css";
+@import "./components.css";
 
-@layer base {
-  html {
-    font-family: var(--font-sans);
-    background-color: var(--color-bg-page);
-    color: var(--color-text-body);
-  }
+/*
+ * `color-scheme` lets the UA paint scrollbars, form controls, and the canvas
+ * itself in the matching mode automatically — no JS required for those bits.
+ */
+html {
+  color-scheme: light dark;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-page);
+  color: var(--color-text-body);
+}
 
-  body {
-    line-height: var(--leading-body);
-  }
+body {
+  line-height: var(--lh-body);
+}
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    line-height: var(--leading-heading);
-    color: var(--color-text-heading);
-  }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-text-heading);
+  line-height: var(--lh-h2);
+}
 
-  /* Prose body: ~65ch measure for line-length readability (UI_GUIDE). */
-  .prose {
-    max-width: var(--measure-prose);
-    line-height: var(--leading-body);
-  }
+a {
+  color: var(--color-text-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--duration-base) var(--ease-out);
+}
 
-  /* Links — UI_GUIDE: underline decoration-1 underline-offset-2 + hover transition (150ms). */
-  a {
-    color: var(--color-text-link);
-    text-decoration-line: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-    transition: color 150ms;
-  }
+a:hover {
+  color: var(--color-text-link-hover);
+}
 
-  a:hover {
-    color: var(--color-text-link-hover);
-  }
+::selection {
+  background-color: var(--color-accent-soft);
+  color: var(--color-text-heading);
+}
 
-  /* Keyboard focus outline preserved for accessibility (UI_GUIDE). */
-  :focus-visible {
-    outline: 2px solid var(--color-text-link);
-    outline-offset: 2px;
-  }
+/* Visible focus is mandatory — never `outline: none` anywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
 
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      transition-duration: 0ms !important;
-      animation-duration: 0ms !important;
-    }
+/* `.prose` rules live in prose.css (note article body styling). */
+
+/* Honor reduced-motion uniformly — kills both transitions and animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }

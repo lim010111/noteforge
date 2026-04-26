@@ -15,6 +15,11 @@
  * notice mirrors the empty-state policy of Backlinks/TagList.
  *
  * v0.1 hard rules (PRD): static SVG, no client JS, no D3/canvas/WebGL.
+ *
+ * v0.2 visual contract: node fill / edge stroke come from CSS variables
+ * (`components.css` → `.graph__node` / `.graph__edge`). NO inline hex —
+ * dark-mode tokens must propagate via the cascade. Hover/focus colour
+ * swap lives in CSS so the SVG stays static.
  */
 import type { GraphProps } from "./Graph.types";
 import { computeCircularLayout } from "./Graph.layout.ts";
@@ -22,7 +27,6 @@ import { computeCircularLayout } from "./Graph.layout.ts";
 const {
   graph,
   emptyMessage = "아직 공개된 글이 없습니다.",
-  className = "w-full md:max-w-3xl md:mx-auto",
 } = Astro.props as GraphProps;
 
 const positioned = computeCircularLayout(graph);
@@ -30,34 +34,27 @@ const { viewBox } = positioned;
 const viewBoxAttr = `${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`;
 ---
 {graph.nodes.length === 0 ? (
-  <p class="text-zinc-500 text-sm">{emptyMessage}</p>
+  <p class="graph__empty">{emptyMessage}</p>
 ) : (
-  <figure class={className}>
+  <figure class="graph">
     <svg
+      class="graph__svg"
       viewBox={viewBoxAttr}
-      width="100%"
-      height="auto"
       role="img"
       aria-label="공개 노트 그래프"
     >
       {positioned.edges.map((e) => (
         <line
+          class="graph__edge"
           x1={e.x1}
           y1={e.y1}
           x2={e.x2}
           y2={e.y2}
-          stroke="#a1a1aa"
-          stroke-width="1"
         />
       ))}
       {positioned.nodes.map((n) => (
-        <a href={`/${n.slug}`}>
-          <circle
-            cx={n.x}
-            cy={n.y}
-            r="4"
-            class="fill-zinc-900 hover:fill-blue-600"
-          />
+        <a href={`/${n.slug}`} class="graph__node-link">
+          <circle class="graph__node" cx={n.x} cy={n.y} r="4" />
           <title>{n.title}</title>
         </a>
       ))}

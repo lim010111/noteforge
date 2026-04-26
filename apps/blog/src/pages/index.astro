@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { BaseLayout } from '@noteforge/theme-default';
+import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
 import '../styles/global.css';
@@ -8,32 +8,16 @@ import '../styles/global.css';
 const all = await getCollection('notes');
 const sorted = sortForHome(filterPublishable(all));
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const items: NoteListEntry[] = sorted.map((entry) => {
+  const dateRaw = entry.data.frontmatter['date'];
+  const item: NoteListEntry = {
+    href: `/${entry.id}`,
+    title: entry.data.title ?? entry.id,
+  };
+  if (typeof dateRaw === 'string') item.date = dateRaw;
+  return item;
+});
 ---
 <BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
-  <Fragment slot="nav">
-    <ul class="flex gap-4 py-4 text-sm">
-      <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
-      <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
-      <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
-    </ul>
-  </Fragment>
-  {sorted.length === 0 ? (
-    <p class="text-zinc-600">아직 공개된 글이 없습니다.</p>
-  ) : (
-    <ul class="space-y-2">
-      {sorted.map((entry) => {
-        const dateRaw = entry.data.frontmatter['date'];
-        const date = typeof dateRaw === 'string' ? dateRaw : null;
-        return (
-          <li class="flex items-baseline gap-3">
-            <a
-              href={`/${entry.id}`}
-              class="text-blue-600 hover:text-blue-700 underline decoration-1 underline-offset-2"
-            >{entry.data.title ?? entry.id}</a>
-            {date && <time datetime={date} class="text-sm text-zinc-500">{date}</time>}
-          </li>
-        );
-      })}
-    </ul>
-  )}
+  <NoteList entries={items} emptyMessage="아직 공개된 글이 없습니다." />
 </BaseLayout>

@@ -3,3 +3,9 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: interest-cohort=()
+
+# Self-hosted fonts — content-addressable per file, immutable cache for one
+# year. Browsers will refetch only when the filename itself changes.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *

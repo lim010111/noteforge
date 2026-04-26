@@ -5,6 +5,8 @@ export { default as NotFound } from './components/NotFound.astro';
 export { default as Backlinks } from './components/Backlinks.astro';
 export { default as TagList } from './components/TagList.astro';
 export { default as TagPage } from './components/TagPage.astro';
+export { default as NoteList } from './components/NoteList.astro';
+export type { NoteListEntry, NoteListProps } from './components/NoteList.types.ts';
 export { default as Graph } from './components/Graph.astro';
 export type { GraphProps } from './components/Graph.types.ts';
 export type {

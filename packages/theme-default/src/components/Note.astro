@@ -9,28 +9,27 @@
  * `set:html` is permitted on `note.body` ONLY. `body` is the single
  * sanitized-HTML field in the contract; piping any other value through `set:html`
  * would open a raw-injection / stored-XSS path.
+ *
+ * Visual contract: prose styling lives in `theme-default/src/styles/prose.css`
+ * (imported transitively via base.css). The component owns layout (article root
+ * width, header meta row); typography lives in CSS so vault-rendered HTML inside
+ * `set:html` picks up the same rules as native Astro children.
  */
 import type { NoteProps } from "./Note.types";
 
 const { note } = Astro.props as NoteProps;
 ---
-<article class="w-full md:max-w-3xl">
-  <header>
-    <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">{note.title}</h1>
-    {note.date && (
-      <time datetime={note.date} class="text-sm text-zinc-500">{note.date}</time>
-    )}
-    {note.tags.length > 0 && (
-      <ul aria-label="태그" class="mt-2 flex flex-wrap gap-2">
+<article class="prose w-full mx-auto max-w-[var(--measure-prose)]">
+  <header class="note-header not-prose">
+    <h1>{note.title}</h1>
+    {(note.date || note.updated || note.tags.length > 0) && (
+      <div class="note-meta">
+        {note.date && <time datetime={note.date}>{note.date}</time>}
+        {note.updated && <span>updated {note.updated}</span>}
         {note.tags.map((t) => (
-          <li>
-            <a
-              href={`/tags/${encodeURIComponent(t)}`}
-              class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-            >#{t}</a>
-          </li>
+          <a href={`/tags/${encodeURIComponent(t)}`}>#{t}</a>
         ))}
-      </ul>
+      </div>
     )}
   </header>
   <div set:html={note.body} />

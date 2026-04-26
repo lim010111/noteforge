@@ -38,6 +38,15 @@ export interface AuditInput {
    * alias pages are pure URL pointers and must not surface note metadata.
    */
   readonly publicTitles: ReadonlySet<string>;
+  /**
+   * Origin of the site under audit (e.g. `https://noteforge.pages.dev`). When
+   * provided, redirect targets that are absolute URLs sharing this origin are
+   * normalized to their pathname before being checked against dist — without
+   * this, the audit would short-circuit same-origin absolute URLs as "external"
+   * and never catch a broken alias whose target is rendered absolute. External
+   * URLs (different origin) continue to be assumed existent.
+   */
+  readonly siteOrigin?: string;
   /** When true, also fire weak-signal rules (authored-private-title-mention, etc.). */
   readonly strict: boolean;
 }
@@ -331,7 +340,7 @@ function checkAliasRedirects(view: DistView, input: AuditInput): AuditViolation[
     const target = (refresh[1] ?? '').trim();
     if (target.length === 0) continue;
 
-    if (!targetExistsInDist(target, existing)) {
+    if (!targetExistsInDist(target, existing, input.siteOrigin)) {
       violations.push({
         rule: 'alias-redirect-broken-target',
         location: file.relPath,
@@ -367,14 +376,43 @@ function checkAliasRedirects(view: DistView, input: AuditInput): AuditViolation[
  *   - `/foo`       → `foo.html` or `foo/index.html`
  *   - `/foo/`      → `foo/index.html`
  *   - `/`          → `index.html`
- * External absolute URLs (http/https) are out of scope — the audit cannot reach
- * the network — so they are treated as existent to avoid false positives. The
- * project pipeline never emits external alias targets, so this branch is
- * defensive rather than load-bearing.
+ *
+ * Absolute URLs are split into two cases:
+ *   - **same-origin** (host matches `siteOrigin`): pathname is extracted and
+ *     re-checked against dist. This catches a future regression where the
+ *     alias route emits `<meta refresh url=https://site/...>` instead of a
+ *     relative path — without this branch the audit would silently treat
+ *     project URLs as external and miss broken targets entirely.
+ *   - **external** (no `siteOrigin`, or different host): out of scope — the
+ *     audit cannot reach the network — so they are treated as existent to
+ *     avoid false positives.
  */
-function targetExistsInDist(target: string, existing: ReadonlySet<string>): boolean {
-  if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('//')) {
-    return true;
+function targetExistsInDist(
+  target: string,
+  existing: ReadonlySet<string>,
+  siteOrigin: string | undefined,
+): boolean {
+  if (
+    target.startsWith('http://') ||
+    target.startsWith('https://') ||
+    target.startsWith('//')
+  ) {
+    if (siteOrigin === undefined) return true;
+    let parsed: URL;
+    try {
+      // `//host/path` is protocol-relative; URL needs a base to resolve it.
+      parsed = new URL(target, siteOrigin);
+    } catch {
+      return true;
+    }
+    let originUrl: URL;
+    try {
+      originUrl = new URL(siteOrigin);
+    } catch {
+      return true;
+    }
+    if (parsed.origin !== originUrl.origin) return true;
+    return targetExistsInDist(`${parsed.pathname}${parsed.search}${parsed.hash}`, existing, undefined);
   }
   const stripped = target.replace(/[?#].*$/, '');
   const clean = stripped.startsWith('/') ? stripped.slice(1) : stripped;

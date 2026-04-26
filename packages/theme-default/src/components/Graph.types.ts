@@ -20,8 +20,6 @@ export interface GraphProps {
   graph: GraphViewModel;
   /** 빈 그래프(노드 0개)일 때 표시할 안내 문구. 기본 "아직 공개된 글이 없습니다." */
   emptyMessage?: string;
-  /** 시각적 폭/높이를 제한하는 root 클래스. 기본 `w-full md:max-w-3xl md:mx-auto`. */
-  className?: string;
 }
 
 export type {
