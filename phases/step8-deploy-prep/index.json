@@ -15,7 +15,7 @@
       "name": "alias-pipeline-integration",
       "status": "completed",
       "started_at": "2026-04-26T10:35:20+0900",
-      "completed_at": "2026-04-26T10:46:00+0900",
+      "completed_at": "2026-04-26T10:46:46+0900",
       "summary": "core pipeline emits aliasRedirects from publishable notes only; Astro loader exposes alias entries via kind:'note'|'alias-redirect' discriminator on the same notes collection; viewModels narrows filterPublishable to NoteEntry and adds entryToAliasRedirectViewModel; new core integration test + loader assertions verify private-alias canary stays out of every result channel"
     },
     {
