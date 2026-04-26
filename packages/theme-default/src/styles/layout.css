@@ -1,0 +1,261 @@
+/*
+ * Layout chrome — site header, main, footer, mobile menu, theme toggle.
+ * v0.2 SSOT: phases/step9-design-overhaul/design/COMPONENTS.md (`BaseLayout`).
+ *
+ * All values reference tokens.css variables. Mobile menu is JS-less via
+ * <details>/<summary>; only the theme-toggle button needs a small inline
+ * handler (BaseLayout.astro).
+ */
+
+.skip-link {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  width: auto;
+  height: auto;
+  padding: var(--space-2) var(--space-4);
+  z-index: 50;
+  background: var(--color-bg-surface);
+  color: var(--color-text-heading);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
+}
+.site-header__inner {
+  max-width: var(--container-main);
+  margin-inline: auto;
+  padding: 0 var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3rem;
+}
+@media (min-width: 768px) {
+  .site-header__inner {
+    padding: 0 var(--space-5);
+  }
+}
+
+.brand {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-heading);
+  text-decoration: none;
+}
+.brand:hover {
+  color: var(--color-text-heading);
+}
+
+.site-nav {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+}
+.site-nav ul {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.site-nav a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.site-nav a:hover {
+  color: var(--color-text-link);
+}
+@media (min-width: 768px) {
+  .site-nav {
+    display: flex;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+.icon-button:hover {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+}
+.icon-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mobile-menu {
+  position: relative;
+}
+.mobile-menu summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+.mobile-menu summary::-webkit-details-marker {
+  display: none;
+}
+.mobile-menu summary:hover {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+}
+.mobile-menu summary svg {
+  width: 1rem;
+  height: 1rem;
+}
+.mobile-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  min-width: 12rem;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  box-shadow: var(--shadow-1);
+}
+.mobile-menu__panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+}
+.mobile-menu__panel a {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: background-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+}
+.mobile-menu__panel a:hover {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+}
+@media (min-width: 768px) {
+  .mobile-menu {
+    display: none;
+  }
+}
+
+.site-main {
+  max-width: var(--container-main);
+  margin-inline: auto;
+  padding: var(--space-8) var(--space-4);
+}
+@media (min-width: 768px) {
+  .site-main {
+    padding: var(--space-8) var(--space-5);
+  }
+}
+
+.site-footer {
+  margin-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+.site-footer__inner {
+  max-width: var(--container-main);
+  margin-inline: auto;
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+@media (min-width: 768px) {
+  .site-footer__inner {
+    padding: var(--space-5) var(--space-5);
+  }
+}
+.site-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.site-footer a:hover {
+  color: var(--color-text-link);
+}
+
+.theme-icon-sun {
+  display: inline-flex;
+}
+.theme-icon-moon {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-sun {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-moon {
+  display: inline-flex;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-icon-sun {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .theme-icon-moon {
+    display: inline-flex;
+  }
+}

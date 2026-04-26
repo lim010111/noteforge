@@ -9,6 +9,7 @@
 
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./layout.css";
 
 /*
  * `color-scheme` lets the UA paint scrollbars, form controls, and the canvas
