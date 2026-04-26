@@ -1,0 +1,170 @@
+/*
+ * Folder-tree sidebar — visuals.
+ *
+ * All values reference tokens.css. No new colors, no shadow scale.
+ * Editorial-Technical reading: hairline indent guides, single-accent active rule,
+ * `<details>`-driven disclosure with a thin chevron caret.
+ */
+
+.folder-tree {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  line-height: var(--lh-small);
+  color: var(--color-text-body);
+}
+
+.folder-tree__list,
+.folder-tree__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Root list rhythm — first item flush, subsequent items get a small gap. */
+.folder-tree__list > li + li {
+  margin-top: var(--space-1);
+}
+
+/* Nested children get a hairline guide. The guide line lives at the start
+ * edge of the children block; depth-driven inset is applied below. */
+.folder-tree__children {
+  position: relative;
+  margin-left: var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+/* Folder header (summary) — clickable region with caret + icon + label + count */
+.folder-tree__summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  font-weight: var(--weight-meta);
+  color: var(--color-text-heading);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.folder-tree__summary::-webkit-details-marker {
+  display: none;
+}
+.folder-tree__summary::marker {
+  /* Firefox / spec marker */
+  content: "";
+}
+.folder-tree__summary:hover {
+  background: var(--color-bg-surface-strong);
+}
+.folder-tree__summary:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.folder-tree__caret {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: none;
+  color: var(--color-text-faded);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+[open] > .folder-tree__summary .folder-tree__caret {
+  transform: rotate(90deg);
+}
+
+.folder-tree__icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+  color: var(--color-text-muted);
+}
+.folder-tree__icon--folder {
+  color: var(--color-text-muted);
+}
+[open] > .folder-tree__summary .folder-tree__icon--folder {
+  /* Subtle hint that the folder is open without swapping the SVG path. */
+  color: var(--color-text-link);
+}
+
+.folder-tree__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-tree__count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: var(--ls-meta);
+  color: var(--color-text-faded);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Leaf — the actual link. Indent rhythm continues from .folder-tree__children. */
+.folder-tree__leaf {
+  /* leaves under the same parent share the children gutter */
+}
+
+.folder-tree__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  margin-left: 0;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-weight: var(--weight-body);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.folder-tree__link:hover {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+}
+.folder-tree__link:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.folder-tree__link.is-active {
+  background: var(--color-accent-soft);
+  color: var(--color-text-link);
+  border-left-color: var(--color-accent);
+}
+.folder-tree__link.is-active .folder-tree__icon {
+  color: var(--color-text-link);
+}
+
+/* Sidebar container chrome — sticky on desktop, fits inside .site-shell grid.
+ * Default stylesheet declares it; .site-shell breakpoints (in layout.css)
+ * gate visibility on width. */
+.folder-tree {
+  align-self: start;
+}
+@media (min-width: 768px) {
+  .folder-tree {
+    position: sticky;
+    top: var(--space-7);
+    max-height: calc(100vh - var(--space-9));
+    overflow-y: auto;
+    padding: var(--space-5) var(--space-3) var(--space-5) 0;
+    border-right: 1px solid var(--color-border);
+  }
+}
+
+/* Reduced motion: kill caret rotation transition. */
+@media (prefers-reduced-motion: reduce) {
+  .folder-tree__caret,
+  .folder-tree__link,
+  .folder-tree__summary {
+    transition: none;
+  }
+}

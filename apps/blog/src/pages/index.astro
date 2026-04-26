@@ -3,10 +3,13 @@ import { getCollection } from 'astro:content';
 import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
+import { getSharedSidebarRoots } from '../lib/folderTree.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
-const sorted = sortForHome(filterPublishable(all));
+const publishable = filterPublishable(all);
+const sorted = sortForHome(publishable);
+const sidebarRoots = getSharedSidebarRoots(publishable);
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const items: NoteListEntry[] = sorted.map((entry) => {
   const dateRaw = entry.data.frontmatter['date'];
@@ -18,6 +21,12 @@ const items: NoteListEntry[] = sorted.map((entry) => {
   return item;
 });
 ---
-<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout
+  title="홈"
+  canonicalUrl={canonicalUrl}
+  ogType="website"
+  siteName={obpubConfig.site.title}
+  sidebarRoots={sidebarRoots}
+>
   <NoteList entries={items} emptyMessage="아직 공개된 글이 없습니다." />
 </BaseLayout>

@@ -1,0 +1,68 @@
+---
+/**
+ * Recursive tree-node renderer (private to the theme — not re-exported).
+ *
+ * Renders one folder (as <details> + nested <ul>) or one leaf (as <a>).
+ * Imports itself for nested children.
+ *
+ * Privacy: all data has been allowlist-narrowed by the caller. This component
+ * does not read frontmatter, never re-decides isPublic, and never set:html.
+ */
+import type { SidebarNode } from "./FolderTreeSidebar.types";
+import Self from "./FolderTreeNode.astro";
+
+interface Props {
+  node: SidebarNode;
+  currentSlug?: string;
+  /** Set of ancestor folder paths of the current slug. Drives `<details open>`. */
+  openPaths: ReadonlySet<string>;
+  /** 0-based nesting depth — drives indent via inline CSS variable. */
+  depth: number;
+}
+
+const { node, currentSlug, openPaths, depth } = Astro.props as Props;
+
+const indentStyle = `--folder-tree-depth: ${depth};`;
+---
+{node.kind === "folder" ? (
+  <li class="folder-tree__folder" style={indentStyle}>
+    <details open={openPaths.has(node.path)}>
+      <summary class="folder-tree__summary">
+        <svg class="folder-tree__caret" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg class="folder-tree__icon folder-tree__icon--folder" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+        </svg>
+        <span class="folder-tree__label">{node.label}</span>
+        <span class="folder-tree__count" aria-hidden="true">{node.noteCount}</span>
+      </summary>
+      {node.children.length > 0 && (
+        <ul class="folder-tree__children" role="list">
+          {node.children.map((child) => (
+            <Self
+              node={child}
+              currentSlug={currentSlug}
+              openPaths={openPaths}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      )}
+    </details>
+  </li>
+) : (
+  <li class="folder-tree__leaf" style={indentStyle}>
+    <a
+      href={`/${node.slug}`}
+      class={`folder-tree__link${currentSlug === node.slug ? " is-active" : ""}`}
+      {...(currentSlug === node.slug ? { "aria-current": "page" } : {})}
+    >
+      <svg class="folder-tree__icon folder-tree__icon--note" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+        <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+      </svg>
+      <span class="folder-tree__label">{node.label}</span>
+    </a>
+  </li>
+)}
