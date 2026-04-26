@@ -11,19 +11,17 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 ---
 <BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
   {sorted.length === 0 ? (
-    <p class="text-zinc-600">아직 공개된 글이 없습니다.</p>
+    <p class="tag-page__empty">아직 공개된 글이 없습니다.</p>
   ) : (
-    <ul class="space-y-2">
+    <ul class="tag-page__list">
       {sorted.map((entry) => {
         const dateRaw = entry.data.frontmatter['date'];
         const date = typeof dateRaw === 'string' ? dateRaw : null;
         return (
-          <li class="flex items-baseline gap-3">
-            <a
-              href={`/${entry.id}`}
-              class="text-blue-600 hover:text-blue-700 underline decoration-1 underline-offset-2"
-            >{entry.data.title ?? entry.id}</a>
-            {date && <time datetime={date} class="text-sm text-zinc-500">{date}</time>}
+          <li class="tag-page__item">
+            {date && <time datetime={date} class="tag-page__date">{date}</time>}
+            <span class="tag-page__arrow" aria-hidden="true">→</span>
+            <a href={`/${entry.id}`} class="tag-page__link">{entry.data.title ?? entry.id}</a>
           </li>
         );
       })}

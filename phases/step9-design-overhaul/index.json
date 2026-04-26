@@ -53,7 +53,10 @@
     {
       "step": 6,
       "name": "dogfood-and-screenshots",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-26T16:05:23+0900",
+      "summary": "v0.2 도그푸드 회귀 0(typecheck/lint/47 test files·442 tests/blog build/audit 모두 통과; canary DO_NOT_LEAK_BANANA_6f3c1·CLAUDE_COMMENT_LEAK_77b 모두 dist 0회). apps/blog 인덱스/404의 잔존 v0.1 utility 클래스(text-zinc-*/text-blue-*) → 토큰 기반 BEM(.tag-page__*) 정렬 + 미사용 nav slot fragment 제거. CHANGELOG·TODO·README v0.2.0 마감, memory에 릴리스 요약 항목 신설. 스크린샷 캡처(docs/screenshots/dogfood.png 라이트/다크) + `git tag v0.2.0` + `wrangler pages deploy`는 사용자 액션 — 본인 vault에 public 노트가 없어 빌드가 home/tags/graph/404 4페이지만 산출했고, 노트 페이지 캡처에는 vault 측 opt-in이 필요해 본 step에서 처리 불가",
+      "completed_at": "2026-04-26T16:13:00+0900"
     }
   ],
   "created_at": "2026-04-26T14:55:54+0900"

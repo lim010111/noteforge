@@ -4,22 +4,42 @@
 
 ## [Unreleased]
 
-### Changed
-- UI guide rewritten for v0.2 design overhaul — editorial-technical 방향(라이트/다크 듀얼 모드, serif/sans/mono triad self-host, iron-oxide 단일 액센트, 사이드 마진 그리드). v0.1 보존본은 `docs/UI_GUIDE.v0.1.md`로 백업.
-
 ## [0.2.0] - 2026-04-26
 
-### Added
+v0.1 도그푸드 결과로 디자인을 distinctive · production-grade로 전환한 디자인 대대적 개편 + 배포 인프라 정착 릴리스. privacy 계약·접근성·정적 출력 제약은 v0.1과 동일하게 유지.
+
+### Added — Design overhaul (Step 9)
+
+- **Dual-theme tokens** — `tokens.css` 라이트/다크 동시 정의(`:root` + `[data-theme="dark"]` + `prefers-color-scheme`). FOUC 방지용 inline `theme-init` script 1개와 `localStorage` 토글이 라이트/다크 영속화를 담당.
+- **Self-host font triad** — Source Serif 4 / Inter / JetBrains Mono(영문) + Noto Serif KR / Pretendard / D2Coding(한글) 모두 `apps/blog/public/fonts/` self-host(외부 CDN 금지).
+- **Iron-oxide 단일 액센트** — `#a83612` 라이트 / `#f0a373` 다크. 보라/인디고 금지 정책 유지.
+- **Editorial-technical 레이아웃** — 헤더의 mono 브랜드 마크 + uppercase 내비, JS-less `<details>` 모바일 메뉴, `lg+`에서 12rem 사이드 마진 컬럼.
+- **Heading anchors** — `h2`–`h4`에 stable id + autolink `#` 앵커(`rehype-slug` + `rehype-autolink-headings`, behavior `append`).
+- **Dual-theme code blocks** — Shiki light/dark 동시 하이라이트(테마 토글 시 즉시 전환).
+- **Component visual refresh** — Backlinks/TagList/TagPage/Graph/NotFound 모두 토큰 기반 BEM 클래스(`.backlinks*`/`.tag-*`/`.graph*`/`.not-found*`)로 재정렬, hex 0회. Graph SVG는 `.graph__node*` 클래스로 라이트/다크 자동 추상화.
+- **`docs/UI_GUIDE.md` v0.2 전면 개정** — 14절(Privacy 시각 계약 — 시각 레이어가 데이터 레이어의 privacy 보장을 우회 못 함을 명문화).
+- **`docs/UI_GUIDE.v0.1.md`** — v0.1 톤(미니멀 라이트, system font) 보존본.
+- **Phase 산출물** — `phases/step9-design-overhaul/design/{MOODBOARD,TOKENS,COMPONENTS,ANTIPATTERNS}.md`(v0.2 시각 디자인 SSOT).
+
+### Added — Deploy + alias (Step 8)
+
 - alias frontmatter → 정적 redirect HTML 생성 (`buildAliasRedirects`, audit redirect 무결성 검증).
 - canonical URL + 기본 OG meta(`og:url`, `og:type`, `og:title`, `og:description`, `og:site_name`).
 - Cloudflare Pages 배포 가이드(`docs/DEPLOY.md`) + `_headers`(X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy).
 - `apps/blog/wrangler.toml`.
 
 ### Changed
+
+- 본문 측정폭 65ch → **68ch**(사이드 마진 그리드와 균형). 모바일은 65ch로 다시 좁힘.
+- `apps/blog/src/pages/index.astro`/`404.astro` — 잔존 v0.1 Tailwind utility 클래스(`text-zinc-*`, `text-blue-*`)를 토큰 기반 BEM(`.tag-page__*`)으로 정렬, 404의 미사용 `nav` slot fragment 제거.
+- 컴포넌트 테스트 — viewport 클래스 어서션을 v0.2 토큰 기반 BEM 클래스 + hex 금지 회귀 가드로 갱신.
 - `apps/blog/obsidian-blog.config.ts`의 `site.url`을 placeholder에서 Cloudflare Pages 기본 도메인으로 교체.
 
-### Removed (Known limitations)
-- alias frontmatter → canonical URL 정적 redirect HTML 미생성 — 본 릴리스에서 구현됨.
+### Removed — v0.1 Known limitations resolved in v0.2
+
+- alias frontmatter → canonical URL 정적 redirect HTML 미생성 — 구현 완료.
+- Dark mode 부재 — 이중 테마 토큰 + 토글 + FOUC 방지로 구현 완료.
+- Heading anchor 호버 `#` UI 부재 — `rehype-autolink-headings` append behavior로 구현 완료.
 
 ## [0.1.0] - 2026-04-25
 

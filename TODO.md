@@ -97,16 +97,16 @@ v0.1 MVP 작업 체크리스트.
 - [x] Step 3: canonical-url-and-og (BaseLayout canonical + og:* 메타)
 - [x] Step 4: cloudflare-pages-ops (wrangler.toml + _headers + docs/DEPLOY.md + site.url + CHANGELOG/README/TODO 갱신)
 
-## v0.2 — 디자인 대대적 개편 (Step 9)
+## v0.2 — 디자인 대대적 개편 (Step 9) ✅
 
 v0.1의 미니멀("읽기 우선 · 장식 없음 · SaaS 클리셰 금지") 톤은 의도된 결정이었으나, 도그푸드 결과 사용자 결정으로 v0.2에서는 **distinctive · production-grade** 시각 디자인으로 전환한다. 단, privacy 계약(allowlist · tripwire · transclusion 처리)·접근성(`prefers-reduced-motion`·focus outline·WCAG AA)·정적 출력 제약은 그대로 유지.
 
 설계 강제: phase의 첫 step에서 반드시 `affaan-m-everything-claude-code-frontend-design` 스킬을 호출해 무드보드 · 컴포넌트 카탈로그 · 토큰 시스템(라이트/다크 동시)을 잡고 산출물을 phase 디렉토리에 보존한다.
 
-- [ ] Step 0: design-direction (frontend-design 스킬 호출 → 무드보드 + 색·타이포·spacing 토큰 + 컴포넌트 시안. v0.1 안티패턴 중 어떤 것을 완화/유지할지 명시)
-- [ ] Step 1: ui-guide-rewrite (`docs/UI_GUIDE.md` 전면 개정 — v0.2 톤·다크모드·금지/허용 목록 갱신, v0.1 보존본은 `docs/UI_GUIDE.v0.1.md`로 백업)
-- [ ] Step 2: tokens-and-base (theme-default `tokens.css`/`base.css` 재구성, dark mode 토큰 + `prefers-color-scheme` 스위치)
-- [ ] Step 3: layout-and-nav (BaseLayout 재설계 — 헤더/푸터/네비게이션·모바일 메뉴)
-- [ ] Step 4: note-and-prose (`Note.astro` 본문 타이포·코드블록·인용·이미지 처리, heading anchor 도입)
-- [ ] Step 5: backlinks-tags-graph (Backlinks/TagList/Graph 시각 개편)
-- [ ] Step 6: dogfood-and-screenshots (apps/blog 시각 검증, README 스크린샷 갱신, audit/typecheck/test 회귀 0)
+- [x] Step 0: design-direction (frontend-design 스킬 호출 → 무드보드 + 색·타이포·spacing 토큰 + 컴포넌트 시안. v0.1 안티패턴 중 어떤 것을 완화/유지할지 명시)
+- [x] Step 1: ui-guide-rewrite (`docs/UI_GUIDE.md` 전면 개정 — v0.2 톤·다크모드·금지/허용 목록 갱신, v0.1 보존본은 `docs/UI_GUIDE.v0.1.md`로 백업)
+- [x] Step 2: tokens-and-base (theme-default `tokens.css`/`base.css` 재구성, dark mode 토큰 + `prefers-color-scheme` 스위치)
+- [x] Step 3: layout-and-nav (BaseLayout 재설계 — 헤더/푸터/네비게이션·모바일 메뉴)
+- [x] Step 4: note-and-prose (`Note.astro` 본문 타이포·코드블록·인용·이미지 처리, heading anchor 도입)
+- [x] Step 5: backlinks-tags-graph (Backlinks/TagList/Graph 시각 개편)
+- [x] Step 6: dogfood-and-screenshots (apps/blog 시각 검증, audit/typecheck/test 회귀 0; canary 0/0; CHANGELOG/README/TODO 마감. 스크린샷 캡처는 사용자 액션 — 본인 vault에서 노트를 `public: true`로 발행한 뒤 v0.2 dogfood 페이지를 캡처해 `docs/screenshots/`에 추가)
