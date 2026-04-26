@@ -1,3 +1,6 @@
-@import 'tailwindcss';
-@import '@noteforge/theme-default/styles/tokens.css';
+/*
+ * Single entry for theme-default styles.
+ * `base.css` already imports `tailwindcss` and `./tokens.css`; importing them
+ * again here would register Tailwind twice and re-emit @theme tokens.
+ */
 @import '@noteforge/theme-default/styles/base.css';
