@@ -17,9 +17,9 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import picomatch from 'picomatch';
 import { fromMarkdown } from 'mdast-util-from-markdown';
-import { toHast } from 'mdast-util-to-hast';
-import { toHtml } from 'hast-util-to-html';
 import type { Root } from 'mdast';
+
+import { renderMdastToHtml } from './render/htmlFromMdast.ts';
 
 import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
@@ -230,17 +230,13 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     }
   }
 
-  // Serialize public mdasts to HTML.
+  // Serialize public mdasts to HTML — heading anchors are applied here so the
+  // HTML reaching every adapter (Astro loader, audit CLI) carries them.
   const renderedHtml = new Map<string, string>();
   for (const slug of publicSlugs) {
     const tree = rewrittenMdastBySlug.get(slug);
     if (tree === undefined) continue;
-    const hast = toHast(tree, { allowDangerousHtml: false });
-    if (hast === null || hast === undefined) {
-      renderedHtml.set(slug, '');
-      continue;
-    }
-    renderedHtml.set(slug, toHtml(hast));
+    renderedHtml.set(slug, renderMdastToHtml(tree));
   }
 
   // Frontmatter allowlist + tag blocklist per public note.

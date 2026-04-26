@@ -1,0 +1,243 @@
+/*
+ * Prose — body styling for `<Note />` article content.
+ * v0.2 SSOT: phases/step9-design-overhaul/design/COMPONENTS.md (`Note — article body`).
+ *
+ * Scope: rules apply only inside `.prose` so headings, links, and paragraphs in
+ * UI chrome (header, footer, nav) are unaffected. Mode switching is handled at
+ * the token layer (tokens.css) — no light/dark branches in this file.
+ */
+
+.prose {
+  max-width: var(--measure-prose);
+  line-height: var(--lh-body);
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+}
+
+@media (max-width: 639px) {
+  .prose {
+    max-width: min(100%, 65ch);
+  }
+}
+
+.prose :where(h1, h2, h3) {
+  font-family: var(--font-serif);
+  color: var(--color-text-heading);
+}
+.prose :where(h1) {
+  font-size: var(--text-h1);
+  font-weight: var(--weight-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+}
+.prose :where(h2) {
+  font-size: var(--text-h2);
+  font-weight: var(--weight-h2);
+  line-height: var(--lh-h2);
+  letter-spacing: var(--ls-h2);
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-3);
+}
+.prose :where(h3) {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-h3);
+  line-height: var(--lh-h3);
+  letter-spacing: var(--ls-h3);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+.prose :where(h4) {
+  font-family: var(--font-sans);
+  font-size: var(--text-h4);
+  font-weight: var(--weight-h4);
+  line-height: var(--lh-h4);
+  letter-spacing: var(--ls-h4);
+  color: var(--color-text-heading);
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+
+@media (max-width: 639px) {
+  .prose :where(h1) {
+    font-size: 1.75rem;
+  }
+}
+
+.prose :where(p) {
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  margin-block: var(--space-4);
+}
+
+.prose :where(a) {
+  color: var(--color-text-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--duration-base) var(--ease-out),
+    text-decoration-thickness var(--duration-fast) var(--ease-out);
+}
+.prose :where(a):hover {
+  color: var(--color-text-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+.prose :where(code) {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  background: var(--color-bg-code);
+  color: var(--color-text-code);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-1);
+}
+
+.prose :where(pre) {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  line-height: var(--lh-code);
+  background: var(--color-bg-code);
+  color: var(--color-text-code);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-block: var(--space-6);
+  overflow-x: auto;
+}
+.prose :where(pre code) {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.prose :where(blockquote) {
+  border-left: 3px solid var(--color-border-strong);
+  padding-left: var(--space-5);
+  margin-block: var(--space-6);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.prose :where(figure) {
+  margin-block: var(--space-6);
+}
+.prose :where(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  display: block;
+}
+.prose :where(figcaption) {
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.prose :where(ul, ol) {
+  margin-block: var(--space-4);
+  padding-left: var(--space-5);
+}
+.prose :where(li) {
+  margin-block: var(--space-2);
+}
+
+.prose :where(hr) {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin-block: var(--space-7);
+}
+
+/*
+ * Embed aside — body of a publicly-transcluded `![[Note]]`. The data layer
+ * (`@noteforge/core/privacy/transclude`) has already removed private targets,
+ * so this rule never decides what to show; it only formats what arrives.
+ */
+.prose :where(aside.embed) {
+  margin-block: var(--space-7);
+  border-left: 3px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+@media (max-width: 639px) {
+  .prose :where(aside.embed) {
+    padding-left: var(--space-4);
+  }
+}
+
+/*
+ * Heading anchor — appended by `core/render/htmlFromMdast` (rehype-autolink-headings).
+ * Hidden by default; revealed on hover or keyboard focus. Mobile shows always since
+ * touch has no hover state.
+ */
+.prose :where(h2, h3, h4) {
+  position: relative;
+}
+.heading-anchor {
+  margin-left: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  color: var(--color-text-faded);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out);
+}
+.prose :where(h2, h3, h4):hover > .heading-anchor,
+.heading-anchor:focus-visible {
+  opacity: 1;
+}
+@media (max-width: 639px) {
+  .heading-anchor {
+    opacity: 1;
+  }
+}
+
+/*
+ * Note header — meta row directly under h1 (date, updated, tag links).
+ * `not-prose` stops the prose rules above from styling these chrome elements.
+ */
+.note-header {
+  margin-bottom: var(--space-7);
+}
+.note-meta {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.note-meta a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-base) var(--ease-out);
+}
+.note-meta a:hover {
+  color: var(--color-text-link);
+}
+
+/*
+ * Shiki dual-theme overlay. Astro's built-in Shiki emits inline CSS variables
+ * (--shiki-light / --shiki-dark) on every span when `markdown.shikiConfig.themes`
+ * is set. The light values paint by default; this rule swaps them when the user
+ * (or OS) selects dark mode. Same source-of-truth as theme-init.
+ */
+:root[data-theme='dark'] .shiki,
+:root[data-theme='dark'] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .shiki,
+  :root:not([data-theme='light']) .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}

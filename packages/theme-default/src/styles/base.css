@@ -10,6 +10,7 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./layout.css";
+@import "./prose.css";
 
 /*
  * `color-scheme` lets the UA paint scrollbars, form controls, and the canvas
@@ -59,11 +60,7 @@ a:hover {
   outline-offset: 2px;
 }
 
-/* Prose body: measure constrains line length for readability. */
-.prose {
-  max-width: var(--measure-prose);
-  line-height: var(--lh-body);
-}
+/* `.prose` rules live in prose.css (note article body styling). */
 
 /* Honor reduced-motion uniformly — kills both transitions and animations. */
 @media (prefers-reduced-motion: reduce) {

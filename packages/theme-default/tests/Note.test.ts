@@ -130,17 +130,34 @@ describe('Note', () => {
     expect(html).toContain('Visible Title');
   });
 
-  it('(8) <article> root carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl)', async () => {
+  it('(8) <article> root carries v0.2 prose + measure classes (UI_GUIDE v0.2: prose / mx-auto / max-w-[var(--measure-prose)])', async () => {
     const html = await render({ title: 'T', tags: [], body: '' });
     const articleMatch = html.match(/<article\s[^>]*\bclass="([^"]*)"/);
     expect(articleMatch, '<article> must carry a class attribute for the viewport-responsive container').not.toBeNull();
     const cls = articleMatch![1]!;
-    for (const token of ['w-full', 'md:max-w-3xl']) {
+    for (const token of ['prose', 'mx-auto', 'max-w-[var(--measure-prose)]']) {
       expect(
         cls,
-        `<article> class must include "${token}" — UI_GUIDE: parent BaseLayout supplies mx-auto, component owns its width`,
+        `<article> class must include "${token}" — UI_GUIDE v0.2: prose binds article body to prose.css rules, mx-auto + measure-prose constrains reading column to 68ch`,
       ).toContain(token);
     }
+  });
+
+  it('(9) rehype-rendered heading anchor in body reaches the DOM intact (set:html passthrough)', async () => {
+    // Mirrors the markup core/render/htmlFromMdast emits for `## Hello` after
+    // rehype-slug + rehype-autolink-headings (behavior: 'append'). Note must
+    // pass it through without escaping or reordering.
+    const body =
+      '<h2 id="hello"><a class="heading-anchor" href="#hello" aria-label="permalink">#</a>Hello</h2>';
+    const html = await render({ title: 'T', tags: [], body });
+    expect(
+      html,
+      'h2 id must reach DOM — headings without ids cannot be permalinked or jumped to',
+    ).toMatch(/<h2\b[^>]*\bid="hello"/);
+    expect(
+      html,
+      '.heading-anchor child <a> must reach DOM — required for v0.2 hover-to-permalink affordance',
+    ).toMatch(/<a\s[^>]*\bclass="heading-anchor"/);
   });
 
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
