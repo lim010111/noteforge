@@ -1,28 +1,47 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildBacklinksViewModel,
+  entryToAliasRedirectViewModel,
   entryToNoteViewModel,
   filterPublishable,
   sortForHome,
+  type AliasRedirectEntry,
+  type NoteEntry,
   type NotesEntry,
 } from '../src/lib/viewModels.ts';
 
+interface NoteEntryDataInput {
+  title?: string;
+  frontmatter?: Record<string, unknown>;
+  tags?: string[];
+  backlinks?: string[];
+}
+
 function makeEntry(
   id: string,
-  data: Partial<NotesEntry['data']>,
+  data: NoteEntryDataInput,
   rendered = '',
-): NotesEntry {
+): NoteEntry {
   return {
     id,
     collection: 'notes',
     data: {
+      kind: 'note',
       frontmatter: data.frontmatter ?? {},
       tags: data.tags ?? [],
       backlinks: data.backlinks ?? [],
       ...(data.title !== undefined ? { title: data.title } : {}),
     },
     rendered: { html: rendered, metadata: {} },
-  } as unknown as NotesEntry;
+  } as unknown as NoteEntry;
+}
+
+function makeAliasEntry(from: string, to: string): AliasRedirectEntry {
+  return {
+    id: from,
+    collection: 'notes',
+    data: { kind: 'alias-redirect', to },
+  } as unknown as AliasRedirectEntry;
 }
 
 describe('entryToNoteViewModel', () => {
@@ -125,6 +144,32 @@ describe('filterPublishable', () => {
     const b = makeEntry('b', { frontmatter: {} });
     const c = makeEntry('c', { frontmatter: { draft: false } });
     expect(filterPublishable([a, b, c]).map((e) => e.id)).toEqual(['b', 'c']);
+  });
+
+  it('drops alias-redirect entries so listings never see them', () => {
+    const note = makeEntry('a', { frontmatter: {} });
+    const alias = makeAliasEntry('legacy-name', 'a');
+    const mixed: NotesEntry[] = [note, alias];
+    const result = filterPublishable(mixed);
+    expect(result.map((e) => e.id)).toEqual(['a']);
+    // After filterPublishable the discriminator narrows to 'note' — the next
+    // line is a compile-time guarantee disguised as a runtime check.
+    for (const e of result) expect(e.data.kind).toBe('note');
+  });
+});
+
+describe('entryToAliasRedirectViewModel', () => {
+  it('returns from/to/canonicalUrl with leading slash on `to`', () => {
+    const entry = makeAliasEntry('legacy-name', 'projects/foo');
+    const vm = entryToAliasRedirectViewModel(
+      entry,
+      'https://example.com/projects/foo',
+    );
+    expect(vm).toEqual({
+      from: 'legacy-name',
+      to: '/projects/foo',
+      canonicalUrl: 'https://example.com/projects/foo',
+    });
   });
 });
 

@@ -2,11 +2,14 @@
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import { Backlinks, BaseLayout, Note } from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   buildBacklinksViewModel,
+  entryToAliasRedirectViewModel,
   entryToNoteViewModel,
   filterPublishable,
-  type NotesEntry,
+  type AliasRedirectEntry,
+  type NoteEntry,
 } from '../lib/viewModels.ts';
 import '../styles/global.css';
 
@@ -16,30 +19,109 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const titleBySlug = new Map(
     publishable.map((e) => [e.id, e.data.title ?? e.id] as const),
   );
-  return publishable.map((entry) => ({
+
+  const noteRoutes = publishable.map((entry) => ({
     params: { slug: entry.id },
-    props: { entry, titleBySlug },
+    props: { kind: 'note' as const, entry, titleBySlug },
   }));
+
+  const aliasEntries = all.filter(
+    (e): e is AliasRedirectEntry => e.data.kind === 'alias-redirect',
+  );
+
+  // Defense-in-depth: the loader already throws on alias↔note id collisions
+  // (step 1) and `buildAliasRedirects` filters its own duplicates (step 0).
+  // Re-checking here turns any future regression that lets two routes claim
+  // the same slug into a build-time failure with a precise message rather
+  // than Astro's generic duplicate-route error.
+  const claimed = new Set(noteRoutes.map((r) => r.params.slug));
+  for (const alias of aliasEntries) {
+    if (claimed.has(alias.id)) {
+      throw new Error(
+        `[...slug] route collision: alias '${alias.id}' (→ '${alias.data.to}') ` +
+          `would overwrite a note slug. Resolve in vault frontmatter before building.`,
+      );
+    }
+    claimed.add(alias.id);
+  }
+
+  const aliasRoutes = aliasEntries.map((entry) => ({
+    params: { slug: entry.id },
+    props: {
+      kind: 'alias-redirect' as const,
+      entry,
+      to: `/${entry.data.to}`,
+    },
+  }));
+
+  return [...noteRoutes, ...aliasRoutes];
 };
 
-interface Props {
-  entry: NotesEntry;
-  titleBySlug: ReadonlyMap<string, string>;
-}
+type Props =
+  | {
+      kind: 'note';
+      entry: NoteEntry;
+      titleBySlug: ReadonlyMap<string, string>;
+    }
+  | {
+      kind: 'alias-redirect';
+      entry: AliasRedirectEntry;
+      to: string;
+    };
 
-const { entry, titleBySlug } = Astro.props as Props;
-const html = entry.rendered?.html ?? '';
-const note = entryToNoteViewModel(entry, html);
-const backlinks = buildBacklinksViewModel(entry, titleBySlug);
+const props = Astro.props as Props;
+const siteOrigin = Astro.site;
+
+let renderedNote: ReturnType<typeof entryToNoteViewModel> | null = null;
+let backlinks: ReturnType<typeof buildBacklinksViewModel> | null = null;
+let noteCanonical: string | undefined;
+
+let aliasTo: string | null = null;
+let aliasCanonical: string | undefined;
+
+if (props.kind === 'note') {
+  const html = props.entry.rendered?.html ?? '';
+  renderedNote = entryToNoteViewModel(props.entry, html);
+  backlinks = buildBacklinksViewModel(props.entry, props.titleBySlug);
+  noteCanonical = new URL(Astro.url.pathname, Astro.site).toString();
+} else {
+  const absoluteTo =
+    siteOrigin !== undefined
+      ? new URL(props.to, siteOrigin).toString()
+      : props.to;
+  const vm = entryToAliasRedirectViewModel(props.entry, absoluteTo);
+  aliasTo = vm.to;
+  aliasCanonical = vm.canonicalUrl;
+}
 ---
-<BaseLayout title={note.title} description={note.description}>
-  <Fragment slot="nav">
-    <ul class="flex gap-4 py-4 text-sm">
-      <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
-      <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
-      <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
-    </ul>
-  </Fragment>
-  <Note note={note} />
-  <Backlinks backlinks={backlinks} />
-</BaseLayout>
+{props.kind === 'alias-redirect' ? (
+  <BaseLayout
+    title="이 페이지는 이동되었습니다"
+    canonicalUrl={aliasCanonical}
+    ogType="website"
+    siteName={obpubConfig.site.title}
+  >
+    <Fragment slot="head">
+      <meta http-equiv="refresh" content={`0; url=${aliasTo}`} />
+    </Fragment>
+    <p>이 페이지는 <a href={aliasTo}>여기</a>로 이동되었습니다.</p>
+  </BaseLayout>
+) : (
+  <BaseLayout
+    title={renderedNote!.title}
+    description={renderedNote!.description}
+    canonicalUrl={noteCanonical}
+    ogType="article"
+    siteName={obpubConfig.site.title}
+  >
+    <Fragment slot="nav">
+      <ul class="flex gap-4 py-4 text-sm">
+        <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
+        <li><a href="/graph" class="text-zinc-500 hover:text-zinc-900">그래프</a></li>
+        <li><a href="/tags" class="text-zinc-500 hover:text-zinc-900">태그</a></li>
+      </ul>
+    </Fragment>
+    <Note note={renderedNote!} />
+    <Backlinks backlinks={backlinks!} />
+  </BaseLayout>
+)}

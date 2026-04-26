@@ -139,6 +139,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-comment',
     'public-with-extra-fm',
     'public-with-secret-tag',
+    'note-with-alias',
   ]);
 
   let loader: Loader;
@@ -152,10 +153,14 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     await runLoad(loader, store, logger);
   });
 
-  it('(1) emits exactly the 7 public slugs as store keys', () => {
+  it('(1) emits exactly the 8 public slugs as note-kind store keys', () => {
+    const noteKeys = store
+      .values()
+      .filter((e) => (e.data as Record<string, unknown>)['kind'] === 'note')
+      .map((e) => e.id);
     expect(
-      [...store.keys()].sort(),
-      'store keys must equal the canonical 7-slug public set — extras or omissions break the public contract',
+      [...noteKeys].sort(),
+      'note-kind keys must equal the canonical 8-slug public set — extras or omissions break the public contract',
     ).toEqual([...EXPECTED_PUBLIC].sort());
   });
 
@@ -248,7 +253,60 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     }
   });
 
-  it('(6) two consecutive load() calls produce identical keys and html (determinism)', async () => {
+  it('(6a) every note entry carries kind:"note" and alias entries are kind:"alias-redirect" with only `to`', () => {
+    // The vault-mixed fixture declares `aliases: [구이름]` on another-public.md,
+    // so the loader must surface a single alias entry here. (Step 2 will broaden
+    // fixture coverage; step 1 only asserts the channel is wired.)
+    const noteEntry = store.get('another-public');
+    expect(noteEntry).toBeDefined();
+    expect((noteEntry!.data as Record<string, unknown>)['kind']).toBe('note');
+
+    const aliasEntry = store.get('구이름');
+    expect(
+      aliasEntry,
+      'alias entry for `구이름` (declared on another-public.md) must be present in the store',
+    ).toBeDefined();
+    expect((aliasEntry!.data as Record<string, unknown>)['kind']).toBe(
+      'alias-redirect',
+    );
+    expect((aliasEntry!.data as Record<string, unknown>)['to']).toBe(
+      'another-public',
+    );
+
+    // Alias entries are pure URL pointers — they must not carry rendered HTML
+    // or note metadata. Any of those fields would let a route accidentally
+    // dereference an alias as a fully-rendered note.
+    expect(
+      aliasEntry!.rendered,
+      'alias entry must not carry rendered HTML',
+    ).toBeUndefined();
+    expect(
+      (aliasEntry!.data as Record<string, unknown>)['frontmatter'],
+      'alias entry must not carry frontmatter — privacy-first allowlist applies to notes only',
+    ).toBeUndefined();
+    expect(
+      (aliasEntry!.data as Record<string, unknown>)['tags'],
+      'alias entry must not carry tags',
+    ).toBeUndefined();
+  });
+
+  it('(6b) alias entry id never collides with a note slug', () => {
+    const aliasIds = store
+      .values()
+      .filter(
+        (e) =>
+          (e.data as Record<string, unknown>)['kind'] === 'alias-redirect',
+      )
+      .map((e) => e.id);
+    for (const aliasId of aliasIds) {
+      expect(
+        EXPECTED_PUBLIC.has(aliasId),
+        `alias id '${aliasId}' must not duplicate a note slug — collision means store.set silently overwrites`,
+      ).toBe(false);
+    }
+  });
+
+  it('(7) two consecutive load() calls produce identical keys and html (determinism)', async () => {
     const store2 = makeStore();
     const logger2 = makeLogger();
     await runLoad(loader, store2, logger2);

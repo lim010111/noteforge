@@ -1,7 +1,5 @@
-import type { CollectionEntry } from 'astro:content';
 import type { TagPageEntry, TagSummary } from '@noteforge/theme-default';
-
-type NotesEntry = CollectionEntry<'notes'>;
+import type { NoteEntry } from './viewModels.ts';
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
@@ -12,7 +10,7 @@ function lastSegment(slug: string): string {
   return i === -1 ? slug : slug.slice(i + 1);
 }
 
-export function summarizeTags(entries: readonly NotesEntry[]): TagSummary[] {
+export function summarizeTags(entries: readonly NoteEntry[]): TagSummary[] {
   const counts = new Map<string, number>();
   for (const e of entries) {
     for (const raw of e.data.tags) {
@@ -34,7 +32,7 @@ export function summarizeTags(entries: readonly NotesEntry[]): TagSummary[] {
 
 export function entriesForTag(
   tag: string,
-  entries: readonly NotesEntry[],
+  entries: readonly NoteEntry[],
 ): TagPageEntry[] {
   const matched: TagPageEntry[] = [];
   for (const e of entries) {

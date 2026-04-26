@@ -72,7 +72,7 @@ v0.1 MVP 작업 체크리스트.
 - [x] `content.config.ts`
 - [x] `pages/index.astro`, `[...slug].astro`, `graph.astro`, `api/graph.json.ts`
 - [x] 로컬 빌드 성공 + audit 통과
-- [ ] Cloudflare Pages / Vercel 배포 (배포 도메인 미정 — v0.2 작업)
+- [x] Cloudflare Pages / Vercel 배포 (step8에서 처리, docs/DEPLOY.md 참조)
 
 ## Step 7 — CI + 릴리스 준비 ✅
 - [x] GitHub Actions: install → typecheck → lint → vitest → build → audit
@@ -88,4 +88,11 @@ v0.1 MVP 작업 체크리스트.
 ## 미결정 / 사용자 확인 필요
 - [x] 실 Obsidian vault 절대경로 (Step 6에서 처리)
 - [x] 정식 프로젝트명 + npm 네임스페이스 — `noteforge` / `@noteforge/*`
-- [ ] 배포 도메인 (canonical URL 확정용)
+- [x] 배포 도메인 — Cloudflare Pages 기본 도메인(`noteforge.pages.dev`) 사용 (custom domain은 v0.2)
+
+## Step 8 — 배포 + alias redirect ✅
+- [x] Step 0: alias-redirect-engine (alias map 산출 함수 + 8 TDD 테스트)
+- [x] Step 1: alias-pipeline-integration (core pipeline + Astro loader)
+- [x] Step 2: alias-fixture-routes-audit (fixture + [...slug] meta-refresh + audit 규칙 2개)
+- [x] Step 3: canonical-url-and-og (BaseLayout canonical + og:* 메타)
+- [x] Step 4: cloudflare-pages-ops (wrangler.toml + _headers + docs/DEPLOY.md + site.url + CHANGELOG/README/TODO 갱신)

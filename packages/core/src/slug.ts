@@ -40,7 +40,7 @@ function fromPath(relativePath: string): string {
   return segments.join('/');
 }
 
-function slugifySegment(segment: string): string {
+export function slugifySegment(segment: string): string {
   return segment
     .trim()
     .toLowerCase()

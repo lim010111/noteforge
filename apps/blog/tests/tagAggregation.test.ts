@@ -3,23 +3,28 @@ import {
   entriesForTag,
   summarizeTags,
 } from '../src/lib/tagAggregation.ts';
-import type { NotesEntry } from '../src/lib/viewModels.ts';
+import type { NoteEntry } from '../src/lib/viewModels.ts';
 
-function makeEntry(
-  id: string,
-  data: Partial<NotesEntry['data']>,
-): NotesEntry {
+interface NoteEntryDataInput {
+  title?: string;
+  frontmatter?: Record<string, unknown>;
+  tags?: string[];
+  backlinks?: string[];
+}
+
+function makeEntry(id: string, data: NoteEntryDataInput): NoteEntry {
   return {
     id,
     collection: 'notes',
     data: {
+      kind: 'note',
       frontmatter: data.frontmatter ?? {},
       tags: data.tags ?? [],
       backlinks: data.backlinks ?? [],
       ...(data.title !== undefined ? { title: data.title } : {}),
     },
     rendered: { html: '', metadata: {} },
-  } as unknown as NotesEntry;
+  } as unknown as NoteEntry;
 }
 
 describe('summarizeTags', () => {

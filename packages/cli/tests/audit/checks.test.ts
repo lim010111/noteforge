@@ -38,6 +38,7 @@ function baseInput(over: Partial<AuditInput> = {}): AuditInput {
     privateAttachmentBasenames: new Set(),
     frontmatterAllowlist: DEFAULT_ALLOWLIST,
     tagBlocklist: new Set(),
+    publicTitles: new Set(),
     strict: false,
     ...over,
   };
@@ -286,6 +287,141 @@ describe('runAuditChecks', () => {
     const violations = await runAuditChecks(baseInput());
 
     const matches = violations.filter((v) => v.rule === 'tag-blocklist-leak');
+    expect(matches).toHaveLength(0);
+  });
+
+  it('flags an alias redirect whose target page does not exist in dist', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=/note-with-alias">',
+        '</head><body><main><p>이 페이지는 <a href="/note-with-alias">여기</a>로 이동되었습니다.</p></main></body></html>',
+      ].join(''),
+    );
+    // Intentionally do NOT create note-with-alias/index.html.
+
+    const violations = await runAuditChecks(baseInput());
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.location).toContain('old-name');
+    expect(matches[0]?.message).toContain('/note-with-alias');
+  });
+
+  it('passes a redirect whose target resolves to <slug>/index.html', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=/note-with-alias">',
+        '</head><body><main><p>이 페이지는 <a href="/note-with-alias">여기</a>로 이동되었습니다.</p></main></body></html>',
+      ].join(''),
+    );
+    await writeFile(
+      'note-with-alias/index.html',
+      '<!doctype html><html><body><main><p>note body</p></main></body></html>',
+    );
+
+    const violations = await runAuditChecks(baseInput());
+
+    const aliasMatches = violations.filter(
+      (v) =>
+        v.rule === 'alias-redirect-broken-target' ||
+        v.rule === 'alias-redirect-body-leak',
+    );
+    expect(aliasMatches).toHaveLength(0);
+  });
+
+  it('also accepts a flat <slug>.html as a valid redirect target', async () => {
+    await writeFile(
+      'legacy.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=/landing">',
+        '</head><body><main><p>이동.</p></main></body></html>',
+      ].join(''),
+    );
+    await writeFile('landing.html', '<!doctype html><html><body>ok</body></html>');
+
+    const violations = await runAuditChecks(baseInput());
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-broken-target',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
+  it('flags an alias redirect whose <main> body leaks another note title', async () => {
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head><title>이동되었습니다</title>',
+        '<meta http-equiv="refresh" content="0; url=/note-with-alias">',
+        '</head><body><main><p>이 페이지는 Public Manuscript로 이동되었습니다.</p></main></body></html>',
+      ].join(''),
+    );
+    await writeFile(
+      'note-with-alias/index.html',
+      '<!doctype html><html><body><main><p>note body</p></main></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ publicTitles: new Set(['Public Manuscript']) }),
+    );
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-body-leak',
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.message).not.toContain('Public Manuscript');
+  });
+
+  it('does not flag the redirect target slug appearing only inside an href', async () => {
+    // The slug `note-with-alias` overlaps a public title `note-with-alias` here;
+    // a substring-only matcher would false-positive on the anchor href. The
+    // body extractor strips tags so attribute values never enter the search
+    // surface.
+    await writeFile(
+      'old-name/index.html',
+      [
+        '<!doctype html><html><head>',
+        '<meta http-equiv="refresh" content="0; url=/note-with-alias">',
+        '</head><body><main><p>이 페이지는 <a href="/note-with-alias">여기</a>로 이동되었습니다.</p></main></body></html>',
+      ].join(''),
+    );
+    await writeFile(
+      'note-with-alias/index.html',
+      '<!doctype html><html><body><main><p>note body</p></main></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ publicTitles: new Set(['note-with-alias']) }),
+    );
+
+    const matches = violations.filter(
+      (v) => v.rule === 'alias-redirect-body-leak',
+    );
+    expect(matches).toHaveLength(0);
+  });
+
+  it('ignores HTML files without a meta refresh (alias checks are scoped to redirect pages)', async () => {
+    await writeFile(
+      'index.html',
+      '<!doctype html><html><body><main><p>Public Manuscript reads here.</p></main></body></html>',
+    );
+
+    const violations = await runAuditChecks(
+      baseInput({ publicTitles: new Set(['Public Manuscript']) }),
+    );
+
+    const matches = violations.filter(
+      (v) =>
+        v.rule === 'alias-redirect-broken-target' ||
+        v.rule === 'alias-redirect-body-leak',
+    );
     expect(matches).toHaveLength(0);
   });
 });

@@ -1,13 +1,15 @@
 ---
 import { getCollection } from 'astro:content';
 import { BaseLayout } from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
 import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
 const sorted = sortForHome(filterPublishable(all));
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 ---
-<BaseLayout title="홈">
+<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
   <Fragment slot="nav">
     <ul class="flex gap-4 py-4 text-sm">
       <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>
