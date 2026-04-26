@@ -3,7 +3,7 @@ import { defineConfig } from '@noteforge/core/config';
 export default defineConfig({
   site: {
     title: 'shine notes',
-    url: 'https://example.com',
+    url: 'https://noteforge.pages.dev',
     author: 'shine',
   },
   vaults: [

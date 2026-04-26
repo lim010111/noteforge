@@ -2,6 +2,20 @@
 
 본 프로젝트는 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 형식을 따르며, [Semantic Versioning](https://semver.org/lang/ko/)을 준수합니다.
 
+## [0.2.0] - 2026-04-26
+
+### Added
+- alias frontmatter → 정적 redirect HTML 생성 (`buildAliasRedirects`, audit redirect 무결성 검증).
+- canonical URL + 기본 OG meta(`og:url`, `og:type`, `og:title`, `og:description`, `og:site_name`).
+- Cloudflare Pages 배포 가이드(`docs/DEPLOY.md`) + `_headers`(X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy).
+- `apps/blog/wrangler.toml`.
+
+### Changed
+- `apps/blog/obsidian-blog.config.ts`의 `site.url`을 placeholder에서 Cloudflare Pages 기본 도메인으로 교체.
+
+### Removed (Known limitations)
+- alias frontmatter → canonical URL 정적 redirect HTML 미생성 — 본 릴리스에서 구현됨.
+
 ## [0.1.0] - 2026-04-25
 
 첫 도그푸드 가능 릴리스(MVP). npm 패키지 이름은 안정화 전 변경될 수 있습니다 (Pre-release naming).
@@ -38,4 +52,5 @@
 - Obsidian — wikilink/transclusion 문법(소프트웨어 자체와는 무관, 상표권은 Dynalist Inc.).
 - 영감을 준 선행 프로젝트들: Quartz, Digital Garden, Flowershow.
 
-[0.1.0]: https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/releases/tag/v0.1.0
+[0.2.0]: https://github.com/lim010111/obsidian-blog/releases/tag/v0.2.0
+[0.1.0]: https://github.com/lim010111/obsidian-blog/releases/tag/v0.1.0
