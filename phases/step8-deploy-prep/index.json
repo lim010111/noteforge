@@ -29,7 +29,10 @@
     {
       "step": 3,
       "name": "canonical-url-and-og",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-26T10:58:44+0900",
+      "completed_at": "2026-04-26T11:02:10+0900",
+      "summary": "BaseLayout이 canonicalUrl 가드 안에서 og:url/og:type/og:title (+ 조건부 og:description, og:site_name) 메타를 추가; apps/blog의 모든 페이지가 Astro.url+Astro.site로 canonicalUrl을 계산해 BaseLayout에 전달하며 [...slug] alias-redirect는 redirect target 절대 URL을 canonical로 노출 (4 신규 BaseLayout 테스트 포함 전체 417 테스트 통과)"
     },
     {
       "step": 4,
