@@ -11,6 +11,7 @@
 @import "./tokens.css";
 @import "./layout.css";
 @import "./prose.css";
+@import "./components.css";
 
 /*
  * `color-scheme` lets the UA paint scrollbars, form controls, and the canvas

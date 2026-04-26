@@ -243,20 +243,51 @@ describe('Graph', () => {
     ).toBe(0);
   });
 
-  it('(10) <figure> root default className carries mobile + desktop viewport classes (UI_GUIDE: w-full / md:max-w-3xl md:mx-auto)', async () => {
+  it('(10) <figure> root carries v0.2 token-based class (UI_GUIDE v0.2: BaseLayout owns container; component owns visual class only)', async () => {
     const graph: GraphViewModel = {
       nodes: [{ slug: 'a', title: 'A' }],
       edges: [],
     };
     const html = await render({ graph });
     const figureMatch = html.match(/<figure\s[^>]*\bclass="([^"]*)"/);
-    expect(figureMatch, '<figure> must carry a class attribute for the viewport-responsive container').not.toBeNull();
-    const cls = figureMatch![1]!;
-    for (const token of ['w-full', 'md:max-w-3xl', 'md:mx-auto']) {
+    expect(figureMatch, '<figure> must carry a class attribute pointing to components.css').not.toBeNull();
+    expect(
+      figureMatch![1]!,
+      '<figure> class must be "graph" — UI_GUIDE v0.2: width comes from BaseLayout `.site-main`, not the component',
+    ).toContain('graph');
+  });
+
+  it('(11) SVG node/edge colours come from CSS classes — no inline hex, no v0.1 Tailwind palette utilities', async () => {
+    const graph: GraphViewModel = {
+      nodes: [
+        { slug: 'a', title: 'A' },
+        { slug: 'b', title: 'B' },
+      ],
+      edges: [{ source: 'a', target: 'b' }],
+    };
+    const html = await render({ graph });
+    expect(
+      countMatches(html, /<line\s[^>]*\bclass="[^"]*\bgraph__edge\b/g),
+      'every <line> must carry .graph__edge — UI_GUIDE v0.2: graph colours live in components.css, never inline',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<circle\s[^>]*\bclass="[^"]*\bgraph__node\b/g),
+      'every <circle> must carry .graph__node — same reason as above',
+    ).toBe(graph.nodes.length);
+    expect(
+      html,
+      'no inline hex (#xxxxxx / #xxx) — would break dark-mode token propagation',
+    ).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+    for (const token of [
+      'fill-zinc-',
+      'fill-blue-',
+      'hover:fill-blue-',
+      'stroke="#',
+    ]) {
       expect(
-        cls,
-        `<figure> default className must include "${token}" — UI_GUIDE: graph fits inside body measure on desktop, full-width on mobile`,
-      ).toContain(token);
+        html,
+        `v0.1 inline colour token "${token}" must not appear — v0.2 graph colours come from .graph__* classes`,
+      ).not.toContain(token);
     }
   });
 });

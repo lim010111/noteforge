@@ -82,16 +82,27 @@ describe('NotFound', () => {
     expect(html).not.toContain('CALLER_PROVIDED_TITLE_PROBE');
   });
 
-  it('(5) <section> root carries mobile + desktop viewport classes (UI_GUIDE: standalone page must own its container)', async () => {
+  it('(5) <section> root carries v0.2 token-based class (UI_GUIDE v0.2: standalone 404 owns its measure via components.css)', async () => {
     const html = await render();
     const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
-    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
-    const cls = sectionMatch![1]!;
-    for (const token of ['w-full', 'px-4', 'md:max-w-3xl', 'md:mx-auto', 'md:px-6']) {
+    expect(sectionMatch, '<section> must carry a class attribute pointing to components.css').not.toBeNull();
+    expect(
+      sectionMatch![1]!,
+      '<section> class must be "not-found" — UI_GUIDE v0.2: layout (max-w / grid / padding) lives in .not-found rule, not inline utilities',
+    ).toContain('not-found');
+  });
+
+  it('(6) v0.2 visual: no hardcoded hex colours and no v0.1 zinc/blue Tailwind palette tokens reach the DOM', async () => {
+    const html = await render();
+    expect(
+      html,
+      'inline hex must not appear — dark-mode token transition relies on CSS variables in components.css',
+    ).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+    for (const token of ['text-zinc-', 'text-blue-', 'bg-zinc-']) {
       expect(
-        cls,
-        `<section> class must include "${token}" — NotFound is rendered standalone (no BaseLayout assumed) and must own its mobile/desktop container`,
-      ).toContain(token);
+        html,
+        `v0.1 Tailwind palette class "${token}*" must not appear — v0.2 uses semantic class names referencing CSS vars`,
+      ).not.toContain(token);
     }
   });
 });

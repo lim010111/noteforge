@@ -14,21 +14,19 @@
 import type { TagPageProps } from "./TagPage.types";
 const { tagpage } = Astro.props as TagPageProps;
 ---
-<section class="w-full md:max-w-3xl space-y-4">
-  <h1 class="text-3xl font-semibold text-zinc-950 tracking-tight">#{tagpage.tag}</h1>
+<section class="tag-page">
+  <h1 class="tag-page__heading">#{tagpage.tag}</h1>
   {tagpage.entries.length > 0 ? (
-    <ul class="space-y-2">
+    <ul class="tag-page__list">
       {tagpage.entries.map((e) => (
-        <li>
-          <a
-            href={`/${e.slug}`}
-            class="text-blue-600 hover:text-blue-700 underline decoration-1 underline-offset-2"
-          >{e.title}</a>
-          {e.date && <span class="ml-2 text-sm text-zinc-500">{e.date}</span>}
+        <li class="tag-page__item">
+          {e.date && <time datetime={e.date} class="tag-page__date">{e.date}</time>}
+          <span class="tag-page__arrow" aria-hidden="true">→</span>
+          <a href={`/${e.slug}`} class="tag-page__link">{e.title}</a>
         </li>
       ))}
     </ul>
   ) : (
-    <p class="text-zinc-600">이 태그를 가진 공개 노트가 없습니다.</p>
+    <p class="tag-page__empty">이 태그를 가진 공개 노트가 없습니다.</p>
   )}
 </section>

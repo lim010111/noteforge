@@ -92,7 +92,7 @@ describe('TagPage', () => {
     expect(countMatches(html, /href="\/b\//g)).toBe(0);
   });
 
-  it('(4) <span> appears once iff entry.date is present (and contains the date)', async () => {
+  it('(4) <time> appears once iff entry.date is present (v0.2: date carried by <time>, never empty)', async () => {
     const html = await render({
       tag: 'rust',
       entries: [
@@ -101,12 +101,12 @@ describe('TagPage', () => {
       ],
     });
     expect(
-      countMatches(html, /<span\b/g),
-      'absent date must NOT emit <span> — empty <span> would leak that the field shape exists',
+      countMatches(html, /<time\b/g),
+      'absent date must NOT emit <time> — an empty <time> would leak that the field shape exists',
     ).toBe(1);
     expect(
-      countMatches(html, /2026-01-10/g),
-      'date "2026-01-10" must appear exactly once — emitted by the single date <span>',
+      countMatches(html, /<time\s[^>]*\bdatetime="2026-01-10"[^>]*>2026-01-10<\/time>/g),
+      'date "2026-01-10" must appear exactly once inside the single <time datetime="…"> element',
     ).toBe(1);
   });
 
@@ -152,16 +152,30 @@ describe('TagPage', () => {
     ).toMatch(/&lt;img/);
   });
 
-  it('(7) <section> root carries mobile + desktop viewport classes (UI_GUIDE: 단일 태그 = 본문 측정폭 md:max-w-3xl)', async () => {
+  it('(7) <section> root carries v0.2 token-based class (UI_GUIDE v0.2: BaseLayout owns container; component owns visual class only)', async () => {
     const html = await render({ tag: 'rust', entries: [] });
     const sectionMatch = html.match(/<section\s[^>]*\bclass="([^"]*)"/);
-    expect(sectionMatch, '<section> must carry a class attribute for the viewport-responsive container').not.toBeNull();
-    const cls = sectionMatch![1]!;
-    for (const token of ['w-full', 'md:max-w-3xl']) {
+    expect(sectionMatch, '<section> must carry a class attribute pointing to components.css').not.toBeNull();
+    expect(
+      sectionMatch![1]!,
+      '<section> class must be "tag-page" — UI_GUIDE v0.2: width comes from BaseLayout `.site-main`, not the component',
+    ).toContain('tag-page');
+  });
+
+  it('(8) v0.2 visual: no hardcoded hex colours and no v0.1 zinc/blue Tailwind palette tokens reach the DOM', async () => {
+    const html = await render({
+      tag: 'rust',
+      entries: [{ slug: 'a', title: 'A', date: '2026-01-10' }],
+    });
+    expect(
+      html,
+      'inline hex must not appear — light/dark token transition relies on CSS variables',
+    ).not.toMatch(/#[0-9a-fA-F]{3,6}\b/);
+    for (const token of ['text-zinc-', 'text-blue-', 'hover:text-blue-']) {
       expect(
-        cls,
-        `<section> class must include "${token}" — UI_GUIDE: 단일 태그 페이지는 본문과 같은 측정폭 (md:max-w-3xl)`,
-      ).toContain(token);
+        html,
+        `v0.1 Tailwind palette class "${token}*" must not appear — v0.2 uses semantic class names referencing CSS vars`,
+      ).not.toContain(token);
     }
   });
 });

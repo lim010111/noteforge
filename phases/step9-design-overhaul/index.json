@@ -45,7 +45,10 @@
     {
       "step": 5,
       "name": "backlinks-tags-graph",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-26T15:55:13+0900",
+      "summary": "Backlinks/TagList/TagPage/Graph/NotFound v0.2 시각 정렬 — 신규 components.css(토큰만 참조, hex 0)에 .backlinks/.tag-index/.tag-chip/.tag-page/.graph/.not-found 정의, base.css에서 import. Graph SVG는 .graph__node/.graph__edge 클래스로 색상 추상화(다크 모드 자동), <a class=\"graph__node-link\"> 노드 키보드 접근. NotFound는 lg+ side-margin 8rem numeral. Privacy 회귀 0(canary 2종 dist 0회, audit 0 violations, /api/graph.json은 publicGraph 그대로). 47 test files / 442 tests pass(viewport-class 테스트는 v0.2 토큰 기반 클래스 + hex 금지 회귀 가드로 갱신)",
+      "completed_at": "2026-04-26T16:05:00+0900"
     },
     {
       "step": 6,
