@@ -7,12 +7,12 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO.git",
+    "url": "git+https://github.com/lim010111/obsidian-blog.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO#readme",
+  "homepage": "https://github.com/lim010111/obsidian-blog#readme",
   "bugs": {
-    "url": "https://github.com/PLACEHOLDER_OWNER/PLACEHOLDER_REPO/issues"
+    "url": "https://github.com/lim010111/obsidian-blog/issues"
   },
   "exports": {
     ".": "./src/index.ts",
@@ -20,7 +20,8 @@
     "./pipeline": "./src/pipeline.ts",
     "./discover/parseNote": "./src/discover/parseNote.ts",
     "./privacy/classify": "./src/privacy/classify.ts",
-    "./privacy/linkRewriter": "./src/privacy/linkRewriter.ts"
+    "./privacy/linkRewriter": "./src/privacy/linkRewriter.ts",
+    "./privacy/publishable": "./src/privacy/publishable.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
