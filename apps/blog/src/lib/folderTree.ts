@@ -250,3 +250,48 @@ export function getSharedSidebarRoots(
   sidebarCache.set(entries, projected);
   return projected;
 }
+
+/**
+ * Folder chip view-model for the homepage "Browse by folder" section.
+ * Lists top-level folders with their transitive note counts and an `href`
+ * pointing at the first leaf inside (a stable, deterministic deep-link until
+ * folder-index pages exist in v0.3+).
+ */
+export interface FolderChip {
+  readonly path: string;
+  readonly label: string;
+  readonly noteCount: number;
+  readonly href: string;
+}
+
+function firstLeafSlug(node: FolderTreeNode): string | undefined {
+  if (node.kind === 'leaf') return node.slug;
+  for (const c of node.children) {
+    const found = firstLeafSlug(c);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/**
+ * Top-level folder chips for the homepage. Top-level leaves are skipped — the
+ * "browse by folder" section is, by name, only about folders.
+ */
+export function buildFolderChips(
+  entries: readonly NoteEntry[],
+): readonly FolderChip[] {
+  const tree = getSharedFolderTree(entries);
+  const out: FolderChip[] = [];
+  for (const node of tree.roots) {
+    if (node.kind !== 'folder') continue;
+    const firstSlug = firstLeafSlug(node);
+    if (firstSlug === undefined) continue;
+    out.push({
+      path: node.path,
+      label: node.label,
+      noteCount: node.noteCount,
+      href: `/${firstSlug}`,
+    });
+  }
+  return out;
+}

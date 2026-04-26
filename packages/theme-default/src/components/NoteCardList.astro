@@ -1,0 +1,44 @@
+---
+/**
+ * Homepage card list — title, date, excerpt, tags, optional featured ribbon.
+ *
+ * Privacy contract: caller builds NoteCardEntry from already-allowlist-narrowed
+ * data. This component does no filtering, never reads frontmatter directly,
+ * and never set:html — title and excerpt are emitted as plain text so any
+ * stray HTML is escaped at the boundary.
+ *
+ * Allowlist contract: only the six declared fields reach the DOM. Extra keys
+ * cast onto the type are dropped at the destructure (mirrors NoteList).
+ */
+import type { NoteCardListProps } from "./NoteCardList.types";
+const { entries, emptyMessage } = Astro.props as NoteCardListProps;
+---
+{entries.length === 0 ? (
+  <p class="note-card-list__empty">{emptyMessage}</p>
+) : (
+  <ul class="note-card-list" role="list">
+    {entries.map((e) => (
+      <li class={`note-card${e.featured ? " is-featured" : ""}`}>
+        {e.featured && (
+          <span class="note-card__ribbon" aria-label="featured">featured</span>
+        )}
+        <a href={e.href} class="note-card__link">
+          <h3 class="note-card__title">{e.title}</h3>
+          {e.date && (
+            <time datetime={e.date} class="note-card__date">{e.date}</time>
+          )}
+          {e.excerpt && e.excerpt.length > 0 && (
+            <p class="note-card__excerpt">{e.excerpt}</p>
+          )}
+        </a>
+        {e.tags.length > 0 && (
+          <ul class="note-card__tags" role="list">
+            {e.tags.map((t) => (
+              <li class="note-card__tag">#{t}</li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ul>
+)}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildBacklinksViewModel,
+  deriveExcerpt,
   entryToAliasRedirectViewModel,
   entryToNoteViewModel,
   filterPublishable,
@@ -188,5 +189,70 @@ describe('buildBacklinksViewModel', () => {
       { slug: 'posts/bar', title: 'Bar Post' },
       { slug: 'posts/missing', title: 'posts/missing' },
     ]);
+  });
+});
+
+describe('deriveExcerpt', () => {
+  it('returns "" for empty / non-string input', () => {
+    expect(deriveExcerpt('')).toBe('');
+    expect(deriveExcerpt(undefined as unknown as string)).toBe('');
+  });
+
+  it('strips HTML tags and returns plain text', () => {
+    expect(deriveExcerpt('<p>Hello <em>world</em>.</p>')).toBe('Hello world.');
+  });
+
+  it('inserts whitespace between block elements so words do not fuse', () => {
+    expect(deriveExcerpt('<h2>Title</h2><p>Body.</p>')).toBe('Title Body.');
+  });
+
+  it('decodes the small set of named entities Astro emits', () => {
+    expect(deriveExcerpt('<p>A &amp; B &lt;3 &quot;hi&quot; &#39;ok&#39;</p>')).toBe(
+      'A & B <3 "hi" \'ok\'',
+    );
+  });
+
+  it('drops <script> and <style> contents entirely', () => {
+    const html = '<style>.x{color:red}</style><p>Text</p><script>evil()</script>';
+    const out = deriveExcerpt(html);
+    expect(out).toBe('Text');
+    expect(out).not.toContain('color');
+    expect(out).not.toContain('evil');
+  });
+
+  it('truncates at a word boundary with an ellipsis when over the budget', () => {
+    const long = 'word '.repeat(50).trim(); // 5 chars * 50 = 250 with spaces
+    const out = deriveExcerpt(`<p>${long}</p>`, 60);
+    expect(out.length).toBeLessThanOrEqual(60 + 1); // +1 for the …
+    expect(out.endsWith('…')).toBe(true);
+    // No trailing partial word before the ellipsis
+    expect(out).not.toMatch(/\swor…$/);
+  });
+
+  it('does not append ellipsis when content fits within the budget', () => {
+    expect(deriveExcerpt('<p>Short note.</p>', 80)).toBe('Short note.');
+  });
+
+  it('only takes content from the first block visually (collapsed whitespace)', () => {
+    const html =
+      '<p>First paragraph.</p><p>Second paragraph that follows.</p>';
+    const out = deriveExcerpt(html);
+    expect(out.startsWith('First paragraph.')).toBe(true);
+    // The two paragraphs are joined by a single space (block-separator rule),
+    // so we DO see Second… within the budget. That is intended for short
+    // posts; the budget cap is the only truncation strategy.
+    expect(out).toContain('Second paragraph');
+  });
+
+  it('handles content with collapsed whitespace and trims edges', () => {
+    expect(deriveExcerpt('   <p>   spaced   text   </p>   ')).toBe('spaced text');
+  });
+
+  it('falls back to a hard-cut when no word boundary exists in the prefix', () => {
+    // A single 200-char word with no spaces
+    const word = 'a'.repeat(200);
+    const out = deriveExcerpt(`<p>${word}</p>`, 50);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(51);
   });
 });

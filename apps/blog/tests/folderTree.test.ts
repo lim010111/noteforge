@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ancestorFolderPaths,
+  buildFolderChips,
   buildFolderTree,
   getSharedFolderTree,
   getSharedSidebarRoots,
@@ -234,6 +235,37 @@ describe('getSharedFolderTree', () => {
     const first = getSharedFolderTree(a);
     const second = getSharedFolderTree(b);
     expect(second).not.toBe(first);
+  });
+});
+
+describe('buildFolderChips', () => {
+  it('returns top-level folders only (skips top-level leaves)', () => {
+    const chips = buildFolderChips([
+      makeEntry('top-level-note', { title: 'Top' }),
+      makeEntry('a/inner', { title: 'Inner' }),
+      makeEntry('b/x', { title: 'X' }),
+    ]);
+    expect(chips.map((c) => c.path)).toEqual(['a', 'b']);
+  });
+
+  it('href points at the first deterministic leaf inside the folder', () => {
+    const chips = buildFolderChips([
+      makeEntry('a/sub/deep', { title: 'D' }),
+      makeEntry('a/peer', { title: 'P' }),
+    ]);
+    expect(chips).toHaveLength(1);
+    // Sort: folders before leaves; "a/sub" (folder) comes before "a/peer" (leaf),
+    // and inside "a/sub" the only leaf is "a/sub/deep" → that's the href.
+    expect(chips[0]!.href).toBe('/a/sub/deep');
+  });
+
+  it('exposes transitive noteCount on each chip', () => {
+    const chips = buildFolderChips([
+      makeEntry('a/x', { title: 'X' }),
+      makeEntry('a/y', { title: 'Y' }),
+      makeEntry('a/sub/z', { title: 'Z' }),
+    ]);
+    expect(chips[0]!.noteCount).toBe(3);
   });
 });
 
