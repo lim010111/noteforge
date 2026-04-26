@@ -1,0 +1,30 @@
+---
+/**
+ * Shared note listing — used by the home page and TagPage. Extracts the
+ * common `<ul>`/`<li>`/`<time>`/`<a>` shape so a future change to one
+ * surface (e.g. adding tag pills, switching layouts) does not silently
+ * mutate the other.
+ *
+ * Privacy contract: `entries[].href` and `entries[].title` are guaranteed
+ * by the caller to be safe to render. This component does no filtering and
+ * never reads from frontmatter directly.
+ *
+ * Allowlist contract: only the three declared `NoteListEntry` fields reach
+ * the DOM. Extra keys cast onto the type are dropped at the destructure.
+ */
+import type { NoteListProps } from "./NoteList.types";
+const { entries, emptyMessage } = Astro.props as NoteListProps;
+---
+{entries.length === 0 ? (
+  <p class="note-list__empty">{emptyMessage}</p>
+) : (
+  <ul class="note-list">
+    {entries.map((e) => (
+      <li class="note-list__item">
+        {e.date && <time datetime={e.date} class="note-list__date">{e.date}</time>}
+        <span class="note-list__arrow" aria-hidden="true">→</span>
+        <a href={e.href} class="note-list__link">{e.title}</a>
+      </li>
+    ))}
+  </ul>
+)}

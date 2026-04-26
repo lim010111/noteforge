@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { BaseLayout } from '@noteforge/theme-default';
+import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
 import '../styles/global.css';
@@ -8,23 +8,16 @@ import '../styles/global.css';
 const all = await getCollection('notes');
 const sorted = sortForHome(filterPublishable(all));
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const items: NoteListEntry[] = sorted.map((entry) => {
+  const dateRaw = entry.data.frontmatter['date'];
+  const item: NoteListEntry = {
+    href: `/${entry.id}`,
+    title: entry.data.title ?? entry.id,
+  };
+  if (typeof dateRaw === 'string') item.date = dateRaw;
+  return item;
+});
 ---
 <BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
-  {sorted.length === 0 ? (
-    <p class="tag-page__empty">아직 공개된 글이 없습니다.</p>
-  ) : (
-    <ul class="tag-page__list">
-      {sorted.map((entry) => {
-        const dateRaw = entry.data.frontmatter['date'];
-        const date = typeof dateRaw === 'string' ? dateRaw : null;
-        return (
-          <li class="tag-page__item">
-            {date && <time datetime={date} class="tag-page__date">{date}</time>}
-            <span class="tag-page__arrow" aria-hidden="true">→</span>
-            <a href={`/${entry.id}`} class="tag-page__link">{entry.data.title ?? entry.id}</a>
-          </li>
-        );
-      })}
-    </ul>
-  )}
+  <NoteList entries={items} emptyMessage="아직 공개된 글이 없습니다." />
 </BaseLayout>

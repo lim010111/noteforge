@@ -110,7 +110,9 @@
   color: var(--color-text-faded);
 }
 
-/* ---------- TagPage (per-tag listing) ---------- */
+/* ---------- TagPage (per-tag listing) ----------
+   Shared list visuals live under .note-list (used by both home and TagPage).
+   .tag-page only owns the section container and the page heading. */
 
 .tag-page {
   display: flex;
@@ -126,7 +128,10 @@
   color: var(--color-text-heading);
   margin: 0;
 }
-.tag-page__list {
+
+/* ---------- NoteList (shared listing primitive) ---------- */
+
+.note-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -134,7 +139,7 @@
   flex-direction: column;
   gap: var(--space-3);
 }
-.tag-page__item {
+.note-list__item {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -143,7 +148,7 @@
   font-size: var(--text-body);
   color: var(--color-text-body);
 }
-.tag-page__date {
+.note-list__date {
   font-family: var(--font-mono);
   font-size: var(--text-meta);
   font-weight: var(--weight-meta);
@@ -152,23 +157,23 @@
   color: var(--color-text-faded);
   flex-shrink: 0;
 }
-.tag-page__arrow {
+.note-list__arrow {
   font-family: var(--font-mono);
   font-size: var(--text-meta);
   color: var(--color-text-faded);
   flex-shrink: 0;
 }
-.tag-page__link {
+.note-list__link {
   color: var(--color-text-link);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   transition: color var(--duration-base) var(--ease-out);
 }
-.tag-page__link:hover {
+.note-list__link:hover {
   color: var(--color-text-link-hover);
 }
-.tag-page__empty {
+.note-list__empty {
   color: var(--color-text-muted);
   font-family: var(--font-sans);
   font-size: var(--text-body);

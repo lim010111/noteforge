@@ -10,23 +10,22 @@
  * this page IS routed by the user (they typed `/tags/<tag>`), so the page's
  * existence is already known. We MUST NOT redirect or 404 (that would imply
  * the tag exists privately). Showing an empty list is fine.
+ *
+ * Listing visuals (the `<ul>`/`<li>`/`<time>`/`<a>` shape) are delegated to
+ * `<NoteList />` so the home page renders identical row visuals without
+ * borrowing TagPage-named classes.
  */
 import type { TagPageProps } from "./TagPage.types";
+import NoteList from "./NoteList.astro";
+import type { NoteListEntry } from "./NoteList.types";
 const { tagpage } = Astro.props as TagPageProps;
+const items: NoteListEntry[] = tagpage.entries.map((e) => {
+  const item: NoteListEntry = { href: `/${e.slug}`, title: e.title };
+  if (e.date !== undefined) item.date = e.date;
+  return item;
+});
 ---
 <section class="tag-page">
   <h1 class="tag-page__heading">#{tagpage.tag}</h1>
-  {tagpage.entries.length > 0 ? (
-    <ul class="tag-page__list">
-      {tagpage.entries.map((e) => (
-        <li class="tag-page__item">
-          {e.date && <time datetime={e.date} class="tag-page__date">{e.date}</time>}
-          <span class="tag-page__arrow" aria-hidden="true">→</span>
-          <a href={`/${e.slug}`} class="tag-page__link">{e.title}</a>
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p class="tag-page__empty">이 태그를 가진 공개 노트가 없습니다.</p>
-  )}
+  <NoteList entries={items} emptyMessage="이 태그를 가진 공개 노트가 없습니다." />
 </section>

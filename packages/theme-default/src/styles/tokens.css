@@ -214,18 +214,3 @@
   }
 }
 
-/*
- * v0.1 → v0.2 alias surface (option 1).
- *
- * Step 2 picked the alias path so any unmigrated consumer of the v0.1 names
- * stays green while components are rewritten in steps 3–5. Surface is
- * intentionally minimal — only names base.css consumed in v0.1 plus the two
- * container/surface aliases that were the most likely to leak into outside
- * call sites. Remove these once steps 3–5 land.
- */
-:root {
-  --leading-body: var(--lh-body);
-  --leading-heading: var(--lh-h2);
-  --container-prose: var(--measure-prose);
-  --color-bg-card: var(--color-bg-surface);
-}

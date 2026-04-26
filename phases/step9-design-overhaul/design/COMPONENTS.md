@@ -2,7 +2,18 @@
 
 These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `TOKENS.md` (step 2 transcribes them to CSS variables and Tailwind theme).
 
-## `BaseLayout`
+> **Implementation status** — This file blends shipped v0.2 surfaces with aspirational sketches. To stay an honest SSOT each section now carries a status badge:
+>
+> - `[Implemented in v0.2]` — markup and styling shipped as described (cosmetic deltas may exist; behaviour matches).
+> - `[Deferred to v0.3]` — sketched but not built; replacement choice (if any) is noted inline.
+>
+> Any new section added must declare a status. Removing `Deferred` requires the corresponding code + test ship.
+
+## `BaseLayout` — `[Implemented in v0.2]` (with two deferrals)
+
+> Deferred from this sketch:
+> - `<button id="menu-toggle">[hamburger]</button>` — replaced by JS-less `<details class="mobile-menu">` (`BaseLayout.astro:59`). Slide-down `--duration-menu` animation also deferred.
+> - `<a href="/feed.xml">rss</a>` in the footer — RSS endpoint not yet generated. Footer carries `source` + `MIT` license link instead.
 
 ```html
 <body class="bg-page text-body font-sans antialiased">
@@ -46,7 +57,7 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 - Theme toggle: icon button (sun/moon), 28×28 hit area, persists to `localStorage` and respects `prefers-color-scheme` on first visit.
 - **Mobile (< 640px)**: nav collapses to slide-down sheet (`--duration-menu` 200ms). Brand mark + theme toggle + hamburger remain. Header height stays 48px.
 
-## `Note` — article body
+## `Note` — article body — `[Implemented in v0.2]`
 
 ```html
 <article class="prose mx-auto max-w-[var(--measure-prose)]">
@@ -78,22 +89,21 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 - **Embed aside** (transcluded `![[Note]]` body): `<aside class="my-7 border-l-[3px] border-strong bg-surface rounded-lg p-5">{body}</aside>`.
 - **Mobile (< 640px)**: prose measure shrinks to `min(100%, 65ch)`; `h1` → `text-[1.75rem]`; code blocks scroll horizontally; embed aside loses left padding by 1 step.
 
-## `Note` — meta row
+## `Note` — meta row — `[Implemented in v0.2]` (one deferral)
 
 - Date / updated / tags rendered as a single mono row directly under `h1`, separated by `gap-x-4`. Category (if v0.3 introduces it) joins the same row.
-- On `lg+`, this row is **also** anchored in the side-margin column (12rem left of prose) so it remains visible while scrolling. On `< lg`, only the inline row exists.
+- ~~On `lg+`, this row is **also** anchored in the side-margin column (12rem left of prose) so it remains visible while scrolling.~~ `[Deferred to v0.3]` — requires a side-margin column layout that v0.2 does not ship; only the inline row renders today.
 - Tag links inside the meta row inherit the link styling but render with a leading `#` (not as separate chips — chips are reserved for `TagList` / `TagPage`).
 
-## Heading anchor (`#`)
+## Heading anchor (`#`) — `[Implemented in v0.2]` (two deferrals)
 
 - Each rendered heading gets a stable `id` (kebab-case slug from text).
-- A sibling `<a class="heading-anchor" href="#{id}" aria-label="이 섹션 링크 복사">#</a>`:
-  - On `lg+`, absolutely positioned in the margin column: `font-mono text-meta text-faded -ml-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-base`.
-  - On `< lg`, inline-end after the heading text, same hover reveal.
-- Small vanilla-JS click handler (~30 lines, loaded once from `BaseLayout`): copies `location.origin + location.pathname + '#' + id` to clipboard, shows tiny mono "copied" inline for 1.5s. Respects `prefers-reduced-motion` (no fade — instant).
-- **Mobile (< 640px)**: anchor is **always visible** (no hover state on touch). Tap-to-copy.
+- A sibling `<a class="heading-anchor" href="#{id}" aria-label="permalink">#</a>` is appended after the heading text on all viewports.
+- ~~On `lg+`, absolutely positioned in the margin column~~ `[Deferred to v0.3]` — same side-margin column dependency as the meta row. v0.2 renders inline-after-heading on every viewport.
+- ~~Small vanilla-JS click handler … copies … to clipboard, shows tiny mono "copied" inline for 1.5s.~~ `[Deferred to v0.3]` — current build relies on the browser's default `<a href="#id">` behaviour; copy-to-clipboard UX not yet wired.
+- aria-label uses the `permalink` literal (per `htmlFromMdast.ts`), not the longer Korean string in the original sketch — keeps the rehype option string-typed and easy to test.
 
-## `Backlinks`
+## `Backlinks` — `[Implemented in v0.2]` (one deferral)
 
 ```html
 <aside class="mt-12 pt-6 border-t border-default" aria-label="백링크">
@@ -111,11 +121,11 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 </aside>
 ```
 
-- Sits at the bottom of the article (after body, above footer). On `lg+`, an additional fixed-position anchor link in the margin column links down to it ("↓ backlinks (n)"); on `< lg`, only the bottom block.
+- Sits at the bottom of the article (after body, above footer). ~~On `lg+`, an additional fixed-position anchor link in the margin column links down to it ("↓ backlinks (n)")~~ `[Deferred to v0.3]` — same side-margin dependency. v0.2 renders only the bottom block.
 - **Empty state: render NOTHING** (privacy contract — an empty "Backlinks" heading would imply private notes were filtered out).
 - **Mobile (< 640px)**: same structure, font sizes unchanged.
 
-## `TagList` (index page)
+## `TagList` (index page) — `[Implemented in v0.2]` (one deferral)
 
 ```html
 <section class="space-y-5">
@@ -138,10 +148,10 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 ```
 
 - Tag chips: `rounded-md` (4px), border + bg, mono text. Hover: `bg-surface-strong`. Focus: `--color-focus-ring` outline.
-- Active state (current tag on `TagPage`): `bg-accent-soft` background, accent text.
+- ~~Active state (current tag on `TagPage`): `bg-accent-soft` background, accent text.~~ `[Deferred to v0.3]` — `.tag-chip.is-active` (or equivalent modifier) not yet emitted by `TagPage`. v0.2 ships only the default + hover + focus states.
 - **Mobile (< 640px)**: same wrap-grid, no change.
 
-## `TagPage`
+## `TagPage` — `[Implemented in v0.2]`
 
 ```html
 <section class="space-y-6">
@@ -166,7 +176,7 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 - Date column on left, `→` separator, title link. Date in mono uppercase, title in sans body.
 - **Mobile (< 640px)**: date wraps under the title via `flex-wrap`.
 
-## `Graph`
+## `Graph` — `[Implemented in v0.2]`
 
 - Static SVG, `viewBox` from `computeCircularLayout` (existing).
 - Node `<circle>`: `fill="currentColor" class="text-heading hover:text-link"` — inherits via CSS so both light and dark modes work without per-node fills.
@@ -176,7 +186,7 @@ These sketches are SSOT for steps 3–5. Tokens referenced here are defined in `
 - Privacy: private nodes are already removed in the data layer (Phase C). The visual layer has zero filtering responsibility.
 - **Mobile (< 640px)**: SVG `width="100%" height="auto"` — keeps aspect ratio; touch-tap nodes navigate.
 
-## `NotFound` (404)
+## `NotFound` (404) — `[Implemented in v0.2]`
 
 ```html
 <section class="mx-auto max-w-[var(--measure-prose)] py-16

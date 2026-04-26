@@ -1,6 +1,6 @@
-# 배포 가이드 — Cloudflare Pages (v0.1)
+# 배포 가이드 — Cloudflare Pages (v0.2)
 
-이 문서는 `apps/blog`를 Cloudflare Pages에 **Direct Upload** 방식으로 배포하는 절차를 설명한다. v0.1 정식 지원 호스팅은 Cloudflare Pages 단일이며, fork 사용자도 동일 절차를 따른다.
+이 문서는 `apps/blog`를 Cloudflare Pages에 **Direct Upload** 방식으로 배포하는 절차를 설명한다. v0.2 정식 지원 호스팅은 Cloudflare Pages 단일이며, fork 사용자도 동일 절차를 따른다.
 
 ## 1. 사전 준비
 
@@ -52,7 +52,7 @@ node packages/cli/dist/bin.js audit apps/blog/dist
 
 ## 6. Custom domain
 
-기본 도메인 `noteforge.pages.dev`는 v0.1의 canonical URL로 설정되어 있다. 자체 도메인으로 옮기려면:
+기본 도메인 `noteforge.pages.dev`는 v0.2의 canonical URL로 설정되어 있다. 자체 도메인으로 옮기려면:
 
 1. Cloudflare Pages dashboard → 프로젝트 선택 → **Custom domains**.
 2. 도메인 추가 → Cloudflare DNS에 안내된 CNAME 레코드 등록.
@@ -78,5 +78,6 @@ CI(`.github/workflows/ci.yml`)는 typecheck / lint / test / CLI 빌드까지만 
 - `X-Frame-Options: DENY`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: interest-cohort=()`
+- `/fonts/*`에 대해 1년 immutable 캐시 + CORS 허용
 
-CSP(Content-Security-Policy)는 v0.1에 포함하지 않는다. Astro의 inline style/script 호환성 검증이 끝난 뒤 v0.2에서 추가 예정이다.
+CSP(Content-Security-Policy)는 v0.2에 포함하지 않는다. Astro가 사용하는 inline style/script(테마 토글 FOUC 방지 IIFE 등) 호환성 검증이 끝나야 하며, `unsafe-inline` 없이 동작하는 nonce 또는 hash 전략이 필요하다. v0.3에서 도입 예정이다.
