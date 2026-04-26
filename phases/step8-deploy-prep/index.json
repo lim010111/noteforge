@@ -43,5 +43,6 @@
       "summary": "Cloudflare Pages Direct Upload 운영 셋업 — apps/blog/wrangler.toml(name=noteforge), apps/blog/public/_headers(보안 헤더 4종), docs/DEPLOY.md(8개 섹션 한국어 가이드), site.url을 https://noteforge.pages.dev로 교체, README/CHANGELOG/TODO 갱신(0.2.0 릴리스 항목 + repo URL=lim010111/obsidian-blog), dist/_headers 카피 + canonical/og:url 노출 + audit 0 violations 검증 (전체 417 테스트 통과)"
     }
   ],
-  "created_at": "2026-04-26T10:31:56+0900"
+  "created_at": "2026-04-26T10:31:56+0900",
+  "completed_at": "2026-04-26T11:08:58+0900"
 }
