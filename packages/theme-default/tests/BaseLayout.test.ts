@@ -216,4 +216,69 @@ describe('BaseLayout', () => {
       'mobile menu must use semantic <details> so it works without JS',
     ).toMatch(/<details\b[^>]*\bclass="[^"]*\bmobile-menu\b/);
   });
+
+  it('(7) emits og:url, og:type, og:title (and conditionally og:description, og:site_name) when canonicalUrl is provided', async () => {
+    const html = await render({
+      title: 'Article Title',
+      description: 'A short note.',
+      canonicalUrl: 'https://example.com/posts/hello',
+      ogType: 'article',
+      siteName: 'shine notes',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:url"\s+content="https:\/\/example\.com\/posts\/hello"/g),
+      'canonicalUrl must surface as <meta property="og:url"> for OpenGraph crawlers (Facebook, Slack, Discord) — without it, link unfurls fall back to <title> only',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:type"\s+content="article"/g),
+      'ogType="article" must be reflected verbatim — note pages need og:type=article so social cards render with article-style framing',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:title"\s+content="Article Title"/g),
+      'props.title must echo into og:title byte-for-byte — the unfurl preview shows this exact string',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:description"\s+content="A short note\."/g),
+      'description prop must mirror into og:description when present — same content as <meta name="description">',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:site_name"\s+content="shine notes"/g),
+      'siteName prop must mirror into og:site_name when present — distinguishes which site the article belongs to in the unfurl',
+    ).toBe(1);
+  });
+
+  it('(8) emits zero og:* meta when canonicalUrl is omitted (gates on canonicalUrl, mirroring the <link rel="canonical"> guard pattern)', async () => {
+    const html = await render({
+      title: 'T',
+      description: 'desc',
+      ogType: 'article',
+      siteName: 'shine notes',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:[^"]+"/g),
+      'no canonicalUrl ⇒ no OpenGraph meta of any kind — pages without a stable absolute URL (e.g. 404) must not emit partial OG metadata',
+    ).toBe(0);
+  });
+
+  it('(9) defaults ogType to "website" when canonicalUrl is provided but ogType is omitted', async () => {
+    const html = await render({
+      title: 'Home',
+      canonicalUrl: 'https://example.com/',
+    });
+    expect(
+      countMatches(html, /<meta\s+property="og:type"\s+content="website"/g),
+      'ogType default must be "website" — index/tag/graph pages are not articles',
+    ).toBe(1);
+  });
+
+  it('(10) emits exactly one <link rel="canonical"> (regression: must not be duplicated by the OG block)', async () => {
+    const html = await render({
+      title: 'T',
+      canonicalUrl: 'https://example.com/posts/hello',
+    });
+    expect(
+      countMatches(html, /<link\s+rel="canonical"/g),
+      '<link rel="canonical"> must be emitted exactly once — search engines treat duplicate canonicals as a signal to ignore the page (or pick arbitrarily)',
+    ).toBe(1);
+  });
 });
