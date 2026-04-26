@@ -23,6 +23,7 @@ import type { Root as MdastRoot } from 'mdast';
 import type { Element, Root as HastRoot } from 'hast';
 
 const HEADING_ANCHOR_TAGS: ReadonlySet<string> = new Set(['h2', 'h3', 'h4']);
+const HEADING_ANCHOR_CLASS = 'heading-anchor';
 
 type HastTransformer = (tree: HastRoot) => void;
 
@@ -32,12 +33,29 @@ const slugStep = rehypeSlug() as HastTransformer;
 const autolinkStep = rehypeAutolinkHeadings({
   behavior: 'append',
   properties: {
-    className: ['heading-anchor'],
+    className: [HEADING_ANCHOR_CLASS],
     'aria-label': 'permalink',
   },
   content: { type: 'text', value: '#' },
-  test: (node: Element) => HEADING_ANCHOR_TAGS.has(node.tagName),
+  // Idempotence: skip a heading that already carries an appended `.heading-anchor`
+  // child. Without this guard, re-running the visitor on the same tree (or on a
+  // tree parsed back from previously rendered HTML) would stack a second anchor
+  // on every heading. The pipeline only runs once per render today, but tests
+  // and any future re-render path (e.g. partial-tree updates) need this contract.
+  test: (node: Element) =>
+    HEADING_ANCHOR_TAGS.has(node.tagName) && !hasHeadingAnchorChild(node),
 }) as HastTransformer;
+
+function hasHeadingAnchorChild(heading: Element): boolean {
+  for (const child of heading.children) {
+    if (child.type !== 'element' || child.tagName !== 'a') continue;
+    const className = child.properties?.['className'];
+    if (Array.isArray(className) && className.includes(HEADING_ANCHOR_CLASS)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Serialize a public-mdast tree to HTML with v0.2 heading anchors applied.
@@ -50,7 +68,17 @@ export function renderMdastToHtml(tree: MdastRoot): string {
   // Narrow to Root — toHast on an mdast Root always returns a hast Root, but
   // the upstream type is the wider Nodes union.
   if (hast.type !== 'root') return toHtml(hast);
+  applyHeadingAnchors(hast);
+  return toHtml(hast);
+}
+
+/**
+ * Apply slug + heading-anchor transformations to an in-memory hast tree.
+ * Exported so tests can verify the idempotence guard directly without round-
+ * tripping through markdown — a heading that already has an anchor child
+ * must not receive a second one when this function runs again.
+ */
+export function applyHeadingAnchors(hast: HastRoot): void {
   slugStep(hast);
   autolinkStep(hast);
-  return toHtml(hast);
 }

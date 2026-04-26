@@ -9,7 +9,12 @@
 
 import { describe, expect, it } from 'vitest';
 import { fromMarkdown } from 'mdast-util-from-markdown';
-import { renderMdastToHtml } from '../src/render/htmlFromMdast.ts';
+import { toHtml } from 'hast-util-to-html';
+import type { Root as HastRoot } from 'hast';
+import {
+  applyHeadingAnchors,
+  renderMdastToHtml,
+} from '../src/render/htmlFromMdast.ts';
 
 function render(md: string): string {
   return renderMdastToHtml(fromMarkdown(md));
@@ -56,5 +61,43 @@ describe('renderMdastToHtml', () => {
   it('aria-label="permalink" lands on every appended anchor', () => {
     const html = render('## Section');
     expect(html).toMatch(/<a\s[^>]*\baria-label="permalink"/);
+  });
+
+  it('is idempotent — re-running heading-anchor visitors does not stack a second anchor', () => {
+    // Build a hast tree that already carries the anchor structure
+    // applyHeadingAnchors would have produced. Running the visitor on it must
+    // be a no-op for the heading: still exactly one `.heading-anchor` child,
+    // same id. Without the guard in `htmlFromMdast.ts`'s `test` predicate,
+    // rehype-autolink-headings would append a second anchor, doubling them on
+    // every re-render path (e.g. partial-tree updates, future caching
+    // experiments, or a test that round-trips HTML→hast→HTML).
+    const tree: HastRoot = {
+      type: 'root',
+      children: [
+        {
+          type: 'element',
+          tagName: 'h2',
+          properties: { id: 'section' },
+          children: [
+            { type: 'text', value: 'Section' },
+            {
+              type: 'element',
+              tagName: 'a',
+              properties: {
+                className: ['heading-anchor'],
+                href: '#section',
+                'aria-label': 'permalink',
+              },
+              children: [{ type: 'text', value: '#' }],
+            },
+          ],
+        },
+      ],
+    };
+    applyHeadingAnchors(tree);
+    const html = toHtml(tree);
+    const anchorCount = (html.match(/class="heading-anchor"/g) ?? []).length;
+    expect(anchorCount).toBe(1);
+    expect(html).toMatch(/<h2\b[^>]*\bid="section"/);
   });
 });

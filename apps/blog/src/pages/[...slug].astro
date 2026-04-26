@@ -70,6 +70,18 @@ type Props =
     };
 
 const props = Astro.props as Props;
+
+// Single invariant for both branches: canonical URLs require an origin, and
+// `obsidian-blog.config.ts` mandates `site.url`. Surfacing the missing-config
+// case here as a build-time throw beats either silently falling back (alias
+// branch's old behaviour) or throwing deeper inside `new URL()` with a less
+// actionable message (note branch's old behaviour).
+if (Astro.site === undefined) {
+  throw new Error(
+    "[...slug].astro: Astro.site is required for canonical URLs and alias redirects. " +
+      "Set obpubConfig.site.url in obsidian-blog.config.ts.",
+  );
+}
 const siteOrigin = Astro.site;
 
 let renderedNote: ReturnType<typeof entryToNoteViewModel> | null = null;
@@ -83,12 +95,9 @@ if (props.kind === 'note') {
   const html = props.entry.rendered?.html ?? '';
   renderedNote = entryToNoteViewModel(props.entry, html);
   backlinks = buildBacklinksViewModel(props.entry, props.titleBySlug);
-  noteCanonical = new URL(Astro.url.pathname, Astro.site).toString();
+  noteCanonical = new URL(Astro.url.pathname, siteOrigin).toString();
 } else {
-  const absoluteTo =
-    siteOrigin !== undefined
-      ? new URL(props.to, siteOrigin).toString()
-      : props.to;
+  const absoluteTo = new URL(props.to, siteOrigin).toString();
   const vm = entryToAliasRedirectViewModel(props.entry, absoluteTo);
   aliasTo = vm.to;
   aliasCanonical = vm.canonicalUrl;

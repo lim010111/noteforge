@@ -7,12 +7,16 @@
  * production artefact, asserted shape-only below.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   applyStoredTheme,
+  bindThemeToggle,
+  resolveCurrentTheme,
+  setTheme,
   themeInitScript,
   type ThemeRoot,
   type ThemeStorage,
+  type ThemeToggleButton,
 } from '../src/scripts/theme-init.ts';
 
 function mkRoot(): { dataset: { theme?: string } } & ThemeRoot {
@@ -20,10 +24,14 @@ function mkRoot(): { dataset: { theme?: string } } & ThemeRoot {
 }
 
 function mkStorage(initial: Record<string, string>): ThemeStorage {
+  const store: Record<string, string> = { ...initial };
   return {
     getItem(key: string): string | null {
-      const v = initial[key];
+      const v = store[key];
       return typeof v === 'string' ? v : null;
+    },
+    setItem(key: string, value: string): void {
+      store[key] = value;
     },
   };
 }
@@ -32,6 +40,25 @@ function mkThrowingStorage(): ThemeStorage {
   return {
     getItem(): string | null {
       throw new Error('storage disabled');
+    },
+    setItem(): void {
+      throw new Error('storage disabled');
+    },
+  };
+}
+
+interface FakeButton extends ThemeToggleButton {
+  fire(): void;
+}
+
+function mkButton(): FakeButton {
+  let listener: ((event: unknown) => void) | null = null;
+  return {
+    addEventListener(_type: 'click', l: (event: unknown) => void): void {
+      listener = l;
+    },
+    fire(): void {
+      if (listener !== null) listener(new Event('click'));
     },
   };
 }
@@ -71,6 +98,104 @@ describe('applyStoredTheme', () => {
       applyStoredTheme(root, mkThrowingStorage());
     }).not.toThrow();
     expect(root.dataset.theme).toBeUndefined();
+  });
+});
+
+describe('resolveCurrentTheme', () => {
+  it('returns the explicit data-theme value when present', () => {
+    expect(resolveCurrentTheme({ dataset: { theme: 'dark' } }, { matches: true })).toBe('dark');
+    expect(resolveCurrentTheme({ dataset: { theme: 'light' } }, { matches: false })).toBe('light');
+  });
+
+  it('falls back to prefers-color-scheme when dataset.theme is unset', () => {
+    expect(resolveCurrentTheme({ dataset: {} }, { matches: true })).toBe('dark');
+    expect(resolveCurrentTheme({ dataset: {} }, { matches: false })).toBe('light');
+  });
+
+  it('falls back to prefers-color-scheme for unknown dataset.theme values', () => {
+    // Defensive — a typo like "auto" must be treated like absence so the toggle
+    // still resolves to whatever CSS is currently painting.
+    expect(resolveCurrentTheme({ dataset: { theme: 'auto' } }, { matches: true })).toBe('dark');
+  });
+});
+
+describe('setTheme', () => {
+  it('updates dataset.theme and persists to storage', () => {
+    const root = mkRoot();
+    const storage = mkStorage({});
+    setTheme(root, storage, 'dark');
+    expect(root.dataset.theme).toBe('dark');
+    expect(storage.getItem('theme')).toBe('dark');
+  });
+
+  it('still updates dataset.theme when storage write throws', () => {
+    const root = mkRoot();
+    expect(() => setTheme(root, mkThrowingStorage(), 'light')).not.toThrow();
+    expect(root.dataset.theme).toBe('light');
+  });
+});
+
+describe('bindThemeToggle', () => {
+  it('flips dark→light on click and persists the new value', () => {
+    const root = mkRoot();
+    root.dataset.theme = 'dark';
+    const storage = mkStorage({ theme: 'dark' });
+    const btn = mkButton();
+    bindThemeToggle(btn, root, storage, { matches: true });
+    btn.fire();
+    expect(root.dataset.theme).toBe('light');
+    expect(storage.getItem('theme')).toBe('light');
+  });
+
+  it('flips light→dark on click', () => {
+    const root = mkRoot();
+    root.dataset.theme = 'light';
+    const storage = mkStorage({ theme: 'light' });
+    const btn = mkButton();
+    bindThemeToggle(btn, root, storage, { matches: false });
+    btn.fire();
+    expect(root.dataset.theme).toBe('dark');
+    expect(storage.getItem('theme')).toBe('dark');
+  });
+
+  it('uses prefers-color-scheme when dataset.theme is empty before first click', () => {
+    // First-load scenario: no stored value, no data-theme set. CSS is painting
+    // dark via @media. Toggle must compute "current = dark", flip to light.
+    const root = mkRoot();
+    const storage = mkStorage({});
+    const btn = mkButton();
+    bindThemeToggle(btn, root, storage, { matches: true });
+    btn.fire();
+    expect(root.dataset.theme).toBe('light');
+  });
+
+  it('toggles back and forth across multiple clicks', () => {
+    const root = mkRoot();
+    root.dataset.theme = 'dark';
+    const storage = mkStorage({ theme: 'dark' });
+    const btn = mkButton();
+    bindThemeToggle(btn, root, storage, { matches: true });
+    btn.fire();
+    btn.fire();
+    btn.fire();
+    expect(root.dataset.theme).toBe('light');
+  });
+
+  it('does not crash when storage write fails (Safari private mode)', () => {
+    const root = mkRoot();
+    root.dataset.theme = 'light';
+    const btn = mkButton();
+    bindThemeToggle(btn, root, mkThrowingStorage(), { matches: false });
+    expect(() => btn.fire()).not.toThrow();
+    expect(root.dataset.theme).toBe('dark');
+  });
+
+  it('only attaches one listener per button (vi.fn audit)', () => {
+    const fn = vi.fn();
+    const fakeButton: ThemeToggleButton = { addEventListener: fn };
+    bindThemeToggle(fakeButton, mkRoot(), mkStorage({}), { matches: false });
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith('click', expect.any(Function));
   });
 });
 

@@ -29,6 +29,10 @@ const {
         {siteName && <meta property="og:site_name" content={siteName} />}
       </>
     )}
+    {/* Preload the two fonts visible above-the-fold (sans body + serif headings).
+        Mono / Korean fonts load lazily via swap to keep the critical path lean. */}
+    <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/SourceSerif4Variable-Roman.woff2" as="font" type="font/woff2" crossorigin />
     <script is:inline set:html={themeInitScript}></script>
     <slot name="head" />
   </head>
@@ -79,25 +83,25 @@ const {
     <footer class="site-footer">
       <div class="site-footer__inner">
         <span>© 2026 — noteforge</span>
-        <a href="https://github.com/woohyun/obsidian_blog" target="_blank" rel="noopener noreferrer">source</a>
-        <a href="https://github.com/woohyun/obsidian_blog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a>
+        <a href="https://github.com/lim010111/obsidian-blog" target="_blank" rel="noopener noreferrer">source</a>
+        <a href="https://github.com/lim010111/obsidian-blog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a>
       </div>
     </footer>
-    <script is:inline>
-      (function () {
-        var btn = document.getElementById('theme-toggle');
-        if (!btn) return;
-        var root = document.documentElement;
-        btn.addEventListener('click', function () {
-          var stored = root.dataset.theme;
-          var current = stored === 'dark' || stored === 'light'
-            ? stored
-            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-          var next = current === 'dark' ? 'light' : 'dark';
-          root.dataset.theme = next;
-          try { localStorage.setItem('theme', next); } catch (e) {}
-        });
-      })();
+    {/* Theme toggle handler — bundled module, not inline. The resolve+set
+        logic lives in `theme-init.ts` so it stays single-source-of-truth with
+        the FOUC-prevention `themeInitScript` block above; this script just
+        binds it to the button. */}
+    <script>
+      import { bindThemeToggle } from "../scripts/theme-init.ts";
+      const btn = document.getElementById("theme-toggle");
+      if (btn !== null) {
+        bindThemeToggle(
+          btn,
+          document.documentElement,
+          window.localStorage,
+          window.matchMedia("(prefers-color-scheme: dark)"),
+        );
+      }
     </script>
   </body>
 </html>

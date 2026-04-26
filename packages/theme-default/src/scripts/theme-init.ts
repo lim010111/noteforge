@@ -22,15 +22,32 @@
  *                                    tokens.css decides instead.
  */
 
+export type ThemeMode = 'dark' | 'light';
+
 export interface ThemeRoot {
-  readonly dataset: { theme?: string };
+  dataset: { theme?: string };
 }
 
 export interface ThemeStorage {
   getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
 }
 
-export function applyStoredTheme(root: ThemeRoot, storage: ThemeStorage): void {
+export interface ThemeMediaQuery {
+  readonly matches: boolean;
+}
+
+export interface ThemeToggleButton {
+  addEventListener(
+    type: 'click',
+    listener: (event: unknown) => void,
+  ): void;
+}
+
+export function applyStoredTheme(
+  root: ThemeRoot,
+  storage: Pick<ThemeStorage, 'getItem'>,
+): void {
   let stored: string | null = null;
   try {
     stored = storage.getItem('theme');
@@ -40,6 +57,60 @@ export function applyStoredTheme(root: ThemeRoot, storage: ThemeStorage): void {
   if (stored === 'dark' || stored === 'light') {
     root.dataset.theme = stored;
   }
+}
+
+/**
+ * Decide which theme is currently rendered. Honours an explicit `data-theme`
+ * (set either by the user's last toggle or by `applyStoredTheme` from
+ * localStorage); when neither is present the CSS @media (prefers-color-scheme)
+ * block in tokens.css is what's painting the UI, so we mirror that here so the
+ * toggle's "next" computation matches what the user sees.
+ */
+export function resolveCurrentTheme(
+  root: ThemeRoot,
+  prefersDarkMq: ThemeMediaQuery,
+): ThemeMode {
+  const stored = root.dataset.theme;
+  if (stored === 'dark' || stored === 'light') return stored;
+  return prefersDarkMq.matches ? 'dark' : 'light';
+}
+
+/**
+ * Set the theme in both the DOM (so styles update immediately) and storage
+ * (so the choice persists across page loads and `applyStoredTheme` can
+ * restore it before paint). Storage failures are swallowed — we never break
+ * the UI for a Safari private-mode quota error.
+ */
+export function setTheme(
+  root: ThemeRoot,
+  storage: Pick<ThemeStorage, 'setItem'>,
+  next: ThemeMode,
+): void {
+  root.dataset.theme = next;
+  try {
+    storage.setItem('theme', next);
+  } catch {
+    // Storage write blocked (private mode, quota) — DOM update still stands.
+  }
+}
+
+/**
+ * Wire the theme toggle button to flip between dark/light and persist the
+ * choice. Single source of truth for the toggle behaviour: BaseLayout.astro
+ * imports this rather than re-implementing the resolve+set dance inline,
+ * avoiding silent drift between the two surfaces.
+ */
+export function bindThemeToggle(
+  button: ThemeToggleButton,
+  root: ThemeRoot,
+  storage: ThemeStorage,
+  prefersDarkMq: ThemeMediaQuery,
+): void {
+  button.addEventListener('click', () => {
+    const current = resolveCurrentTheme(root, prefersDarkMq);
+    const next: ThemeMode = current === 'dark' ? 'light' : 'dark';
+    setTheme(root, storage, next);
+  });
 }
 
 export const themeInitScript =
