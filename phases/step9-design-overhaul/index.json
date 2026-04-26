@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "note-and-prose",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-26T15:40:33+0900",
+      "summary": "Note.astro v0.2 재정비(serif h1+mono meta row, prose 컨테이너=68ch), prose.css 신설(h1-h4/단락/링크/코드/blockquote/figure/embed-aside + .heading-anchor + Shiki dual-theme override), core/render/htmlFromMdast.ts에 rehype-slug + rehype-autolink-headings 적용(h2-h4만, behavior=append, 라우팅 슬러그와 분리), astro.config.mjs에 Shiki dual theme + 같은 rehype 미러; canary 0/0(DO_NOT_LEAK_BANANA_6f3c1, CLAUDE_COMMENT_LEAK_77b 모두 dist 0회), audit 0 violations, 47 test files / 437 tests pass",
+      "completed_at": "2026-04-26T15:54:06+0900"
     },
     {
       "step": 5,
