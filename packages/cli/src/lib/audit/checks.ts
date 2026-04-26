@@ -8,7 +8,9 @@ export type AuditRule =
   | 'frontmatter-allowlist-violation'
   | 'obsidian-comment-leak'
   | 'tag-blocklist-leak'
-  | 'authored-private-title-mention';
+  | 'authored-private-title-mention'
+  | 'alias-redirect-broken-target'
+  | 'alias-redirect-body-leak';
 
 export interface AuditViolation {
   readonly rule: AuditRule;
@@ -30,6 +32,12 @@ export interface AuditInput {
   readonly frontmatterAllowlist: ReadonlySet<string>;
   /** Tag glob patterns that must not surface as anchor hrefs or `#tag` text. */
   readonly tagBlocklist: ReadonlySet<string>;
+  /**
+   * Trimmed `frontmatter.title` of every public note. Used to detect alias
+   * redirect pages that accidentally render another note's title in `<main>` —
+   * alias pages are pure URL pointers and must not surface note metadata.
+   */
+  readonly publicTitles: ReadonlySet<string>;
   /** When true, also fire weak-signal rules (authored-private-title-mention, etc.). */
   readonly strict: boolean;
 }
@@ -67,6 +75,7 @@ function collectViolations(view: DistView, input: AuditInput): readonly AuditVio
   out.push(...checkFrontmatterAllowlist(view, input));
   out.push(...checkObsidianCommentLeak(view));
   out.push(...checkTagBlocklist(view, input));
+  out.push(...checkAliasRedirects(view, input));
   return out;
 }
 
@@ -296,4 +305,92 @@ function extractGraphEdges(graph: DistGraphJson): FlatEdge[] {
     if (from !== null && to !== null) out.push({ from, to });
   }
   return out;
+}
+
+// ── Alias redirect checks ─────────────────────────────────────────────────────
+
+/**
+ * Captures `<meta http-equiv="refresh" content="0; url=...">`. The regex tolerates
+ * arbitrary whitespace and either quote style on the attributes; the captured
+ * group is the bare URL with surrounding whitespace trimmed by the caller.
+ */
+const META_REFRESH_RE =
+  /<meta\b[^>]*\bhttp-equiv\s*=\s*["']refresh["'][^>]*\bcontent\s*=\s*["']\s*\d+\s*;\s*url\s*=\s*([^"']+?)\s*["'][^>]*>/i;
+
+const MAIN_BLOCK_RE = /<main\b[^>]*>([\s\S]*?)<\/main>/i;
+
+function checkAliasRedirects(view: DistView, input: AuditInput): AuditViolation[] {
+  const violations: AuditViolation[] = [];
+  // Build the set of dist-relative paths once so each redirect target can be
+  // resolved in O(1). Using POSIX separators matches `scanDist`'s output.
+  const existing = new Set<string>(view.allFiles.map((f) => f.relPath));
+
+  for (const file of view.htmlFiles) {
+    const refresh = META_REFRESH_RE.exec(file.content);
+    if (refresh === null) continue;
+    const target = (refresh[1] ?? '').trim();
+    if (target.length === 0) continue;
+
+    if (!targetExistsInDist(target, existing)) {
+      violations.push({
+        rule: 'alias-redirect-broken-target',
+        location: file.relPath,
+        message: `alias redirect points to '${target}' but no matching page exists in dist`,
+        strictOnly: false,
+      });
+    }
+
+    const mainText = extractMainText(file.content);
+    if (mainText.length === 0) continue;
+    for (const title of input.publicTitles) {
+      if (title.length === 0) continue;
+      const matches = buildTitleMatcher(title);
+      if (matches(mainText)) {
+        violations.push({
+          rule: 'alias-redirect-body-leak',
+          location: file.relPath,
+          message: `alias redirect <main> contains a public note title ${redactTitle(title)} — alias pages must be content-free`,
+          strictOnly: false,
+        });
+        // One leak per file is enough to flag the page; further matches would
+        // just repeat the same finding.
+        break;
+      }
+    }
+  }
+  return violations;
+}
+
+/**
+ * Maps a redirect target URL onto the dist file that should serve it. We accept
+ * three shapes the project actually emits:
+ *   - `/foo`       → `foo.html` or `foo/index.html`
+ *   - `/foo/`      → `foo/index.html`
+ *   - `/`          → `index.html`
+ * External absolute URLs (http/https) are out of scope — the audit cannot reach
+ * the network — so they are treated as existent to avoid false positives. The
+ * project pipeline never emits external alias targets, so this branch is
+ * defensive rather than load-bearing.
+ */
+function targetExistsInDist(target: string, existing: ReadonlySet<string>): boolean {
+  if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('//')) {
+    return true;
+  }
+  const stripped = target.replace(/[?#].*$/, '');
+  const clean = stripped.startsWith('/') ? stripped.slice(1) : stripped;
+  if (clean.length === 0) return existing.has('index.html');
+  if (clean.endsWith('/')) return existing.has(`${clean}index.html`);
+  return existing.has(`${clean}.html`) || existing.has(`${clean}/index.html`);
+}
+
+/**
+ * Strip tags from `<main>...</main>` so the body-leak check looks at rendered
+ * text only. Attribute values (href, alt, …) are excluded; without this step a
+ * legitimate `<a href="/foo">` whose slug overlaps a public title would
+ * false-positive.
+ */
+function extractMainText(html: string): string {
+  const m = MAIN_BLOCK_RE.exec(html);
+  if (m === null) return '';
+  return (m[1] ?? '').replace(/<[^>]*>/g, ' ');
 }

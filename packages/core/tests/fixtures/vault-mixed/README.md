@@ -18,16 +18,18 @@
 | `public-with-comment.md` | yes | 인라인 `%%...%%` 1회 + 블록 `%%...%%` 1회, 둘 다 canary B (아래 canary 섹션 참조) 포함 |
 | `public-with-extra-fm.md` | yes | frontmatter에 allowlist 밖 필드 `review-date`, `personal-note`, `mood` |
 | `public-with-secret-tag.md` | yes | `tags: [public, client/acme-secret, public/internal]` — blocklist(`client/**`) 대상 |
+| `note-with-alias.md` | yes (`public: true`) | frontmatter `aliases: [old-name, previous-title]` — alias redirect 라우트/audit 검증용 |
+| `private-with-alias.md` | **no** (`public: false`) | frontmatter `aliases: [secret-old]` + 본문에 canary A. 비공개 노트의 alias가 어느 채널에도 흘러가지 않는지 검증 |
 | `only-public.png` | — | public 노트 첨부. 1×1 PNG (투명 RGBA) |
 | `only-private.png` | — | 어느 공개 노트도 참조하지 않음. attachment closure에 포함되면 안 됨. 1×1 PNG (빨강 RGBA) — 공개본과 바이너리가 다름 |
 
-총 **9개 Markdown + 2개 PNG = 11 파일** + 이 README.
+총 **11개 Markdown + 2개 PNG = 13 파일** + 이 README.
 
 ## canary 문자열
 
 테스트 assert에서 렌더 산출물에 **0회** 등장해야 하는 누출 감지 문자열. 아래 두 문자열은 `grep`으로 이 README에 매칭되면 안 되므로 의도적으로 분해해서 적는다. 테스트 코드에서는 전체 상수로 선언할 것.
 
-- canary A — 프리픽스 `DO_NOT_LEAK_BANANA_` + 서픽스 `6f3c1`. `Private Secret.md` 본문에만 존재.
+- canary A — 프리픽스 `DO_NOT_LEAK_BANANA_` + 서픽스 `6f3c1`. `Private Secret.md`와 `private-with-alias.md` 본문에 존재(둘 다 비공개 노트이므로 어느 공개 채널에도 등장하면 안 됨).
 - canary B — 프리픽스 `CLAUDE_COMMENT_LEAK_` + 서픽스 `77b`. `public-with-comment.md` 본문에 인라인 1회 + 블록 1회 (총 2회) 존재.
 
 tripwire(`private/family-photos.md`)는 canary를 심지 **않는다**. tripwire는 "공개 슬러그 집합에 포함되지 않음 + 렌더 HTML/`graph.json`에 해당 제목/슬러그 0회"로 별도 검증한다.

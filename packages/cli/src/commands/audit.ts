@@ -40,6 +40,7 @@ export async function runAudit(
     privateAttachmentBasenames: collectPrivateAttachmentBasenames(pipeline),
     frontmatterAllowlist: new Set(config.publishing.frontmatterAllowlist),
     tagBlocklist: new Set(config.publishing.tagBlocklist),
+    publicTitles: collectPublicTitles(pipeline),
     strict: opts.strict ?? false,
   };
 
@@ -51,6 +52,17 @@ function collectPrivateAttachmentBasenames(result: PipelineResult): ReadonlySet<
   for (const rel of result.allAttachments) {
     if (result.attachmentClosure.has(rel)) continue;
     out.add(path.posix.basename(rel).toLowerCase());
+  }
+  return out;
+}
+
+function collectPublicTitles(result: PipelineResult): ReadonlySet<string> {
+  const out = new Set<string>();
+  for (const fm of result.publicFrontmatter.values()) {
+    const title = fm['title'];
+    if (typeof title !== 'string') continue;
+    const cleaned = title.trim();
+    if (cleaned.length > 0) out.add(cleaned);
   }
   return out;
 }

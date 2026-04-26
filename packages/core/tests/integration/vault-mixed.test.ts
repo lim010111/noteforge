@@ -71,7 +71,7 @@ async function run(): Promise<PipelineResult> {
   return runCorePipeline(config);
 }
 
-describe('vault-mixed integration — 11 privacy invariants', () => {
+describe('vault-mixed integration — privacy invariants', () => {
   let result: PipelineResult;
   let concatPublicHtml: string;
   let canaryA: string;
@@ -84,7 +84,7 @@ describe('vault-mixed integration — 11 privacy invariants', () => {
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
 
-  it('[1] publicSlugs matches the exact expected set of 7 public notes', () => {
+  it('[1] publicSlugs matches the exact expected set of 8 public notes', () => {
     const expected = new Set([
       'public-note',
       'another-public',
@@ -93,6 +93,7 @@ describe('vault-mixed integration — 11 privacy invariants', () => {
       'public-with-comment',
       'public-with-extra-fm',
       'public-with-secret-tag',
+      'note-with-alias',
     ]);
     expect([...result.publicSlugs].sort()).toEqual([...expected].sort());
   });

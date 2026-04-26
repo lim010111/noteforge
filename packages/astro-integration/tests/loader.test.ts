@@ -139,6 +139,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-comment',
     'public-with-extra-fm',
     'public-with-secret-tag',
+    'note-with-alias',
   ]);
 
   let loader: Loader;
@@ -152,14 +153,14 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     await runLoad(loader, store, logger);
   });
 
-  it('(1) emits exactly the 7 public slugs as note-kind store keys', () => {
+  it('(1) emits exactly the 8 public slugs as note-kind store keys', () => {
     const noteKeys = store
       .values()
       .filter((e) => (e.data as Record<string, unknown>)['kind'] === 'note')
       .map((e) => e.id);
     expect(
       [...noteKeys].sort(),
-      'note-kind keys must equal the canonical 7-slug public set — extras or omissions break the public contract',
+      'note-kind keys must equal the canonical 8-slug public set — extras or omissions break the public contract',
     ).toEqual([...EXPECTED_PUBLIC].sort());
   });
 

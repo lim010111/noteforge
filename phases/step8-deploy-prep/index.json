@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "alias-fixture-routes-audit",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-26T10:46:46+0900",
+      "completed_at": "2026-04-26T10:57:53+0900",
+      "summary": "vault-mixed fixture에 note-with-alias/private-with-alias 추가; [...slug].astro가 kind 분기로 alias-redirect 페이지를 meta-refresh + canonical로 렌더; audit가 alias-redirect-broken-target과 alias-redirect-body-leak 두 규칙 추가 (전체 413 테스트 통과)"
     },
     {
       "step": 3,
