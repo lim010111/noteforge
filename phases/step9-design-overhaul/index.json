@@ -1,0 +1,13 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step9-design-overhaul",
+  "steps": [
+    { "step": 0, "name": "design-direction", "status": "pending" },
+    { "step": 1, "name": "ui-guide-rewrite", "status": "pending" },
+    { "step": 2, "name": "tokens-and-base", "status": "pending" },
+    { "step": 3, "name": "layout-and-nav", "status": "pending" },
+    { "step": 4, "name": "note-and-prose", "status": "pending" },
+    { "step": 5, "name": "backlinks-tags-graph", "status": "pending" },
+    { "step": 6, "name": "dogfood-and-screenshots", "status": "pending" }
+  ]
+}

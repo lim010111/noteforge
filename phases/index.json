@@ -74,6 +74,10 @@
       "dir": "step8-deploy-prep",
       "status": "completed",
       "completed_at": "2026-04-26T11:08:58+0900"
+    },
+    {
+      "dir": "step9-design-overhaul",
+      "status": "pending"
     }
   ]
 }
