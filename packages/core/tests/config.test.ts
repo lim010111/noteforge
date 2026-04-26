@@ -47,6 +47,7 @@ describe('defineConfig', () => {
     expect(cfg.site.title).toBe('Example');
     expect(cfg.site.url).toBe('https://example.com');
     expect(cfg.site.author).toBe('Tester');
+    expect(cfg.site.tagline).toBeUndefined();
     expect(cfg.vaults).toHaveLength(1);
     expect(cfg.vaults[0]?.id).toBe('personal');
     expect(cfg.vaults[0]?.urlPrefix).toBe('/');
@@ -99,6 +100,33 @@ describe('defineConfig', () => {
       defineConfig(
         baseInput({
           site: { title: 'X', url: 'not-a-url', author: 'Y' },
+        }),
+      ),
+    ).toThrow(ObpubConfigError);
+  });
+
+  it('accepts an optional site.tagline and rejects an empty-string tagline', () => {
+    const ok = defineConfig(
+      baseInput({
+        site: {
+          title: 'X',
+          url: 'https://x.example/',
+          author: 'Y',
+          tagline: '편집장의 한 줄',
+        },
+      }),
+    );
+    expect(ok.site.tagline).toBe('편집장의 한 줄');
+
+    expect(() =>
+      defineConfig(
+        baseInput({
+          site: {
+            title: 'X',
+            url: 'https://x.example/',
+            author: 'Y',
+            tagline: '',
+          },
         }),
       ),
     ).toThrow(ObpubConfigError);

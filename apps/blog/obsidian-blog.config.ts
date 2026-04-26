@@ -19,6 +19,7 @@ export default defineConfig({
     title: 'shine notes',
     url: 'https://noteforge.pages.dev',
     author: 'shine',
+    tagline: '읽고, 쓰고, 가끔 만든 것을 정리해 둡니다.',
   },
   vaults: [
     {

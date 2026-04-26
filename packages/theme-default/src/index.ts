@@ -7,6 +7,11 @@ export { default as TagList } from './components/TagList.astro';
 export { default as TagPage } from './components/TagPage.astro';
 export { default as NoteList } from './components/NoteList.astro';
 export type { NoteListEntry, NoteListProps } from './components/NoteList.types.ts';
+export { default as NoteCardList } from './components/NoteCardList.astro';
+export type {
+  NoteCardEntry,
+  NoteCardListProps,
+} from './components/NoteCardList.types.ts';
 export { default as FolderTreeSidebar } from './components/FolderTreeSidebar.astro';
 export type {
   FolderTreeSidebarProps,

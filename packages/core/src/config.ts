@@ -47,6 +47,12 @@ const siteSchema = z.object({
   title: z.string().min(1, '빈 문자열은 허용되지 않습니다'),
   url: z.string().url('유효한 URL이어야 합니다'),
   author: z.string().min(1, '빈 문자열은 허용되지 않습니다'),
+  /**
+   * Optional one-line tagline rendered in the homepage hero. Empty string is
+   * rejected so callers can branch on `tagline === undefined` without also
+   * having to check for whitespace-only values.
+   */
+  tagline: z.string().min(1, '빈 문자열은 허용되지 않습니다').optional(),
 });
 
 const publishingSchema = z

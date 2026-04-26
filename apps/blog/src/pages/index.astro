@@ -1,32 +1,91 @@
 ---
 import { getCollection } from 'astro:content';
-import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
+import {
+  BaseLayout,
+  NoteCardList,
+  type NoteCardEntry,
+} from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
-import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
-import { getSharedSidebarRoots } from '../lib/folderTree.ts';
+import {
+  deriveExcerpt,
+  filterPublishable,
+  sortForHome,
+} from '../lib/viewModels.ts';
+import {
+  buildFolderChips,
+  getSharedSidebarRoots,
+} from '../lib/folderTree.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
 const publishable = filterPublishable(all);
 const sorted = sortForHome(publishable);
 const sidebarRoots = getSharedSidebarRoots(publishable);
+const folderChips = buildFolderChips(publishable);
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
-const items: NoteListEntry[] = sorted.map((entry) => {
-  const dateRaw = entry.data.frontmatter['date'];
-  const item: NoteListEntry = {
+
+const RECENT_LIMIT = 8;
+const recent = sorted.slice(0, RECENT_LIMIT);
+
+function asString(v: unknown): string | undefined {
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
+}
+
+function lastSegment(slug: string): string {
+  const i = slug.lastIndexOf('/');
+  return i === -1 ? slug : slug.slice(i + 1);
+}
+
+const cards: NoteCardEntry[] = recent.map((entry) => {
+  const fm = entry.data.frontmatter;
+  const description = asString(fm['description']);
+  const excerpt = description ?? deriveExcerpt(entry.rendered?.html ?? '');
+  const date = asString(fm['date']);
+  const card: NoteCardEntry = {
     href: `/${entry.id}`,
-    title: entry.data.title ?? entry.id,
+    title:
+      entry.data.title ?? asString(fm['title']) ?? lastSegment(entry.id),
+    tags: entry.data.tags,
   };
-  if (typeof dateRaw === 'string') item.date = dateRaw;
-  return item;
+  if (date !== undefined) card.date = date;
+  if (excerpt.length > 0) card.excerpt = excerpt;
+  if (fm['featured'] === true) card.featured = true;
+  return card;
 });
+
+const tagline = obpubConfig.site.tagline;
 ---
 <BaseLayout
-  title="홈"
+  title={obpubConfig.site.title}
   canonicalUrl={canonicalUrl}
   ogType="website"
   siteName={obpubConfig.site.title}
   sidebarRoots={sidebarRoots}
 >
-  <NoteList entries={items} emptyMessage="아직 공개된 글이 없습니다." />
+  <header class="home-hero">
+    <p class="home-hero__eyebrow">{obpubConfig.site.author}'s notes</p>
+    <h1 class="home-hero__title">{obpubConfig.site.title}</h1>
+    {tagline && <p class="home-hero__tagline">{tagline}</p>}
+  </header>
+
+  <section class="home-section" aria-labelledby="home-recent">
+    <h2 id="home-recent" class="home-section__heading">최근 글</h2>
+    <NoteCardList entries={cards} emptyMessage="아직 공개된 글이 없습니다." />
+  </section>
+
+  {folderChips.length > 0 && (
+    <section class="home-section" aria-labelledby="home-folders">
+      <h2 id="home-folders" class="home-section__heading">폴더로 둘러보기</h2>
+      <ul class="folder-chip-list" role="list">
+        {folderChips.map((chip) => (
+          <li>
+            <a class="folder-chip" href={chip.href}>
+              <span>{chip.label}</span>
+              <span class="folder-chip__count">{chip.noteCount}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </BaseLayout>

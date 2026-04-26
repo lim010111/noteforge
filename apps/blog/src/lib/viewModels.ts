@@ -117,6 +117,52 @@ export function entryToAliasRedirectViewModel(
 }
 
 /**
+ * Derive a short, plain-text excerpt from rendered note HTML.
+ *
+ * Used by the homepage card list when no `frontmatter.description` is set.
+ * Pure string transform — no DOM, no jsdom — so it runs in any test/build
+ * environment.
+ *
+ * Pipeline:
+ *   1. Drop everything inside `<script>`/`<style>` blocks (defense-in-depth;
+ *      the privacy pipeline already strips these from public HTML, but
+ *      excerpting plain content shouldn't depend on that having happened).
+ *   2. Replace block-level closing tags with whitespace so paragraph breaks
+ *      don't fuse words together when tags are stripped.
+ *   3. Strip remaining tags and decode the small set of named entities Astro
+ *      emits (&amp; &lt; &gt; &quot; &#39;).
+ *   4. Collapse whitespace and clip to a soft 160-char budget at a word
+ *      boundary, appending an ellipsis if truncated.
+ *
+ * Returns '' when there is no text to extract — callers can branch on
+ * empty-string to omit the excerpt row entirely (no empty <p> markup).
+ */
+export function deriveExcerpt(html: string, maxChars = 160): string {
+  if (typeof html !== 'string' || html.length === 0) return '';
+
+  const noScripts = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+  const blockSeparated = noScripts.replace(
+    /<\/(p|div|li|h[1-6]|blockquote|br|tr|td|th|pre|figure|figcaption|section|article)\s*>/gi,
+    ' ',
+  );
+  const tagless = blockSeparated.replace(/<[^>]+>/g, '');
+  const decoded = tagless
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  const collapsed = decoded.replace(/\s+/g, ' ').trim();
+  if (collapsed.length === 0) return '';
+  if (collapsed.length <= maxChars) return collapsed;
+
+  const slice = collapsed.slice(0, maxChars);
+  const lastBoundary = slice.lastIndexOf(' ');
+  const cut = lastBoundary > maxChars * 0.5 ? slice.slice(0, lastBoundary) : slice;
+  return `${cut.trimEnd()}…`;
+}
+
+/**
  * Build the `<Backlinks />` view-model from a single entry's backlink slugs.
  *
  * Loader has already restricted `entry.data.backlinks` to public targets.
