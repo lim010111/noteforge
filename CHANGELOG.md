@@ -2,6 +2,11 @@
 
 본 프로젝트는 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 형식을 따르며, [Semantic Versioning](https://semver.org/lang/ko/)을 준수합니다.
 
+## [Unreleased]
+
+### Changed
+- UI guide rewritten for v0.2 design overhaul — editorial-technical 방향(라이트/다크 듀얼 모드, serif/sans/mono triad self-host, iron-oxide 단일 액센트, 사이드 마진 그리드). v0.1 보존본은 `docs/UI_GUIDE.v0.1.md`로 백업.
+
 ## [0.2.0] - 2026-04-26
 
 ### Added
