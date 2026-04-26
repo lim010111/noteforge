@@ -1,8 +1,9 @@
 ---
 import { BaseLayout, NotFound } from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
 import '../styles/global.css';
 ---
-<BaseLayout title="찾을 수 없습니다">
+<BaseLayout title="찾을 수 없습니다" siteName={obpubConfig.site.title}>
   <Fragment slot="nav">
     <ul class="flex gap-4 py-4 text-sm">
       <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>

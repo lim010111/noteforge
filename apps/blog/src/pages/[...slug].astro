@@ -2,6 +2,7 @@
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import { Backlinks, BaseLayout, Note } from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   buildBacklinksViewModel,
   entryToAliasRedirectViewModel,
@@ -73,6 +74,7 @@ const siteOrigin = Astro.site;
 
 let renderedNote: ReturnType<typeof entryToNoteViewModel> | null = null;
 let backlinks: ReturnType<typeof buildBacklinksViewModel> | null = null;
+let noteCanonical: string | undefined;
 
 let aliasTo: string | null = null;
 let aliasCanonical: string | undefined;
@@ -81,6 +83,7 @@ if (props.kind === 'note') {
   const html = props.entry.rendered?.html ?? '';
   renderedNote = entryToNoteViewModel(props.entry, html);
   backlinks = buildBacklinksViewModel(props.entry, props.titleBySlug);
+  noteCanonical = new URL(Astro.url.pathname, Astro.site).toString();
 } else {
   const absoluteTo =
     siteOrigin !== undefined
@@ -92,14 +95,25 @@ if (props.kind === 'note') {
 }
 ---
 {props.kind === 'alias-redirect' ? (
-  <BaseLayout title="이 페이지는 이동되었습니다" canonicalUrl={aliasCanonical}>
+  <BaseLayout
+    title="이 페이지는 이동되었습니다"
+    canonicalUrl={aliasCanonical}
+    ogType="website"
+    siteName={obpubConfig.site.title}
+  >
     <Fragment slot="head">
       <meta http-equiv="refresh" content={`0; url=${aliasTo}`} />
     </Fragment>
     <p>이 페이지는 <a href={aliasTo}>여기</a>로 이동되었습니다.</p>
   </BaseLayout>
 ) : (
-  <BaseLayout title={renderedNote!.title} description={renderedNote!.description}>
+  <BaseLayout
+    title={renderedNote!.title}
+    description={renderedNote!.description}
+    canonicalUrl={noteCanonical}
+    ogType="article"
+    siteName={obpubConfig.site.title}
+  >
     <Fragment slot="nav">
       <ul class="flex gap-4 py-4 text-sm">
         <li><a href="/" class="text-zinc-500 hover:text-zinc-900">홈</a></li>

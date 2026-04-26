@@ -2,7 +2,14 @@
 import type { BaseLayoutProps } from "./BaseLayout.types";
 import "../styles/base.css";
 
-const { title, description, lang = "ko", canonicalUrl } = Astro.props as BaseLayoutProps;
+const {
+  title,
+  description,
+  lang = "ko",
+  canonicalUrl,
+  ogType = "website",
+  siteName,
+} = Astro.props as BaseLayoutProps;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -12,6 +19,15 @@ const { title, description, lang = "ko", canonicalUrl } = Astro.props as BaseLay
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {canonicalUrl && (
+      <>
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content={ogType} />
+        <meta property="og:title" content={title} />
+        {description && <meta property="og:description" content={description} />}
+        {siteName && <meta property="og:site_name" content={siteName} />}
+      </>
+    )}
     <slot name="head" />
   </head>
   <body>
