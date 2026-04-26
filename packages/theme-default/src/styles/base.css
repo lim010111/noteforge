@@ -8,6 +8,7 @@
  */
 
 @import "tailwindcss";
+@import "./fonts.css";
 @import "./tokens.css";
 @import "./layout.css";
 @import "./prose.css";
