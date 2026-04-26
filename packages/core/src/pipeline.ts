@@ -21,6 +21,7 @@ import { toHast } from 'mdast-util-to-hast';
 import { toHtml } from 'hast-util-to-html';
 import type { Root } from 'mdast';
 
+import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
 import { parseNote } from './discover/parseNote.ts';
 import { walkVault } from './discover/walk.ts';
@@ -87,6 +88,12 @@ export interface PipelineResult {
   privateNoteTitles: Set<string>;
   /** Vault-relative paths of all discovered attachments (public + private). */
   allAttachments: Set<string>;
+  /**
+   * Redirects from frontmatter `aliases` to canonical slugs. Built only from the
+   * publishable subset, so private-note aliases never appear here. Adapters consume
+   * this to emit alias routes; the canonical slug is `to`.
+   */
+  aliasRedirects: readonly AliasRedirect[];
   /** Structured diagnostics (tripwire hits, unresolved links, etc.). */
   warnings: PipelineWarning[];
 }
@@ -121,7 +128,8 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     );
   }
 
-  const wikilinkIndex = buildIndex(notes, slugByRelPath);
+  const indexedNotes = toIndexedNotes(notes, slugByRelPath);
+  const wikilinkIndex = buildWikilinkIndex(indexedNotes);
   const attachmentByBasenameLower = indexAttachmentsByBasename(attachments);
 
   // ── Phase B — Classification ───────────────────────────────────────────────
@@ -294,6 +302,15 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allowedExtensions: config.attachments.allowedExtensions,
   });
 
+  // Alias redirects from frontmatter `aliases`. Built only from the publishable
+  // subset — private notes' aliases must never reach an adapter (single privacy
+  // funnel: classify → publishable filter → buildAliasRedirects).
+  const publishableIndexed = indexedNotes.filter((n) => publicSlugs.has(n.id));
+  const aliasResult = buildAliasRedirects(publishableIndexed);
+  for (const message of aliasResult.warnings) {
+    warnings.push({ code: 'ALIAS_WARNING', message });
+  }
+
   // Private note titles + bare filenames — surfaced for downstream audit so that
   // independent dist scanners can detect leaked private mentions without re-running
   // classification (privacy-first: classify once, consume everywhere).
@@ -326,6 +343,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     attachmentClosure: new Set(closure.included),
     privateNoteTitles,
     allAttachments: new Set(attachments),
+    aliasRedirects: aliasResult.redirects,
     warnings,
   };
 }
@@ -368,10 +386,10 @@ async function discoverAttachments(
   return out;
 }
 
-function buildIndex(
+function toIndexedNotes(
   notes: readonly ParsedNote[],
   slugByRelPath: ReadonlyMap<string, string>,
-): WikilinkIndex {
+): IndexedNote[] {
   const indexed: IndexedNote[] = [];
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
@@ -407,7 +425,7 @@ function buildIndex(
       aliases: [...aliasSet],
     });
   }
-  return buildWikilinkIndex(indexed);
+  return indexed;
 }
 
 function indexAttachmentsByBasename(

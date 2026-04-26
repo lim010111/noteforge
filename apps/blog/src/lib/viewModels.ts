@@ -7,6 +7,22 @@ import type {
 
 export type NotesEntry = CollectionEntry<'notes'>;
 
+/**
+ * `notes` collection narrowed to note-shaped entries (i.e. `data.kind === 'note'`).
+ * Listing pages, the slug detail page, tag aggregation, etc. all operate on this
+ * narrowed type — alias redirects are routed separately and never appear in any
+ * listing.
+ */
+export type NoteEntry = NotesEntry & { data: { kind: 'note' } };
+
+/**
+ * `notes` collection narrowed to alias-redirect entries (i.e. `data.kind === 'alias-redirect'`).
+ * Only the alias route consumes this; nothing else in the app should read from it.
+ */
+export type AliasRedirectEntry = NotesEntry & {
+  data: { kind: 'alias-redirect' };
+};
+
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
@@ -29,7 +45,7 @@ function lastSegment(slug: string): string {
  * stores rendered HTML on `entry.rendered`, not in `entry.data`.
  */
 export function entryToNoteViewModel(
-  entry: NotesEntry,
+  entry: NoteEntry,
   body: string,
 ): NoteViewModel {
   const fm = entry.data.frontmatter;
@@ -50,7 +66,7 @@ export function entryToNoteViewModel(
   return vm;
 }
 
-export function sortForHome(entries: readonly NotesEntry[]): NotesEntry[] {
+export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {
   return [...entries].sort((a, b) => {
     const af = a.data.frontmatter['featured'] === true ? 1 : 0;
     const bf = b.data.frontmatter['featured'] === true ? 1 : 0;
@@ -64,10 +80,35 @@ export function sortForHome(entries: readonly NotesEntry[]): NotesEntry[] {
   });
 }
 
+/**
+ * Narrows `notes` collection entries to note-kind, non-draft items. Alias
+ * redirects are filtered out here (and *only* here) — listing pages must never
+ * see alias entries. The `kind` discriminator carries through TypeScript so
+ * downstream callers safely access `data.frontmatter`, `data.tags`, etc.
+ */
 export function filterPublishable(
   entries: readonly NotesEntry[],
-): NotesEntry[] {
-  return entries.filter((e) => e.data.frontmatter['draft'] !== true);
+): NoteEntry[] {
+  return entries.filter(
+    (e): e is NoteEntry =>
+      e.data.kind === 'note' && e.data.frontmatter['draft'] !== true,
+  );
+}
+
+/**
+ * Map an alias-redirect entry to the minimal view-model the alias route needs.
+ * `canonicalUrl` is built by the caller from `Astro.site` because absolute URLs
+ * depend on per-environment site config that this pure helper cannot see.
+ */
+export function entryToAliasRedirectViewModel(
+  entry: AliasRedirectEntry,
+  canonicalUrl: string,
+): { from: string; to: string; canonicalUrl: string } {
+  return {
+    from: entry.id,
+    to: `/${entry.data.to}`,
+    canonicalUrl,
+  };
 }
 
 /**
@@ -78,7 +119,7 @@ export function filterPublishable(
  * private slugs cannot enter via this path.
  */
 export function buildBacklinksViewModel(
-  entry: NotesEntry,
+  entry: NoteEntry,
   titleBySlug: ReadonlyMap<string, string>,
 ): BacklinksViewModel {
   const entries: BacklinkEntry[] = entry.data.backlinks.map((slug) => ({

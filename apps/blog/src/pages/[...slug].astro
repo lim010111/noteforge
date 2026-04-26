@@ -6,7 +6,7 @@ import {
   buildBacklinksViewModel,
   entryToNoteViewModel,
   filterPublishable,
-  type NotesEntry,
+  type NoteEntry,
 } from '../lib/viewModels.ts';
 import '../styles/global.css';
 
@@ -23,7 +23,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 interface Props {
-  entry: NotesEntry;
+  entry: NoteEntry;
   titleBySlug: ReadonlyMap<string, string>;
 }
 

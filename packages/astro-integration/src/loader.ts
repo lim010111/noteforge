@@ -3,8 +3,10 @@
  *
  * Single responsibility: take the structured PipelineResult (which has already
  * decided what is public, filtered frontmatter through the allowlist, applied
- * the tag blocklist, rewritten links, and serialized HTML) and write one entry
- * per *public* slug into Astro's Content Layer store.
+ * the tag blocklist, rewritten links, and serialized HTML) and write entries
+ * into Astro's Content Layer store. Two kinds share the same collection:
+ *   - `kind: 'note'`         — one per public slug, carries rendered HTML.
+ *   - `kind: 'alias-redirect'` — one per frontmatter alias, points to canonical.
  *
  * privacy contract:
  *   - the public/private verdict comes from `result.publicSlugs`. We never
@@ -16,24 +18,26 @@
  *   - frontmatter / tags are passed through verbatim from core. No further
  *     allowlist/blocklist filtering happens here, because re-filtering risks
  *     re-introducing a field the loader thinks is safe.
+ *   - alias entries carry no body/title/tags — only `to` (canonical slug).
+ *     `result.aliasRedirects` is built upstream from publishable notes only,
+ *     so a private alias cannot reach this loop.
  */
 
 import type { Loader } from 'astro/loaders';
 import { runCorePipeline } from '@noteforge/core/pipeline';
 import type { ObpubConfig } from '@noteforge/core/config';
 
-interface ObpubEntry {
-  id: string;
-  data: {
-    title?: string;
-    frontmatter: Record<string, unknown>;
-    tags: string[];
-    backlinks: string[];
-  };
-  rendered: {
-    html: string;
-    metadata: Record<string, unknown>;
-  };
+interface NoteEntryData extends Record<string, unknown> {
+  kind: 'note';
+  title?: string;
+  frontmatter: Record<string, unknown>;
+  tags: string[];
+  backlinks: string[];
+}
+
+interface AliasRedirectEntryData extends Record<string, unknown> {
+  kind: 'alias-redirect';
+  to: string;
 }
 
 export function obpubLoader(config: ObpubConfig): Loader {
@@ -71,6 +75,8 @@ export function obpubLoader(config: ObpubConfig): Loader {
         list.sort();
       }
 
+      const usedIds = new Set<string>();
+
       for (const slug of result.publicSlugs) {
         // Defensive re-check: even though the iteration source is publicSlugs,
         // we re-verify before set() so any future refactor that widens the
@@ -83,7 +89,8 @@ export function obpubLoader(config: ObpubConfig): Loader {
         const html = result.renderedHtml.get(slug) ?? '';
         const titleRaw = frontmatter['title'];
 
-        const data: ObpubEntry['data'] = {
+        const data: NoteEntryData = {
+          kind: 'note',
           frontmatter,
           tags,
           backlinks,
@@ -92,13 +99,34 @@ export function obpubLoader(config: ObpubConfig): Loader {
           data.title = titleRaw;
         }
 
-        const entry: ObpubEntry = {
+        usedIds.add(slug);
+        context.store.set({
           id: slug,
           data,
           rendered: { html, metadata: {} },
-        };
+        });
+      }
 
-        context.store.set(entry);
+      // Alias redirect entries share the `notes` collection so Content Layer
+      // can recompute them through the same HMR/dependency channel as notes.
+      for (const redirect of result.aliasRedirects) {
+        if (usedIds.has(redirect.from)) {
+          // Should already be caught by buildAliasRedirects' slug-collision
+          // pass, but a second guard here turns silent overwrites into loud
+          // failures. The id collision is the loader's invariant: each
+          // `store.set(id)` must claim a unique URL slot.
+          throw new Error(
+            `alias '${redirect.from}' (→ '${redirect.to}') collides with an existing note id; ` +
+              `pipeline should have warned upstream`,
+          );
+        }
+
+        const data: AliasRedirectEntryData = {
+          kind: 'alias-redirect',
+          to: redirect.to,
+        };
+        usedIds.add(redirect.from);
+        context.store.set({ id: redirect.from, data });
       }
     },
   };
