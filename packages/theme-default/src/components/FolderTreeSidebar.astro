@@ -1,0 +1,64 @@
+---
+/**
+ * Obsidian-flavored folder-tree sidebar.
+ *
+ * Privacy contract:
+ *   - `roots` MUST already be pruned to public-only data by the caller
+ *     (see `apps/blog/src/lib/folderTree.ts:buildFolderTree`). This component
+ *     does no filtering. Empty branches do not occur because the tree is
+ *     derived from `publicSlugs`.
+ *   - Folder-existence itself is data: if a folder appears, at least one
+ *     public note lives inside it. There is no "show empty folder" branch.
+ *
+ * SSR-only behavior — no client JS:
+ *   - Uses native <details>/<summary> for collapse, mirroring the existing
+ *     mobile-menu pattern in BaseLayout. `<details open>` is decided here
+ *     SSR-side from `currentSlug`'s ancestor folder paths.
+ *   - Active leaf carries aria-current="page" so AT users hear "current".
+ *
+ * Empty `roots`: render nothing (zero <aside>) so layout grids can collapse
+ * cleanly and the page does not show a sidebar shell with no items.
+ */
+import type { FolderTreeSidebarProps } from "./FolderTreeSidebar.types";
+import FolderTreeNode from "./FolderTreeNode.astro";
+
+const {
+  roots,
+  currentSlug,
+  ariaLabel = "사이드바 — 폴더 탐색",
+} = Astro.props as FolderTreeSidebarProps;
+
+// Compute the set of folder paths that should render with <details open>.
+// Pure SSR derivation — no JS needed for the active note's folder to be
+// pre-expanded on first paint.
+function ancestorPathsOf(slug: string | undefined): ReadonlySet<string> {
+  if (slug === undefined) return new Set();
+  const parts = slug.split("/").filter((p) => p.length > 0);
+  if (parts.length <= 1) return new Set();
+  const out = new Set<string>();
+  let acc = "";
+  for (let i = 0; i < parts.length - 1; i++) {
+    acc = acc.length === 0 ? parts[i]! : `${acc}/${parts[i]!}`;
+    out.add(acc);
+  }
+  return out;
+}
+
+const openPaths = ancestorPathsOf(currentSlug);
+---
+{roots.length > 0 && (
+  <aside class="folder-tree" aria-label={ariaLabel}>
+    <nav>
+      <ul class="folder-tree__list" role="list">
+        {roots.map((node) => (
+          <FolderTreeNode
+            node={node}
+            currentSlug={currentSlug}
+            openPaths={openPaths}
+            depth={0}
+          />
+        ))}
+      </ul>
+    </nav>
+  </aside>
+)}

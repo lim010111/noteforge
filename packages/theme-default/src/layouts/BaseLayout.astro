@@ -1,6 +1,7 @@
 ---
 import type { BaseLayoutProps } from "./BaseLayout.types";
 import { themeInitScript } from "../scripts/theme-init.ts";
+import FolderTreeSidebar from "../components/FolderTreeSidebar.astro";
 import "../styles/base.css";
 
 const {
@@ -10,7 +11,11 @@ const {
   canonicalUrl,
   ogType = "website",
   siteName,
+  sidebarRoots,
+  currentSlug,
 } = Astro.props as BaseLayoutProps;
+
+const hasSidebar = sidebarRoots !== undefined && sidebarRoots.length > 0;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -72,14 +77,30 @@ const {
                 <li><a href="/tags">tags</a></li>
                 <li><a href="/graph">graph</a></li>
               </ul>
+              {hasSidebar && (
+                <FolderTreeSidebar
+                  roots={sidebarRoots!}
+                  currentSlug={currentSlug}
+                  ariaLabel="모바일 폴더 탐색"
+                />
+              )}
             </nav>
           </details>
         </div>
       </div>
     </header>
-    <main id="main" class="site-main">
-      <slot />
-    </main>
+    {hasSidebar ? (
+      <div class="site-shell">
+        <FolderTreeSidebar roots={sidebarRoots!} currentSlug={currentSlug} />
+        <main id="main" class="site-main">
+          <slot />
+        </main>
+      </div>
+    ) : (
+      <main id="main" class="site-main">
+        <slot />
+      </main>
+    )}
     <footer class="site-footer">
       <div class="site-footer__inner">
         <span>© 2026 — noteforge</span>

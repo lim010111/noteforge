@@ -1,7 +1,12 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
-import { Backlinks, BaseLayout, Note } from '@noteforge/theme-default';
+import {
+  Backlinks,
+  BaseLayout,
+  Note,
+  type SidebarNode,
+} from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   buildBacklinksViewModel,
@@ -11,6 +16,7 @@ import {
   type AliasRedirectEntry,
   type NoteEntry,
 } from '../lib/viewModels.ts';
+import { getSharedSidebarRoots } from '../lib/folderTree.ts';
 import '../styles/global.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -19,10 +25,16 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const titleBySlug = new Map(
     publishable.map((e) => [e.id, e.data.title ?? e.id] as const),
   );
+  const sidebarRoots = getSharedSidebarRoots(publishable);
 
   const noteRoutes = publishable.map((entry) => ({
     params: { slug: entry.id },
-    props: { kind: 'note' as const, entry, titleBySlug },
+    props: {
+      kind: 'note' as const,
+      entry,
+      titleBySlug,
+      sidebarRoots,
+    },
   }));
 
   const aliasEntries = all.filter(
@@ -62,6 +74,7 @@ type Props =
       kind: 'note';
       entry: NoteEntry;
       titleBySlug: ReadonlyMap<string, string>;
+      sidebarRoots: readonly SidebarNode[];
     }
   | {
       kind: 'alias-redirect';
@@ -122,6 +135,8 @@ if (props.kind === 'note') {
     canonicalUrl={noteCanonical}
     ogType="article"
     siteName={obpubConfig.site.title}
+    sidebarRoots={props.kind === 'note' ? props.sidebarRoots : undefined}
+    currentSlug={props.kind === 'note' ? props.entry.id : undefined}
   >
     <Note note={renderedNote!} />
     <Backlinks backlinks={backlinks!} />

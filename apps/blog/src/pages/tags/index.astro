@@ -4,12 +4,20 @@ import { BaseLayout, TagList } from '@noteforge/theme-default';
 import obpubConfig from '../../../obsidian-blog.config.ts';
 import { filterPublishable } from '../../lib/viewModels.ts';
 import { summarizeTags } from '../../lib/tagAggregation.ts';
+import { getSharedSidebarRoots } from '../../lib/folderTree.ts';
 import '../../styles/global.css';
 
 const publishable = filterPublishable(await getCollection('notes'));
 const summaries = summarizeTags(publishable);
+const sidebarRoots = getSharedSidebarRoots(publishable);
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 ---
-<BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout
+  title="태그"
+  canonicalUrl={canonicalUrl}
+  ogType="website"
+  siteName={obpubConfig.site.title}
+  sidebarRoots={sidebarRoots}
+>
   <TagList taglist={{ tags: summaries }} />
 </BaseLayout>

@@ -281,4 +281,58 @@ describe('BaseLayout', () => {
       '<link rel="canonical"> must be emitted exactly once — search engines treat duplicate canonicals as a signal to ignore the page (or pick arbitrarily)',
     ).toBe(1);
   });
+
+  it('(15) without sidebarRoots, layout stays single-column — no .site-shell, no <aside>', async () => {
+    const html = await render({ title: 'T' });
+    expect(
+      countMatches(html, /\bclass="site-shell"/g),
+      'absent sidebarRoots ⇒ no .site-shell wrapper — pages without a sidebar must render the pre-existing single-column structure (zero regression)',
+    ).toBe(0);
+    expect(
+      countMatches(html, /<aside\b/g),
+      'absent sidebarRoots ⇒ no <aside> in the document — the sidebar is opt-in',
+    ).toBe(0);
+  });
+
+  it('(16) with sidebarRoots, renders <aside> in both desktop and mobile-menu positions', async () => {
+    const html = await render({
+      title: 'T',
+      sidebarRoots: [
+        { kind: 'leaf', slug: 'hello', label: 'Hello' },
+      ],
+    });
+    expect(
+      html,
+      'sidebarRoots present ⇒ .site-shell wraps <main> and the desktop sidebar column',
+    ).toMatch(/\bclass="site-shell"/);
+    // Two <aside> instances: desktop + mobile-menu copy
+    expect(
+      countMatches(html, /<aside\s[^>]*\bclass="folder-tree"/g),
+      'sidebar must render at two SSR positions: the .site-shell column (desktop) and the .mobile-menu__panel (mobile) — both pure SSR, no JS to move it',
+    ).toBe(2);
+  });
+
+  it('(17) propagates currentSlug → aria-current="page" on the matching leaf', async () => {
+    const html = await render({
+      title: 'T',
+      sidebarRoots: [
+        {
+          kind: 'folder',
+          path: 'a',
+          label: 'A',
+          noteCount: 1,
+          children: [{ kind: 'leaf', slug: 'a/x', label: 'X' }],
+        },
+      ],
+      currentSlug: 'a/x',
+    });
+    // aria-current appears once per sidebar copy (desktop + mobile) = 2
+    expect(countMatches(html, /\baria-current="page"/g)).toBe(2);
+  });
+
+  it('(18) ignores empty sidebarRoots — falls through to single-column', async () => {
+    const html = await render({ title: 'T', sidebarRoots: [] });
+    expect(countMatches(html, /\bclass="site-shell"/g)).toBe(0);
+    expect(countMatches(html, /<aside\b/g)).toBe(0);
+  });
 });

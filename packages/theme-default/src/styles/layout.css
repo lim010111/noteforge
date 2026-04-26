@@ -207,6 +207,87 @@
   }
 }
 
+/*
+ * Two-column shell — wraps <main> alongside the desktop folder-tree sidebar.
+ * Only rendered when BaseLayout receives `sidebarRoots`; pages without a
+ * sidebar continue to use the bare `.site-main` block above (zero regression).
+ *
+ * Grid widens the page envelope (sidebar + prose + gap) but keeps `.site-main`
+ * at its prose-friendly max-width — the body never grows past 72ch even when
+ * the sidebar is visible.
+ */
+.site-shell {
+  display: block;
+  max-width: var(--container-main);
+  margin-inline: auto;
+  padding: 0 var(--space-4);
+}
+.site-shell > .folder-tree {
+  display: none;
+}
+.site-shell > .site-main {
+  margin-inline: 0;
+  max-width: 100%;
+  padding-inline: 0;
+}
+@media (min-width: 768px) {
+  .site-shell {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--space-6);
+    max-width: calc(14rem + var(--container-main) + var(--space-6) + var(--space-5) * 2);
+    padding: 0 var(--space-5);
+  }
+  .site-shell > .folder-tree {
+    display: block;
+  }
+  .site-shell > .site-main {
+    max-width: var(--container-main);
+  }
+}
+@media (min-width: 1024px) {
+  .site-shell {
+    grid-template-columns: var(--sidebar-w, 16rem) minmax(0, 1fr);
+    gap: var(--space-7);
+    max-width: calc(var(--sidebar-w, 16rem) + var(--container-main) + var(--space-7) + var(--space-5) * 2);
+  }
+}
+
+/*
+ * Mobile menu panel — when BaseLayout passes a `sidebarRoots`, the panel
+ * additionally renders a folder tree below the existing nav links. The
+ * existing `.mobile-menu__panel ul` rules (uppercase mono) target the FIRST
+ * <ul> only via the `.mobile-menu__panel > ul:first-of-type` scope below.
+ */
+.mobile-menu__panel .folder-tree {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-small);
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-body);
+  color: var(--color-text-body);
+  max-width: 14rem;
+}
+.mobile-menu__panel .folder-tree__list,
+.mobile-menu__panel .folder-tree__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mobile-menu__panel .folder-tree__children {
+  margin-left: var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+.mobile-menu__panel .folder-tree__link {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-sans);
+}
+
 .site-footer {
   margin-top: var(--space-8);
   border-top: 1px solid var(--color-border);
