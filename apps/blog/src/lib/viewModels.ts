@@ -141,10 +141,16 @@ export function deriveExcerpt(html: string, maxChars = 160): string {
   if (typeof html !== 'string' || html.length === 0) return '';
 
   const noScripts = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
-  const blockSeparated = noScripts.replace(
-    /<\/(p|div|li|h[1-6]|blockquote|br|tr|td|th|pre|figure|figcaption|section|article)\s*>/gi,
-    ' ',
-  );
+  // `<br>` is a void element — it never has a closing form, so we match it
+  // self-contained here while the other tags are matched as their closing tags
+  // (paragraph break before stripping). Keeping `</br>` in the closing-tag
+  // alternation would have been a no-op since browsers/parsers never emit it.
+  const blockSeparated = noScripts
+    .replace(/<br\b[^>]*>/gi, ' ')
+    .replace(
+      /<\/(p|div|li|h[1-6]|blockquote|tr|td|th|pre|figure|figcaption|section|article)\s*>/gi,
+      ' ',
+    );
   const tagless = blockSeparated.replace(/<[^>]+>/g, '');
   const decoded = tagless
     .replace(/&amp;/g, '&')

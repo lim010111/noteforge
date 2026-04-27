@@ -13,9 +13,18 @@ const {
   siteName,
   sidebarRoots,
   currentSlug,
+  repoUrl,
 } = Astro.props as BaseLayoutProps;
 
 const hasSidebar = sidebarRoots !== undefined && sidebarRoots.length > 0;
+// `LICENSE` lives at the repo root on the default branch — concatenating to
+// `/blob/main/LICENSE` is the GitHub convention. We accept any URL shape via
+// the schema (it's just a string), so this only produces a usable link when
+// `repoUrl` is a GitHub-style URL. For non-GitHub hosts the "MIT" link will
+// 404; theme adopters who self-host elsewhere can override the footer in their
+// own layout rather than us guessing the host's path conventions.
+const licenseUrl =
+  repoUrl !== undefined ? `${repoUrl.replace(/\/$/, "")}/blob/main/LICENSE` : undefined;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -104,8 +113,12 @@ const hasSidebar = sidebarRoots !== undefined && sidebarRoots.length > 0;
     <footer class="site-footer">
       <div class="site-footer__inner">
         <span>© 2026 — noteforge</span>
-        <a href="https://github.com/lim010111/obsidian-blog" target="_blank" rel="noopener noreferrer">source</a>
-        <a href="https://github.com/lim010111/obsidian-blog/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a>
+        {repoUrl && (
+          <a href={repoUrl} target="_blank" rel="noopener noreferrer">source</a>
+        )}
+        {licenseUrl && (
+          <a href={licenseUrl} target="_blank" rel="noopener noreferrer">MIT</a>
+        )}
       </div>
     </footer>
     {/* Theme toggle handler — bundled module, not inline. The resolve+set

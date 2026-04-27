@@ -31,4 +31,12 @@ export interface BaseLayoutProps {
   sidebarRoots?: readonly SidebarNode[];
   /** Slug of the current page — drives auto-expand + active-leaf highlight. */
   currentSlug?: string;
+  /**
+   * Optional source repository URL (e.g. https://github.com/owner/repo).
+   * When provided, the footer renders "source" + "MIT" links pointing at the
+   * repo and its `main`-branch LICENSE. When omitted, the footer drops both
+   * links — which is the correct default for external theme adopters who do
+   * not necessarily publish the source of their personal blog.
+   */
+  repoUrl?: string;
 }

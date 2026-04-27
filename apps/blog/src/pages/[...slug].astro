@@ -122,6 +122,7 @@ if (props.kind === 'note') {
     canonicalUrl={aliasCanonical}
     ogType="website"
     siteName={obpubConfig.site.title}
+    repoUrl={obpubConfig.site.repoUrl}
   >
     <Fragment slot="head">
       <meta http-equiv="refresh" content={`0; url=${aliasTo}`} />
@@ -137,6 +138,7 @@ if (props.kind === 'note') {
     siteName={obpubConfig.site.title}
     sidebarRoots={props.kind === 'note' ? props.sidebarRoots : undefined}
     currentSlug={props.kind === 'note' ? props.entry.id : undefined}
+    repoUrl={obpubConfig.site.repoUrl}
   >
     <Note note={renderedNote!} />
     <Backlinks backlinks={backlinks!} />
