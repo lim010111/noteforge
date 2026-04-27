@@ -7,11 +7,18 @@
  *   :root[data-theme="light"]     → light forced, OS preference ignored
  *   :root[data-theme="dark"]      → dark forced, OS preference ignored
  *
- * Why dark values appear twice (the [data-theme="dark"] block AND the
- * prefers-color-scheme media query): keeps the cascade boringly predictable
- * across Tailwind v4 + Vite without depending on the modern light-dark()
- * function (browser-support tradeoff). The duplication cost is low because
- * TOKENS.md is the human SSOT — these blocks are mechanical mirrors.
+ * Palette layout — each hex value lives in EXACTLY ONE place.
+ *   `@theme` declares two named palettes side-by-side: `--light-*` and
+ *   `--dark-*`. The "active" tokens (`--color-*`) start pointing at the
+ *   light palette. The two dark trigger blocks below ([data-theme="dark"]
+ *   and @media (prefers-color-scheme: dark)) only re-point pointers — they
+ *   do NOT re-declare hex values. Editing the dark palette touches one line.
+ *
+ *   Why two trigger blocks instead of grouped selectors: CSS does not allow
+ *   combining a top-level selector with an @media-wrapped selector in a
+ *   single rule. So the var-remap lines are duplicated, but the underlying
+ *   color values are not. We deliberately avoid `light-dark()` (browser
+ *   support tradeoff) — the var-indirection is the next-best dedup.
  *
  * @theme registers light defaults (and mode-independent tokens) so Tailwind v4
  * exposes them as utilities (e.g. bg-[var(--color-bg-page)] arbitrary values
@@ -21,32 +28,78 @@
  */
 
 @theme {
-  /* Color — Background (light defaults) */
-  --color-bg-page: #f9f6f1;
-  --color-bg-surface: #ffffff;
-  --color-bg-surface-strong: #f1ede5;
-  --color-bg-code: #f1ede4;
+  /* ─── Palette source-of-truth (each hex lives here exactly once) ─── */
+  /* Light palette */
+  --light-bg-page: #f9f6f1;
+  --light-bg-surface: #ffffff;
+  --light-bg-surface-strong: #f1ede5;
+  --light-bg-code: #f1ede4;
+  --light-text-body: #1b1d22;
+  --light-text-heading: #0a0c10;
+  --light-text-muted: #5a5e68;
+  --light-text-faded: #8a8e98;
+  --light-text-link: #a83612;
+  --light-text-link-hover: #7c2810;
+  --light-text-code: #1b1d22;
+  --light-success: #0f7a3a;
+  --light-warn: #9a5a06;
+  --light-error: #a51b1b;
+  --light-border: #e4dfd3;
+  --light-border-strong: #c9c1ad;
+  --light-focus-ring: #a83612;
+  --light-accent: #a83612;
+  --light-accent-soft: #f3e1d6;
+  --light-shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
 
-  /* Color — Text (light defaults) */
-  --color-text-body: #1b1d22;
-  --color-text-heading: #0a0c10;
-  --color-text-muted: #5a5e68;
-  --color-text-faded: #8a8e98;
-  --color-text-link: #a83612;
-  --color-text-link-hover: #7c2810;
-  --color-text-code: #1b1d22;
+  /* Dark palette */
+  --dark-bg-page: #0f1115;
+  --dark-bg-surface: #161922;
+  --dark-bg-surface-strong: #1c2030;
+  --dark-bg-code: #1a1d27;
+  --dark-text-body: #dcdee2;
+  --dark-text-heading: #f1f2f5;
+  --dark-text-muted: #9aa0ad;
+  --dark-text-faded: #6b7180;
+  --dark-text-link: #f0a373;
+  --dark-text-link-hover: #f5be94;
+  --dark-text-code: #dcdee2;
+  --dark-success: #5fd599;
+  --dark-warn: #f0b860;
+  --dark-error: #f08080;
+  --dark-border: #262a36;
+  --dark-border-strong: #3a4054;
+  --dark-focus-ring: #f0a373;
+  --dark-accent: #f0a373;
+  --dark-accent-soft: #3a261b;
+  --dark-shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+
+  /* ─── Active tokens (default = light; dark blocks remap pointers below) ─── */
+  /* Color — Background */
+  --color-bg-page: var(--light-bg-page);
+  --color-bg-surface: var(--light-bg-surface);
+  --color-bg-surface-strong: var(--light-bg-surface-strong);
+  --color-bg-code: var(--light-bg-code);
+
+  /* Color — Text */
+  --color-text-body: var(--light-text-body);
+  --color-text-heading: var(--light-text-heading);
+  --color-text-muted: var(--light-text-muted);
+  --color-text-faded: var(--light-text-faded);
+  --color-text-link: var(--light-text-link);
+  --color-text-link-hover: var(--light-text-link-hover);
+  --color-text-code: var(--light-text-code);
 
   /* Color — Semantic + chrome */
-  --color-success: #0f7a3a;
-  --color-warn: #9a5a06;
-  --color-error: #a51b1b;
-  --color-border: #e4dfd3;
-  --color-border-strong: #c9c1ad;
-  --color-focus-ring: #a83612;
+  --color-success: var(--light-success);
+  --color-warn: var(--light-warn);
+  --color-error: var(--light-error);
+  --color-border: var(--light-border);
+  --color-border-strong: var(--light-border-strong);
+  --color-focus-ring: var(--light-focus-ring);
 
   /* Color — Accent (single brand: iron oxide) */
-  --color-accent: #a83612;
-  --color-accent-soft: #f3e1d6;
+  --color-accent: var(--light-accent);
+  --color-accent-soft: var(--light-accent-soft);
 
   /* Typography — font stacks. All web families self-hosted under
      apps/blog/public/fonts/ — never CDN (referrer/IP leak). */
@@ -118,7 +171,7 @@
 
   /* Elevation — single hairline. No multi-step shadow scale: cards rely on
      1px borders for depth instead of SaaS-style lift. */
-  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --shadow-1: var(--light-shadow-1);
 
   /* Motion — durations + eases. No --duration-slow / spring tokens by design. */
   --duration-fast: 100ms;
@@ -136,81 +189,87 @@
 
 /*
  * Explicit user toggle: light pinned, OS preference ignored.
- * Values mirror @theme so the cascade is unambiguous when toggling back from dark.
+ * `@theme` already paints `:root` with the light palette, but stating it
+ * again here makes the cascade unambiguous when toggling back from dark
+ * (some browsers cache the previously-applied dark overrides until a fresh
+ * specificity match wins) — and the redirect-to-pointer style means there
+ * is still no duplicated hex value.
  */
 :root[data-theme="light"] {
-  --color-bg-page: #f9f6f1;
-  --color-bg-surface: #ffffff;
-  --color-bg-surface-strong: #f1ede5;
-  --color-bg-code: #f1ede4;
-  --color-text-body: #1b1d22;
-  --color-text-heading: #0a0c10;
-  --color-text-muted: #5a5e68;
-  --color-text-faded: #8a8e98;
-  --color-text-link: #a83612;
-  --color-text-link-hover: #7c2810;
-  --color-text-code: #1b1d22;
-  --color-success: #0f7a3a;
-  --color-warn: #9a5a06;
-  --color-error: #a51b1b;
-  --color-border: #e4dfd3;
-  --color-border-strong: #c9c1ad;
-  --color-focus-ring: #a83612;
-  --color-accent: #a83612;
-  --color-accent-soft: #f3e1d6;
-  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+  --color-bg-page: var(--light-bg-page);
+  --color-bg-surface: var(--light-bg-surface);
+  --color-bg-surface-strong: var(--light-bg-surface-strong);
+  --color-bg-code: var(--light-bg-code);
+  --color-text-body: var(--light-text-body);
+  --color-text-heading: var(--light-text-heading);
+  --color-text-muted: var(--light-text-muted);
+  --color-text-faded: var(--light-text-faded);
+  --color-text-link: var(--light-text-link);
+  --color-text-link-hover: var(--light-text-link-hover);
+  --color-text-code: var(--light-text-code);
+  --color-success: var(--light-success);
+  --color-warn: var(--light-warn);
+  --color-error: var(--light-error);
+  --color-border: var(--light-border);
+  --color-border-strong: var(--light-border-strong);
+  --color-focus-ring: var(--light-focus-ring);
+  --color-accent: var(--light-accent);
+  --color-accent-soft: var(--light-accent-soft);
+  --shadow-1: var(--light-shadow-1);
 }
 
 /* Explicit user toggle: dark pinned, OS preference ignored. */
 :root[data-theme="dark"] {
-  --color-bg-page: #0f1115;
-  --color-bg-surface: #161922;
-  --color-bg-surface-strong: #1c2030;
-  --color-bg-code: #1a1d27;
-  --color-text-body: #dcdee2;
-  --color-text-heading: #f1f2f5;
-  --color-text-muted: #9aa0ad;
-  --color-text-faded: #6b7180;
-  --color-text-link: #f0a373;
-  --color-text-link-hover: #f5be94;
-  --color-text-code: #dcdee2;
-  --color-success: #5fd599;
-  --color-warn: #f0b860;
-  --color-error: #f08080;
-  --color-border: #262a36;
-  --color-border-strong: #3a4054;
-  --color-focus-ring: #f0a373;
-  --color-accent: #f0a373;
-  --color-accent-soft: #3a261b;
-  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --color-bg-page: var(--dark-bg-page);
+  --color-bg-surface: var(--dark-bg-surface);
+  --color-bg-surface-strong: var(--dark-bg-surface-strong);
+  --color-bg-code: var(--dark-bg-code);
+  --color-text-body: var(--dark-text-body);
+  --color-text-heading: var(--dark-text-heading);
+  --color-text-muted: var(--dark-text-muted);
+  --color-text-faded: var(--dark-text-faded);
+  --color-text-link: var(--dark-text-link);
+  --color-text-link-hover: var(--dark-text-link-hover);
+  --color-text-code: var(--dark-text-code);
+  --color-success: var(--dark-success);
+  --color-warn: var(--dark-warn);
+  --color-error: var(--dark-error);
+  --color-border: var(--dark-border);
+  --color-border-strong: var(--dark-border-strong);
+  --color-focus-ring: var(--dark-focus-ring);
+  --color-accent: var(--dark-accent);
+  --color-accent-soft: var(--dark-accent-soft);
+  --shadow-1: var(--dark-shadow-1);
 }
 
 /*
  * No explicit toggle → follow OS. The :not([data-theme="light"]) guard means a
- * pinned light theme always beats the system preference.
+ * pinned light theme always beats the system preference. Pointers re-mapped
+ * here are identical to :root[data-theme="dark"] above by design — CSS does
+ * not allow grouping a top-level selector with an @media-wrapped selector,
+ * but each `--dark-*` value still lives in exactly one place.
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg-page: #0f1115;
-    --color-bg-surface: #161922;
-    --color-bg-surface-strong: #1c2030;
-    --color-bg-code: #1a1d27;
-    --color-text-body: #dcdee2;
-    --color-text-heading: #f1f2f5;
-    --color-text-muted: #9aa0ad;
-    --color-text-faded: #6b7180;
-    --color-text-link: #f0a373;
-    --color-text-link-hover: #f5be94;
-    --color-text-code: #dcdee2;
-    --color-success: #5fd599;
-    --color-warn: #f0b860;
-    --color-error: #f08080;
-    --color-border: #262a36;
-    --color-border-strong: #3a4054;
-    --color-focus-ring: #f0a373;
-    --color-accent: #f0a373;
-    --color-accent-soft: #3a261b;
-    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+    --color-bg-page: var(--dark-bg-page);
+    --color-bg-surface: var(--dark-bg-surface);
+    --color-bg-surface-strong: var(--dark-bg-surface-strong);
+    --color-bg-code: var(--dark-bg-code);
+    --color-text-body: var(--dark-text-body);
+    --color-text-heading: var(--dark-text-heading);
+    --color-text-muted: var(--dark-text-muted);
+    --color-text-faded: var(--dark-text-faded);
+    --color-text-link: var(--dark-text-link);
+    --color-text-link-hover: var(--dark-text-link-hover);
+    --color-text-code: var(--dark-text-code);
+    --color-success: var(--dark-success);
+    --color-warn: var(--dark-warn);
+    --color-error: var(--dark-error);
+    --color-border: var(--dark-border);
+    --color-border-strong: var(--dark-border-strong);
+    --color-focus-ring: var(--dark-focus-ring);
+    --color-accent: var(--dark-accent);
+    --color-accent-soft: var(--dark-accent-soft);
+    --shadow-1: var(--dark-shadow-1);
   }
 }
-

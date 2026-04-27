@@ -20,6 +20,7 @@ export default defineConfig({
     url: 'https://noteforge.pages.dev',
     author: 'shine',
     tagline: '읽고, 쓰고, 가끔 만든 것을 정리해 둡니다.',
+    repoUrl: 'https://github.com/lim010111/obsidian-blog',
   },
   vaults: [
     {

@@ -21,6 +21,6 @@ const view: GraphViewModel = {
   edges: result.publicGraph.edges.map((e) => ({ source: e.from, target: e.to })),
 };
 ---
-<BaseLayout title="그래프" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout title="그래프" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} repoUrl={obpubConfig.site.repoUrl}>
   <GraphView graph={view} />
 </BaseLayout>

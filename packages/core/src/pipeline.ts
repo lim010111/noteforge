@@ -20,6 +20,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown';
 import type { Root } from 'mdast';
 
 import { renderMdastToHtml } from './render/htmlFromMdast.ts';
+import { slugifyHeadingFragment } from './render/slugifyHeading.ts';
 
 import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
@@ -184,7 +185,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
       resolve: (raw) => resolveForLink(raw, wikilinkIndex),
       isPublic: (id) => publicSlugs.has(id),
       hrefFor: (id, heading) =>
-        heading !== undefined ? `/${id}#${headingToAnchor(heading)}` : `/${id}`,
+        heading !== undefined ? `/${id}#${slugifyHeadingFragment(heading)}` : `/${id}`,
     });
   }
 
@@ -516,10 +517,6 @@ function extractEdges(
 function cloneTree(tree: Root | undefined): Root {
   if (tree === undefined) return { type: 'root', children: [] } as unknown as Root;
   return structuredClone(tree);
-}
-
-function headingToAnchor(heading: string): string {
-  return heading.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
 function stripTripwireFromIgnore(

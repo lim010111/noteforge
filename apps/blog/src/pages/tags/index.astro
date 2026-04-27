@@ -18,6 +18,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
   ogType="website"
   siteName={obpubConfig.site.title}
   sidebarRoots={sidebarRoots}
+  repoUrl={obpubConfig.site.repoUrl}
 >
   <TagList taglist={{ tags: summaries }} />
 </BaseLayout>

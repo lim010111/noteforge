@@ -7,6 +7,7 @@
  * production artefact, asserted shape-only below.
  */
 
+import * as vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyStoredTheme,
@@ -220,4 +221,66 @@ describe('themeInitScript', () => {
     expect(themeInitScript).toContain('"dark"');
     expect(themeInitScript).toContain('"light"');
   });
+});
+
+/**
+ * Parity gate — `themeInitScript` (the inline string) and `applyStoredTheme`
+ * (the testable function) must produce the SAME dataset.theme output for the
+ * same storage state. The two artefacts ship side-by-side: BaseLayout inlines
+ * the string (FOUC prevention before <body> paints) while bundled scripts
+ * import the function (re-applying after hydration). If they ever drift,
+ * the user sees a flash on first paint. This block runs the string in an
+ * isolated VM context with stubbed globals, then asserts the resulting
+ * dataset.theme matches the function's output point-by-point.
+ */
+describe('themeInitScript / applyStoredTheme parity', () => {
+  function runInitScriptWithStorage(stored: string | null | undefined): string | undefined {
+    const root: { dataset: { theme?: string } } = { dataset: {} };
+    const localStorage = {
+      getItem(key: string): string | null {
+        if (key !== 'theme') return null;
+        return typeof stored === 'string' ? stored : null;
+      },
+    };
+    const sandbox = {
+      document: { documentElement: root },
+      localStorage,
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(themeInitScript, sandbox);
+    return root.dataset.theme;
+  }
+
+  function runFunctionWithStorage(stored: string | null | undefined): string | undefined {
+    const root = mkRoot();
+    const storage: Pick<ThemeStorage, 'getItem'> = {
+      getItem(key: string): string | null {
+        if (key !== 'theme') return null;
+        return typeof stored === 'string' ? stored : null;
+      },
+    };
+    applyStoredTheme(root, storage);
+    return root.dataset.theme;
+  }
+
+  // The full input domain that matters: the two honoured values plus three
+  // representative "anything else" cases (unset, empty string, unknown token).
+  const cases: Array<[string, string | null | undefined]> = [
+    ['storage holds "dark"', 'dark'],
+    ['storage holds "light"', 'light'],
+    ['storage missing entirely', null],
+    ['storage holds an empty string', ''],
+    ['storage holds an unknown token', 'auto'],
+  ];
+
+  for (const [label, value] of cases) {
+    it(`agrees with applyStoredTheme when ${label}`, () => {
+      const fromScript = runInitScriptWithStorage(value);
+      const fromFunction = runFunctionWithStorage(value);
+      expect(
+        fromScript,
+        `inline script and applyStoredTheme must produce the same dataset.theme — drift here = FOUC on first paint`,
+      ).toBe(fromFunction);
+    });
+  }
 });

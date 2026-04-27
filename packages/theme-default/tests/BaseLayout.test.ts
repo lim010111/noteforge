@@ -335,4 +335,43 @@ describe('BaseLayout', () => {
     expect(countMatches(html, /\bclass="site-shell"/g)).toBe(0);
     expect(countMatches(html, /<aside\b/g)).toBe(0);
   });
+
+  it('(19) without repoUrl, footer omits source/MIT links — clean default for external theme adopters', async () => {
+    const html = await render({ title: 'T' });
+    const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/);
+    expect(footerMatch, 'BaseLayout must render a <footer> region').not.toBeNull();
+    const footerInner = footerMatch![1]!;
+    expect(
+      countMatches(footerInner, /<a\b/g),
+      'no repoUrl prop ⇒ footer renders the copyright line ALONE — external adopters must not have a hardcoded repository link baked into the theme',
+    ).toBe(0);
+    expect(
+      footerInner,
+      'theme must never bake a specific repository host into the footer — privacy/distribution boundary',
+    ).not.toContain('github.com');
+  });
+
+  it('(20) with repoUrl, footer renders both source and MIT links pointing at the configured repo', async () => {
+    const html = await render({
+      title: 'T',
+      repoUrl: 'https://github.com/example-user/their-blog',
+    });
+    const footerMatch = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/);
+    expect(footerMatch).not.toBeNull();
+    const footerInner = footerMatch![1]!;
+    expect(
+      footerInner,
+      'repoUrl must surface as the "source" link target verbatim',
+    ).toMatch(/<a\s[^>]*\bhref="https:\/\/github\.com\/example-user\/their-blog"[^>]*>source<\/a>/);
+    expect(
+      footerInner,
+      'MIT link must point at the configured repo + /blob/main/LICENSE — derived, never the prior hardcoded "lim010111" path',
+    ).toMatch(
+      /<a\s[^>]*\bhref="https:\/\/github\.com\/example-user\/their-blog\/blob\/main\/LICENSE"[^>]*>MIT<\/a>/,
+    );
+    expect(
+      footerInner,
+      'external links must carry rel="noopener noreferrer" — same hardening the inline links had before',
+    ).toMatch(/rel="noopener noreferrer"/);
+  });
 });

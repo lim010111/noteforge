@@ -53,6 +53,15 @@ const siteSchema = z.object({
    * having to check for whitespace-only values.
    */
   tagline: z.string().min(1, '빈 문자열은 허용되지 않습니다').optional(),
+  /**
+   * Optional source-repository URL surfaced in the footer ("source" / "MIT"
+   * links). When omitted the footer shows the copyright line only, which is
+   * the correct default for external theme adopters who do not necessarily
+   * publish the source of their personal blog. Validated as a real URL so a
+   * stray empty/relative value cannot smuggle a same-origin link onto the
+   * page.
+   */
+  repoUrl: z.string().url('유효한 URL이어야 합니다').optional(),
 });
 
 const publishingSchema = z

@@ -206,6 +206,15 @@ describe('deriveExcerpt', () => {
     expect(deriveExcerpt('<h2>Title</h2><p>Body.</p>')).toBe('Title Body.');
   });
 
+  it('treats <br> (a void element with no closing tag) as a block separator', () => {
+    // The previous closing-tag regex listed `br`, which was a no-op since
+    // browsers/parsers never emit `</br>`. This test pins the void-element
+    // handling so the regression cannot quietly come back.
+    expect(deriveExcerpt('<p>Line one<br>Line two</p>')).toBe('Line one Line two');
+    expect(deriveExcerpt('<p>Line one<br />Line two</p>')).toBe('Line one Line two');
+    expect(deriveExcerpt('<p>Line one<br/>Line two</p>')).toBe('Line one Line two');
+  });
+
   it('decodes the small set of named entities Astro emits', () => {
     expect(deriveExcerpt('<p>A &amp; B &lt;3 &quot;hi&quot; &#39;ok&#39;</p>')).toBe(
       'A & B <3 "hi" \'ok\'',
