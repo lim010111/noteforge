@@ -69,7 +69,10 @@
     {
       "step": 8,
       "name": "wire-sidebar-into-all-routes",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-28T23:22:20+0900",
+      "summary": "sidebarPayload.ts 신규(filterPublishable + buildFolderTree, slotCount=CATEGORY_ACCENT_SLOT_COUNT SSOT, obpubConfig.site.{avatar,nickname} optional 통과) + 6개 라우트(index/[...slug] note·folder/tags×2/graph/404)에 사이드바 wire, alias-redirect 페이지는 sidebar 미전달(meta-refresh 페이지 누설 차단), 7 단위 테스트(payload-shape/active note·folder pass-through/avatar+nickname undefined·defined/SLOT_COUNT SSOT/canary 누설 가드) 593/593 통과 + lint + typecheck + 임시 fixture 빌드로 모든 비-alias 페이지 <nav aria-label='Folder tree'> 검증 + canary 0 + audit 0 + api/graph.json.ts 무변경",
+      "completed_at": "2026-04-28T23:37:33+0900"
     },
     {
       "step": 9,
