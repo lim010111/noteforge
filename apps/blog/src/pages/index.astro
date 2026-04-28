@@ -2,24 +2,47 @@
 import { getCollection } from 'astro:content';
 import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
-import { ensureTrailingSlash, filterPublishable, sortForHome } from '../lib/viewModels.ts';
+import {
+  ensureTrailingSlash,
+  filterPublishable,
+  type NoteEntry,
+} from '../lib/viewModels.ts';
+import { selectFeatured, selectRecent } from '../lib/homeRails.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
-const sorted = sortForHome(filterPublishable(all));
+const publishable = filterPublishable(all);
+const recent = selectRecent(publishable);
+const featured = selectFeatured(publishable);
+
+function toItems(entries: readonly NoteEntry[]): NoteListEntry[] {
+  return entries.map((entry) => {
+    const dateRaw = entry.data.frontmatter['date'];
+    const item: NoteListEntry = {
+      href: `/${entry.id}/`,
+      title: entry.data.title ?? entry.id,
+    };
+    if (typeof dateRaw === 'string') item.date = dateRaw;
+    return item;
+  });
+}
+
+const recentItems = toItems(recent);
+const featuredItems = toItems(featured);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
-const items: NoteListEntry[] = sorted.map((entry) => {
-  const dateRaw = entry.data.frontmatter['date'];
-  const item: NoteListEntry = {
-    href: `/${entry.id}/`,
-    title: entry.data.title ?? entry.id,
-  };
-  if (typeof dateRaw === 'string') item.date = dateRaw;
-  return item;
-});
 ---
 <BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
-  <NoteList entries={items} emptyMessage="아직 공개된 글이 없습니다." />
+  <section aria-labelledby="recent-heading">
+    <h2 id="recent-heading">Recent</h2>
+    <NoteList entries={recentItems} emptyMessage="아직 공개된 글이 없습니다." />
+  </section>
+
+  {featured.length > 0 && (
+    <section aria-labelledby="featured-heading">
+      <h2 id="featured-heading">Featured</h2>
+      <NoteList entries={featuredItems} emptyMessage="" />
+    </section>
+  )}
 </BaseLayout>
