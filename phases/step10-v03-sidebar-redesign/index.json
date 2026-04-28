@@ -40,7 +40,7 @@
       "status": "completed",
       "started_at": "2026-04-28T22:38:31+0900",
       "summary": "AvatarBlock/FolderTree/Sidebar 신규(+types) + categoryAccent.ts FNV-1a 결정 매핑(SLOT_COUNT=5) + 5 categoryAccent 테스트 + 10 Sidebar 테스트(DOM nesting/active note·folder/details open chain/empty silence/avatar empty/accent determinism/canary/no-client-directive/aside aria-label) + components.css 사이드바·아바타·폴더트리 BEM(토큰만, 헥스 없음) + barrel export 갱신, 543/543 테스트 + lint + typecheck + canary 0 + audit 0",
-      "completed_at": "2026-04-28T22:51:08+0900"
+      "completed_at": "2026-04-28T22:52:08+0900"
     },
     {
       "step": 5,
