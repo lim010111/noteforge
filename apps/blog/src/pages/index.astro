@@ -8,12 +8,14 @@ import {
   type NoteEntry,
 } from '../lib/viewModels.ts';
 import { selectFeatured, selectRecent } from '../lib/homeRails.ts';
+import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
 const publishable = filterPublishable(all);
 const recent = selectRecent(publishable);
 const featured = selectFeatured(publishable);
+const sidebar = buildSidebarPayload(all);
 
 function toItems(entries: readonly NoteEntry[]): NoteListEntry[] {
   return entries.map((entry) => {
@@ -33,7 +35,7 @@ const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
 ---
-<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <section aria-labelledby="recent-heading">
     <h2 id="recent-heading">Recent</h2>
     <NoteList entries={recentItems} emptyMessage="아직 공개된 글이 없습니다." />

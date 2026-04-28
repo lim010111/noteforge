@@ -27,6 +27,7 @@ import {
   assertNoAliasCollisions,
   assertNoFolderCollisions,
 } from '../lib/routeCollisions.ts';
+import { buildSidebarPayload, type SidebarPayload } from '../lib/sidebarPayload.ts';
 import '../styles/global.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -136,6 +137,8 @@ let aliasCanonical: string | undefined;
 let folderCanonical: string | undefined;
 let folderTitle: string | undefined;
 
+let sidebar: SidebarPayload | undefined;
+
 if (props.kind === 'note') {
   const html = props.entry.rendered?.html ?? '';
   renderedNote = entryToNoteViewModel(props.entry, html);
@@ -143,16 +146,25 @@ if (props.kind === 'note') {
   noteCanonical = ensureTrailingSlash(
     new URL(Astro.url.pathname, siteOrigin).toString(),
   );
+  const all = await getCollection('notes');
+  sidebar = buildSidebarPayload(all, { activeSlug: props.entry.id });
 } else if (props.kind === 'alias-redirect') {
   const absoluteTo = new URL(props.to, siteOrigin).toString();
   const vm = entryToAliasRedirectViewModel(props.entry, absoluteTo);
   aliasTo = vm.to;
   aliasCanonical = vm.canonicalUrl;
+  // alias-redirect intentionally renders without a sidebar — the page is a
+  // 0-second meta-refresh, so painting the folder tree (with note slugs) for
+  // the fraction of a second before navigation is a needless leak surface.
 } else {
   folderCanonical = ensureTrailingSlash(
     new URL(Astro.url.pathname, siteOrigin).toString(),
   );
   folderTitle = props.viewModel.folderName;
+  const all = await getCollection('notes');
+  sidebar = buildSidebarPayload(all, {
+    activeFolderPath: `${props.viewModel.folderPath}/`,
+  });
 }
 ---
 {props.kind === 'alias-redirect' ? (
@@ -173,6 +185,7 @@ if (props.kind === 'note') {
     canonicalUrl={folderCanonical}
     ogType="website"
     siteName={obpubConfig.site.title}
+    sidebar={sidebar}
   >
     <FolderIndex view={props.viewModel} />
   </BaseLayout>
@@ -183,6 +196,7 @@ if (props.kind === 'note') {
     canonicalUrl={noteCanonical}
     ogType="article"
     siteName={obpubConfig.site.title}
+    sidebar={sidebar}
   >
     <Note note={renderedNote!} />
     <Backlinks backlinks={backlinks!} />

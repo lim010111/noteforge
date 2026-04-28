@@ -5,6 +5,7 @@ import { BaseLayout, TagPage, type TagPageEntry } from '@noteforge/theme-default
 import obpubConfig from '../../../obsidian-blog.config.ts';
 import { ensureTrailingSlash, filterPublishable } from '../../lib/viewModels.ts';
 import { entriesForTag, summarizeTags } from '../../lib/tagAggregation.ts';
+import { buildSidebarPayload } from '../../lib/sidebarPayload.ts';
 import '../../styles/global.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -25,7 +26,8 @@ const { tag, entries } = Astro.props as Props;
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
+const sidebar = buildSidebarPayload(await getCollection('notes'));
 ---
-<BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <TagPage tagpage={{ tag, entries }} />
 </BaseLayout>

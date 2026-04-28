@@ -1,14 +1,17 @@
 ---
+import { getCollection } from 'astro:content';
 import { BaseLayout, Graph as GraphView, type GraphViewModel } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import { getPipelineResult } from '../lib/pipelineCache.ts';
 import { ensureTrailingSlash } from '../lib/viewModels.ts';
+import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
 import '../styles/global.css';
 
 const result = await getPipelineResult();
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
+const sidebar = buildSidebarPayload(await getCollection('notes'));
 
 function lastSegment(slug: string): string {
   const i = slug.lastIndexOf('/');
@@ -24,6 +27,6 @@ const view: GraphViewModel = {
   edges: result.publicGraph.edges.map((e) => ({ source: e.from, target: e.to })),
 };
 ---
-<BaseLayout title="그래프" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout title="그래프" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <GraphView graph={view} />
 </BaseLayout>
