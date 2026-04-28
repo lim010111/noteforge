@@ -56,7 +56,7 @@
       "status": "completed",
       "started_at": "2026-04-28T23:01:23+0900",
       "summary": "trailingSlash: 'always' 전환 + ensureTrailingSlash helper로 viewmodels canonical/alias-refresh 정규화(index/graph/tags 4종 페이지 일괄 적용) + folder-index kind 라우트 + walkFolders/buildFolderIndexViewModel + assertNoAlias/FolderCollisions로 alias↔note + folder↔note/alias 충돌 build-time throw(파일 경로 trailer 통일) + FolderIndex.astro/.types.ts/components.css(BEM, 토큰만) + theme-default exports './lib/*' 추가, 29 신규 테스트(viewModels +5/folderAggregation +13/routeCollisions 8/FolderIndex 8) 577/577 통과 + lint + typecheck + canary 0 + audit 0",
-      "completed_at": "2026-04-28T23:16:30+0900"
+      "completed_at": "2026-04-28T23:17:22+0900"
     },
     {
       "step": 7,
