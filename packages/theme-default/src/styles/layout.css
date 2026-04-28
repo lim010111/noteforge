@@ -164,7 +164,15 @@
   padding: var(--space-2);
   box-shadow: var(--shadow-1);
 }
-.mobile-menu__panel ul {
+.mobile-menu__panel--with-sidebar {
+  /* When the drawer also hosts the sidebar copy, widen the panel and let
+     it stretch downward instead of staying as a tight dropdown. */
+  width: min(20rem, calc(100vw - var(--space-4) * 2));
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+.mobile-menu__nav ul {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -177,7 +185,7 @@
   letter-spacing: var(--ls-meta);
   text-transform: uppercase;
 }
-.mobile-menu__panel a {
+.mobile-menu__nav a {
   display: block;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
@@ -186,12 +194,30 @@
   transition: background-color var(--duration-base) var(--ease-out),
     color var(--duration-base) var(--ease-out);
 }
-.mobile-menu__panel a:hover {
+.mobile-menu__nav a:hover {
   background: var(--color-bg-surface-strong);
   color: var(--color-text-heading);
 }
+.mobile-menu__sidebar-slot {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
 @media (min-width: 768px) {
   .mobile-menu {
+    display: none;
+  }
+}
+/* When BaseLayout receives a `sidebar` prop, the drawer also hosts the
+   sidebar copy and must stay reachable until the lg+ grid takes over. The
+   v0.2 behaviour (hide at md+) is preserved for sidebar-less callers. */
+@media (min-width: 768px) and (max-width: 63.999rem) {
+  body.has-sidebar .mobile-menu {
+    display: block;
+  }
+}
+@media (min-width: 64rem) {
+  body.has-sidebar .mobile-menu {
     display: none;
   }
 }
@@ -206,6 +232,45 @@
     padding: var(--space-8) var(--space-5);
   }
 }
+
+/*
+ * v0.3 sidebar shell — only engages when BaseLayout receives a `sidebar` prop.
+ *   - Default (`.site-shell`): block-flow wrapper, no constraints. Site-main
+ *     keeps its own max-width / centering. v0.2 layout regression = 0.
+ *   - With sidebar at `lg+` (>= 64rem): two-column grid `[16rem | 1fr]`. The
+ *     sidebar occupies the left column unconstrained, site-main centres
+ *     itself within the 1fr column using its own max-width — same reading
+ *     measure as v0.2.
+ *   - Mobile (`< lg`): the desktop sidebar slot is hidden via CSS; the same
+ *     <Sidebar> rendered inside <details class="mobile-menu"> shows instead.
+ *     Two server renders with one CSS-controlled visibility flip — no JS.
+ */
+.site-shell {
+  display: block;
+}
+.site-shell__sidebar {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .site-shell--with-sidebar {
+    display: grid;
+    grid-template-columns: var(--container-sidebar-w) 1fr;
+    align-items: start;
+  }
+  .site-shell--with-sidebar .site-shell__sidebar {
+    display: block;
+    position: sticky;
+    top: 3rem;
+    align-self: start;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+  }
+}
+
+/* Mobile drawer hides on lg+ via the existing `.mobile-menu` rule above
+   (display: none at min-width: 768px). The sidebar slot inside it inherits
+   that hidden state — no separate breakpoint needed. */
 
 .site-footer {
   margin-top: var(--space-8);

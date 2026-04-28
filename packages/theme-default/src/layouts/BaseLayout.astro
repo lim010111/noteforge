@@ -1,6 +1,7 @@
 ---
 import type { BaseLayoutProps } from "./BaseLayout.types";
 import { themeInitScript } from "../scripts/theme-init.ts";
+import Sidebar from "../components/Sidebar.astro";
 import "../styles/base.css";
 
 const {
@@ -10,7 +11,9 @@ const {
   canonicalUrl,
   ogType = "website",
   siteName,
+  sidebar,
 } = Astro.props as BaseLayoutProps;
+const hasSidebar = sidebar !== undefined;
 ---
 <!doctype html>
 <html lang={lang}>
@@ -36,7 +39,7 @@ const {
     <script is:inline set:html={themeInitScript}></script>
     <slot name="head" />
   </head>
-  <body>
+  <body class={hasSidebar ? "has-sidebar" : undefined}>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
     <header class="site-header">
       <div class="site-header__inner">
@@ -59,27 +62,44 @@ const {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           </button>
-          {/* Mobile menu uses <details> — JS-less toggle; CSS hides it on md+. */}
+          {/* Mobile menu uses <details> — JS-less toggle; CSS hides it on md+.
+              When `sidebar` is provided, the same Sidebar gets rendered inside
+              the drawer body so the user's folder tree is reachable on mobile
+              without any new JS. CSS (layout.css) hides this copy on lg+. */}
           <details class="mobile-menu">
             <summary aria-label="메뉴">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 6h18M3 12h18M3 18h18" />
               </svg>
             </summary>
-            <nav class="mobile-menu__panel" aria-label="모바일 메뉴">
-              <ul role="list">
-                <li><a href="/">notes</a></li>
-                <li><a href="/tags">tags</a></li>
-                <li><a href="/graph">graph</a></li>
-              </ul>
-            </nav>
+            <div class={`mobile-menu__panel${hasSidebar ? " mobile-menu__panel--with-sidebar" : ""}`}>
+              <nav class="mobile-menu__nav" aria-label="모바일 메뉴">
+                <ul role="list">
+                  <li><a href="/">notes</a></li>
+                  <li><a href="/tags">tags</a></li>
+                  <li><a href="/graph">graph</a></li>
+                </ul>
+              </nav>
+              {hasSidebar && (
+                <div class="mobile-menu__sidebar-slot">
+                  <Sidebar {...sidebar!} />
+                </div>
+              )}
+            </div>
           </details>
         </div>
       </div>
     </header>
-    <main id="main" class="site-main">
-      <slot />
-    </main>
+    <div class={`site-shell${hasSidebar ? " site-shell--with-sidebar" : ""}`}>
+      {hasSidebar && (
+        <div class="site-shell__sidebar">
+          <Sidebar {...sidebar!} />
+        </div>
+      )}
+      <main id="main" class="site-main">
+        <slot />
+      </main>
+    </div>
     <footer class="site-footer">
       <div class="site-footer__inner">
         <span>© 2026 — noteforge</span>
