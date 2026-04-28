@@ -64,7 +64,7 @@
       "status": "completed",
       "started_at": "2026-04-28T23:17:22+0900",
       "summary": "homeRails.ts 신규(selectRecent n=10/selectFeatured n=6, named const export, undated stable id ASC, featured 게이트 strict boolean true) + index.astro Recent/Featured 두 레일(NoteList entries+emptyMessage 계약, trailing slash href, 사이드바 wire 0), featured 0개 → 섹션 자체 미렌더(헤딩/카피/빈 컨테이너 0), 9 테스트(RECENT_RAIL_CAP=10 export/11→10 cap/8→8 under-cap/dated DESC+undated id ASC/FEATURED_RAIL_CAP=6 export/7→6 cap/empty featured →[]/date-tie id ASC/index.astro length-guard 정적 분석) 586/586 통과 + lint + typecheck + canary 0 + audit 0 + dist/index.html 'Featured' 0회",
-      "completed_at": "2026-04-28T23:23:00+0900"
+      "completed_at": "2026-04-28T23:22:20+0900"
     },
     {
       "step": 8,
