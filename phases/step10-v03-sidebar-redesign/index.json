@@ -48,7 +48,7 @@
       "status": "completed",
       "started_at": "2026-04-28T22:52:08+0900",
       "summary": "BaseLayoutProps에 sidebar? 추가 + lg+ [16rem|1fr] grid + < lg 기존 <details class=\"mobile-menu\"> 드로어 재사용(신규 client JS 0), sidebar 미지정 시 v0.2 단일 컬럼 회귀 0, body.has-sidebar 클래스로 mobile-menu 표시 breakpoint를 md→lg로 이동(v0.2 미지정 경로는 그대로), 5 layout 테스트(sidebar absent/present+id-uniqueness/activeSlug 통과/canonical-og 회귀/theme-init 보존), 548/548 테스트 + lint + typecheck + canary 0 + audit 0",
-      "completed_at": "2026-04-28T23:00:31+0900"
+      "completed_at": "2026-04-28T23:01:23+0900"
     },
     {
       "step": 6,
