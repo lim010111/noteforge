@@ -1,0 +1,45 @@
+---
+/**
+ * AvatarBlock — identity slot at the top of the sidebar.
+ *
+ * Render rule:
+ *   - Both avatarSrc and nickname missing → renders nothing (no <div>, no
+ *     placeholder). An empty card would itself disclose "this site has an
+ *     author who chose not to set an avatar" — privacy-adjacent leak.
+ *   - avatarSrc only → image only, alt="" (decorative — there is no name to
+ *     announce).
+ *   - nickname only → text only.
+ *   - both → image + nickname; alt is the nickname.
+ *
+ * Layout contract: explicit `width`/`height` and `decoding="async"` to keep
+ * CLS at 0; `loading="eager"` because the avatar is in the first viewport
+ * (above the fold on every page).
+ *
+ * Visuals (radius/spacing/colour) come from `components.css` via the
+ * `.avatar-block*` BEM classes — no Tailwind utilities, no inline hex.
+ */
+import type { AvatarBlockProps } from "./AvatarBlock.types";
+
+const { avatarSrc, nickname } = Astro.props as AvatarBlockProps;
+const hasAvatar = typeof avatarSrc === "string" && avatarSrc.length > 0;
+const hasNickname = typeof nickname === "string" && nickname.length > 0;
+const renders = hasAvatar || hasNickname;
+---
+{renders && (
+  <div class="avatar-block">
+    {hasAvatar && (
+      <img
+        class="avatar-block__image"
+        src={avatarSrc}
+        alt={hasNickname ? nickname : ""}
+        width="64"
+        height="64"
+        loading="eager"
+        decoding="async"
+      />
+    )}
+    {hasNickname && (
+      <span class="avatar-block__nickname">{nickname}</span>
+    )}
+  </div>
+)}

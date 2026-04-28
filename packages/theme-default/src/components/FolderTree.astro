@@ -1,0 +1,208 @@
+---
+/**
+ * FolderTree — JS-less folder hierarchy.
+ *
+ * Markup contract:
+ *   - Outer wrapper: `<nav aria-label="Folder tree">`. **No `role="tree"`** —
+ *     the standard tree role mandates arrow-key handlers we deliberately do
+ *     not ship (static-only, JS bundle 0). Tab + Enter/Space on <summary> is
+ *     the entire keyboard contract.
+ *   - Each folder: `<li><details>...<summary>chevron</summary><a>name</a><ul>kids</ul></details></li>`
+ *     — chevron and folder-name are **separate hit zones**. Toggling does not
+ *     navigate; navigating does not toggle.
+ *   - Each note: `<li class="...--leaf"><a href="/<slug>/">title</a></li>`
+ *     (trailing slash per ADR-012).
+ *   - Empty root (`children`+`notes` both 0) → component renders nothing
+ *     (no <nav>, no aria-label). Empty section labels are themselves a leak
+ *     signal ("there used to be folders here").
+ *
+ * Active state:
+ *   - `activeSlug` (e.g. 'AI/Claude/agents') marks a note link with
+ *     `aria-current="page"` and auto-opens every ancestor <details>.
+ *   - `activeFolderPath` (e.g. 'AI/Claude/' — trailing slash tolerated) marks
+ *     the matching folder NAME link with `aria-current="page"` and auto-opens
+ *     the chain to it. The folder index page is the "current" location, not
+ *     any contained note.
+ *
+ * Recursion: this component invokes `<Astro.self />` on each folder. The
+ * presence of `branch`/`depth` props discriminates root mode (renders
+ * <nav>+<ul>) from branch mode (renders <ul> only, no <nav>).
+ *
+ * Privacy contract: input is already filtered upstream (apps/blog's sidebar
+ * payload feeds in `filterPublishable` output). The component renders or
+ * omits — it never re-derives privacy state.
+ */
+import type { FolderTreeProps } from "./FolderTree.types";
+import type { FolderNode } from "../lib/folderTree.types";
+import { pickCategoryAccentSlot } from "../lib/categoryAccent";
+
+type Props = FolderTreeProps & {
+  /** Internal recursion: present on sub-invocations of <Astro.self />. */
+  branch?: FolderNode;
+  /** Internal recursion: depth of the children being rendered (root call = 0). */
+  depth?: number;
+  /** Internal recursion: pre-normalised active folder path (trailing slash stripped). */
+  normalizedActiveFolder?: string;
+};
+
+const props = Astro.props as Props;
+const isBranch = props.branch !== undefined;
+const node: FolderNode = isBranch ? (props.branch as FolderNode) : props.root;
+const activeSlug = props.activeSlug;
+const slotCount = props.slotCount;
+
+const normalizedActiveFolder = isBranch
+  ? props.normalizedActiveFolder
+  : props.activeFolderPath !== undefined
+    ? props.activeFolderPath.replace(/\/+$/, "")
+    : undefined;
+
+const childDepth = isBranch ? (props.depth as number) : 0;
+const isEmpty = node.children.length === 0 && node.notes.length === 0;
+
+function isFolderOpen(folderPath: string): boolean {
+  const prefix = folderPath + "/";
+  if (
+    activeSlug !== undefined &&
+    (activeSlug === folderPath || activeSlug.startsWith(prefix))
+  )
+    return true;
+  if (
+    normalizedActiveFolder !== undefined &&
+    (normalizedActiveFolder === folderPath ||
+      normalizedActiveFolder.startsWith(prefix))
+  )
+    return true;
+  return false;
+}
+
+function isFolderActive(folderPath: string): boolean {
+  return normalizedActiveFolder === folderPath;
+}
+
+function isNoteActive(slug: string): boolean {
+  return activeSlug === slug;
+}
+
+function firstSegment(p: string): string {
+  const i = p.indexOf("/");
+  return i === -1 ? p : p.slice(0, i);
+}
+
+function dotSlot(folderPath: string): number | null {
+  if (childDepth !== 0) return null;
+  return pickCategoryAccentSlot(firstSegment(folderPath), slotCount);
+}
+---
+{!isBranch && !isEmpty && (
+  <nav class="folder-tree" aria-label="Folder tree">
+    <ul class="folder-tree__list">
+      {node.children.map((child) => {
+        const slot = dotSlot(child.path);
+        const open = isFolderOpen(child.path);
+        const active = isFolderActive(child.path);
+        return (
+          <li class="folder-tree__item">
+            <details class="folder-tree__details" open={open}>
+              <summary class="folder-tree__summary">
+                <span class="folder-tree__chevron" aria-hidden="true">▸</span>
+                <span class="sr-only">{child.name} 펼치기/접기</span>
+              </summary>
+              {slot !== null && (
+                <span
+                  class="folder-tree__dot"
+                  aria-hidden="true"
+                  style={`background-color: var(--color-accent-cat-${slot})`}
+                />
+              )}
+              <a
+                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                href={`/${child.path}/`}
+                aria-current={active ? "page" : undefined}
+              >
+                {child.name}
+              </a>
+              <Astro.self
+                root={props.root}
+                slotCount={slotCount}
+                activeSlug={activeSlug}
+                branch={child}
+                depth={1}
+                normalizedActiveFolder={normalizedActiveFolder}
+              />
+            </details>
+          </li>
+        );
+      })}
+      {node.notes.map((n) => {
+        const active = isNoteActive(n.slug);
+        return (
+          <li class="folder-tree__item folder-tree__item--leaf">
+            <a
+              class={`folder-tree__note-link${active ? " folder-tree__note-link--active" : ""}`}
+              href={`/${n.slug}/`}
+              aria-current={active ? "page" : undefined}
+            >
+              {n.title}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+)}
+{isBranch && !isEmpty && (
+  <ul class="folder-tree__children">
+    {node.children.map((child) => {
+      const slot = dotSlot(child.path);
+      const open = isFolderOpen(child.path);
+      const active = isFolderActive(child.path);
+      return (
+        <li class="folder-tree__item">
+          <details class="folder-tree__details" open={open}>
+            <summary class="folder-tree__summary">
+              <span class="folder-tree__chevron" aria-hidden="true">▸</span>
+              <span class="sr-only">{child.name} 펼치기/접기</span>
+            </summary>
+            {slot !== null && (
+              <span
+                class="folder-tree__dot"
+                aria-hidden="true"
+                style={`background-color: var(--color-accent-cat-${slot})`}
+              />
+            )}
+            <a
+              class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+              href={`/${child.path}/`}
+              aria-current={active ? "page" : undefined}
+            >
+              {child.name}
+            </a>
+            <Astro.self
+              root={props.root}
+              slotCount={slotCount}
+              activeSlug={activeSlug}
+              branch={child}
+              depth={childDepth + 1}
+              normalizedActiveFolder={normalizedActiveFolder}
+            />
+          </details>
+        </li>
+      );
+    })}
+    {node.notes.map((n) => {
+      const active = isNoteActive(n.slug);
+      return (
+        <li class="folder-tree__item folder-tree__item--leaf">
+          <a
+            class={`folder-tree__note-link${active ? " folder-tree__note-link--active" : ""}`}
+            href={`/${n.slug}/`}
+            aria-current={active ? "page" : undefined}
+          >
+            {n.title}
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+)}
