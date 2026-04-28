@@ -36,3 +36,4 @@ export type {
   TagPageViewModel,
   TagPageEntry,
 } from './components/TagPage.types.ts';
+export type { FolderNode } from './lib/folderTree.types.ts';
