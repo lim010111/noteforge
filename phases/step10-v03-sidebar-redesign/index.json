@@ -1,0 +1,17 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step10-v03-sidebar-redesign",
+  "steps": [
+    { "step": 0, "name": "design-direction-v0.3", "status": "pending" },
+    { "step": 1, "name": "docs-rewrite-and-backup", "status": "pending" },
+    { "step": 2, "name": "tokens-and-config-extension", "status": "pending" },
+    { "step": 3, "name": "folder-tree-data-model", "status": "pending" },
+    { "step": 4, "name": "sidebar-and-avatar-components", "status": "pending" },
+    { "step": 5, "name": "base-layout-grid-integration", "status": "pending" },
+    { "step": 6, "name": "folder-index-route-and-collision", "status": "pending" },
+    { "step": 7, "name": "home-recent-and-featured-rails", "status": "pending" },
+    { "step": 8, "name": "wire-sidebar-into-all-routes", "status": "pending" },
+    { "step": 9, "name": "privacy-tdd-and-fixtures", "status": "pending" },
+    { "step": 10, "name": "dogfood-screenshots-and-release", "status": "pending" }
+  ]
+}

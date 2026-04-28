@@ -79,6 +79,10 @@
       "dir": "step9-design-overhaul",
       "status": "completed",
       "completed_at": "2026-04-26T16:18:00+0900"
+    },
+    {
+      "dir": "step10-v03-sidebar-redesign",
+      "status": "pending"
     }
   ]
 }
