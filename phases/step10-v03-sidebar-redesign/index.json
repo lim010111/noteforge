@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "tokens-and-config-extension",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-28T22:26:06+0900",
+      "summary": "tokens.css에 보조 accent(--color-accent-2/-hover/-soft) + 5개 카테고리 accent 슬롯(--color-accent-cat-1..5) + 새 surface tier(--color-bg-sidebar) + 사이드바 폭 토큰(--container-sidebar-w)을 4개 cascade block 모두에 미러링(라이트/다크), siteSchema에 avatar/nickname 추가(외부 호스트 4패턴 차단), config 9 케이스 + tokens 회귀 가드 통과(515/515)",
+      "completed_at": "2026-04-28T22:32:00+0900"
     },
     {
       "step": 3,

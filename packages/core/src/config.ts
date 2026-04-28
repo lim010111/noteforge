@@ -47,6 +47,15 @@ const siteSchema = z.object({
   title: z.string().min(1, '빈 문자열은 허용되지 않습니다'),
   url: z.string().url('유효한 URL이어야 합니다'),
   author: z.string().min(1, '빈 문자열은 허용되지 않습니다'),
+  avatar: z
+    .string()
+    .min(1, '빈 문자열은 허용되지 않습니다')
+    .refine(
+      (v) => !/^(https?:\/\/|\/\/|data:)/i.test(v),
+      'avatar는 외부 호스트(http/https/scheme-less //, data:)를 허용하지 않습니다 — apps/blog/public/ 아래 상대 경로로 두세요',
+    )
+    .optional(),
+  nickname: z.string().min(1, '빈 문자열은 허용되지 않습니다').optional(),
 });
 
 const publishingSchema = z

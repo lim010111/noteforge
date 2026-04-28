@@ -244,6 +244,62 @@ describe('defineConfig with configPath', () => {
   });
 });
 
+describe('site.avatar / site.nickname (v0.3)', () => {
+  function withSite(overrides: Record<string, unknown>): ObpubConfigInput {
+    return baseInput({
+      site: { title: 'Example', url: 'https://example.com', author: 'Tester', ...overrides },
+    } as Partial<ObpubConfigInput>);
+  }
+
+  it('rejects avatar pointing to an https external host', () => {
+    expect(() =>
+      defineConfig(withSite({ avatar: 'https://cdn.example.com/me.png' })),
+    ).toThrow(/외부 호스트/);
+  });
+
+  it('rejects avatar pointing to an http external host', () => {
+    expect(() => defineConfig(withSite({ avatar: 'http://example.com/me.png' }))).toThrow(
+      /외부 호스트/,
+    );
+  });
+
+  it('rejects scheme-relative avatar URLs (//host/...)', () => {
+    expect(() => defineConfig(withSite({ avatar: '//cdn.example.com/me.png' }))).toThrow(
+      /외부 호스트/,
+    );
+  });
+
+  it('rejects data: URIs in avatar', () => {
+    expect(() =>
+      defineConfig(withSite({ avatar: 'data:image/png;base64,iVBOR...' })),
+    ).toThrow(/외부 호스트/);
+  });
+
+  it('rejects an empty avatar string', () => {
+    expect(() => defineConfig(withSite({ avatar: '' }))).toThrow(ObpubConfigError);
+  });
+
+  it('rejects an empty nickname string', () => {
+    expect(() => defineConfig(withSite({ nickname: '' }))).toThrow(ObpubConfigError);
+  });
+
+  it('accepts a relative avatar path (avatar.png)', () => {
+    const cfg = defineConfig(withSite({ avatar: 'avatar.png' }));
+    expect(cfg.site.avatar).toBe('avatar.png');
+  });
+
+  it('accepts a nested relative avatar path (assets/me.webp)', () => {
+    const cfg = defineConfig(withSite({ avatar: 'assets/me.webp' }));
+    expect(cfg.site.avatar).toBe('assets/me.webp');
+  });
+
+  it('accepts site without avatar/nickname (both optional)', () => {
+    const cfg = defineConfig(baseInput());
+    expect(cfg.site.avatar).toBeUndefined();
+    expect(cfg.site.nickname).toBeUndefined();
+  });
+});
+
 describe('getClassifyRule', () => {
   it('derives a ClassifyRule with the default tripwire path', () => {
     const cfg = defineConfig(baseInput());
