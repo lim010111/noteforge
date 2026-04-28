@@ -3,9 +3,12 @@
 ## 읽어야 할 파일
 
 먼저 아래를 읽고 설계 의도를 파악하라:
-- `apps/blog/src/pages/index.astro` (현재 v0.2 홈 — 이번 step에서 두 레일 구조로 재작성)
+- `apps/blog/src/pages/index.astro` (현재 v0.2 홈 — 이번 step에서 두 레일 구조로 재작성. 현재 NoteList 호출 패턴 = `<NoteList entries={items} emptyMessage="..." />`. **그대로 따른다**.)
 - `apps/blog/src/lib/viewModels.ts` (`NoteEntry` 타입, `filterPublishable`, 기존 sort 패턴)
-- `packages/theme-default/src/components/NoteList.astro` (홈 레일이 reuse할 수 있는 NoteList 컴포넌트)
+- `packages/theme-default/src/components/NoteList.astro` 와 `NoteList.types.ts` — **API 계약 확인 필수**:
+  - `NoteListProps = { entries: NoteListEntry[]; emptyMessage: string }` (둘 다 필수, prop 이름은 `entries`이지 `notes` 아님)
+  - `NoteListEntry = { href: string; title: string; date?: string }` (NoteEntry가 아니라 strict subset)
+  - 호출부는 `selectRecent`/`selectFeatured` 결과(NoteEntry[])를 NoteListEntry[]로 *직접 매핑*해야 한다.
 - `phases/step10-v03-sidebar-redesign/design/COMPONENTS.md` (RecentRail / FeaturedRail 시안 + featured 0개일 때 거동)
 - `packages/core/src/config.ts`의 frontmatter allowlist 부분 — `featured`가 이미 v0.1 step8에서 allowlist에 들어왔음(추가 작업 0).
 
@@ -40,42 +43,65 @@ export function selectFeatured(entries: NoteEntry[]): NoteEntry[];
 
 ### 2. `apps/blog/src/pages/index.astro` 재작성
 
+`selectRecent`/`selectFeatured`는 `NoteEntry[]`를 반환하지만, `<NoteList />`는 `entries: NoteListEntry[]`(`{ href, title, date? }`)를 받는다. 호출부에서 매핑 단계가 필요. 기존 v0.2 `index.astro`의 매핑 패턴을 그대로 사용한다.
+
 대략 형태:
 
 ```astro
 ---
 import { getCollection } from 'astro:content';
-import { BaseLayout, NoteList } from '@noteforge/theme-default';
+import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import { filterPublishable, type NoteEntry } from '../lib/viewModels.ts';
 import { selectRecent, selectFeatured } from '../lib/homeRails.ts';
-import { buildSidebarPayload } from '../lib/sidebarPayload.ts'; // step 8에서 들어옴 — 본 step은 placeholder import만, 본 step에서 placeholder 헬퍼 1줄 작성하거나 step 8 합류 후 wire.
 import obpubConfig from '../../obsidian-blog.config.ts';
-// ...
+
 const all = await getCollection('notes');
 const publishable = filterPublishable(all);
 const recent = selectRecent(publishable);
 const featured = selectFeatured(publishable);
+
+function toItems(entries: NoteEntry[]): NoteListEntry[] {
+  return entries.map((entry) => {
+    const dateRaw = entry.data.frontmatter['date'];
+    const item: NoteListEntry = {
+      href: `/${entry.id}/`,                          // trailingSlash always (step 6)
+      title: entry.data.title ?? entry.id,
+    };
+    if (typeof dateRaw === 'string') item.date = dateRaw;
+    return item;
+  });
+}
+
+const recentItems = toItems(recent);
+const featuredItems = toItems(featured);
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 ---
 
-<BaseLayout title={obpubConfig.site.title} canonicalUrl={...}>
+<BaseLayout
+  title={obpubConfig.site.title}
+  canonicalUrl={canonicalUrl}
+  ogType="website"
+  siteName={obpubConfig.site.title}
+>
   <section aria-labelledby="recent-heading">
     <h2 id="recent-heading">Recent</h2>
-    <NoteList notes={recent} />
+    <NoteList entries={recentItems} emptyMessage="아직 공개된 글이 없습니다." />
   </section>
 
   {featured.length > 0 && (
     <section aria-labelledby="featured-heading">
       <h2 id="featured-heading">Featured</h2>
-      <NoteList notes={featured} />
+      <NoteList entries={featuredItems} emptyMessage="" />
     </section>
   )}
 </BaseLayout>
 ```
 
 핵심 규칙:
+- **NoteList prop 이름**: `entries`(NOT `notes`). `emptyMessage`는 *required*. featured 분기에서는 `<section>` 자체가 미렌더이므로 emptyMessage 값은 무관(`""` 빈 문자열도 OK — `min(1)` 같은 검증은 NoteList에 없음).
 - `featured.length === 0`이면 `<section>` 자체가 *미렌더*. 빈 헤딩, "No featured posts" 카피, 빈 `<ul>` 컨테이너 *모두 금지*.
-- 사이드바 wire는 step 8에서 담당 — 본 step은 home rail 데이터/렌더에만 집중. 단, `<BaseLayout>`에 `sidebar` prop을 전달할 placeholder 자리는 두되, 데이터 연결은 step 8의 책임.
-- 본 step 안에서 step 8 의존 import가 어렵다면 한 줄짜리 inline 헬퍼(`buildSidebarPayload`를 step 8에서 도입할 위치)를 비워두고 TODO 주석 *없이* 그냥 `sidebar` prop을 빠뜨려도 됨 — step 5의 BaseLayout이 `sidebar` 옵셔널이라 미전달 시 v0.2 단일 컬럼으로 폴백.
+- href는 trailing slash로 끝남(`/${entry.id}/`) — step 6의 `trailingSlash: 'always'` 정책과 일관.
+- **사이드바 wire는 본 step에서 절대 하지 않는다** (step 8 책임). `buildSidebarPayload` import도 추가하지 않고, `<BaseLayout>`에 `sidebar` prop도 *넘기지 않는다*. step 5의 BaseLayout이 `sidebar` 옵셔널이라 미전달 시 v0.2 단일 컬럼으로 폴백 — step 7 시점에서는 사이드바 없는 홈 그대로 빌드되고, step 8에서 한 곳에 wire가 추가된다.
 
 ### 3. 테스트
 
@@ -127,6 +153,8 @@ grep -c 'export const FEATURED_RAIL_CAP' apps/blog/src/lib/homeRails.ts   # = 1
 ## 금지사항
 
 - featured 0개일 때 어떤 형태로든 "Featured" 단어/헤딩/카피/`<section>` 빈 껍데기를 렌더하지 마라. 이유: 사용자가 *featured 노트를 갖지 않았다*는 정보 자체를 흘리지 않음(empty-state 누설). v0.3 시각 계약상 *없으면 자리도 없다*.
+- 본 step에서 `buildSidebarPayload` import나 `<BaseLayout sidebar={...}>` 전달을 추가하지 마라. 이유: 사이드바 wire는 step 8 단일 SSOT다 — placeholder import/주석조차 두지 않는다(혼란 + 유령 의존). `index.astro`는 step 7에서 사이드바 없이, step 8에서 한 번 더 수정되어 사이드바가 들어간다.
+- `<NoteList notes={...}/>`로 호출하지 마라. 이유: 컴포넌트의 prop 이름은 `entries`이고 `emptyMessage`는 required다 — 잘못 쓰면 즉시 typecheck 실패.
 - 새 frontmatter 필드(`featured_priority`, `pinned` 등)를 도입하지 마라. 이유: privacy allowlist는 별도 PR/별도 step의 책임이고, 본 step은 *기존 allowlist 안의* `featured`만 사용한다.
 - featured 정렬에 `date` 외 다른 키를 쓰지 마라. 이유: TODO.md 결정 사항 표상 정렬은 date desc 한 가지.
 - `RECENT_RAIL_CAP`/`FEATURED_RAIL_CAP`을 매직넘버 인라인으로 박지 마라. 이유: fork 사용자 튜닝 가능 + 회귀 가드 grep.

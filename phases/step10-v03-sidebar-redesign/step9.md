@@ -27,6 +27,7 @@
 - `private/secrets/diary.md` — `public: true`, title 안에 새 canary `FOLDER_TREE_DO_NOT_LEAK_8a4f2`, body에도 `FOLDER_TREE_DO_NOT_LEAK_8a4f2`.
 - CLAUDE.md tripwire 규칙: `private/**` 노트는 `public: true`라도 공개 금지(`unsafeAllowPrivateFolder` 미설정 시).
 - 트리에서 *부재해야 함*. canary가 빌드 산출물 어디에도 0회.
+- **가드의 보호 대상 노트**: 현재 loader의 `forcedIgnore`가 `private/**`을 *디스크 단계에서* 제외하므로 case (b) 노트는 `getCollection('notes')` 결과에 부재 → 트리에 자연 부재. 이 case의 의도는 *forcedIgnore가 약화/우회되는* 미래 회귀 시 마지막 가드가 발동하도록 fixture에 미리 심어두는 것이다(현재 통과는 자명, 회귀 시 즉시 fail).
 
 #### Case (c) — public 노트 + 같은 폴더의 draft
 - `posts/mix/visible.md` — `public: true`, no draft.
@@ -61,7 +62,12 @@ step 3에서 작성된 테스트 위에 추가:
 
 ### 4. e2e collision throw — `apps/blog/`에서 검증
 
-vitest 내에서 `[...slug].astro`의 `getStaticPaths`를 직접 호출(또는 build를 dry-run)해 case (d)에서 throw되는지 검증. 메시지에 `apps/`와 파일 경로 포함.
+`vault-mixed`는 *core* 단위 테스트용 fixture로 `apps/blog`의 `getCollection`은 그것을 보지 않는다(다른 vault 경로를 가리킴). 따라서 case (d)의 collision throw 검증은 두 갈래로 나눈다:
+
+1. **core 레벨**(vault-mixed): `buildFolderTree`에 `apps.md` 노트(루트 슬러그 `apps`)와 `apps/colliding/index.md` 노트를 같이 통과시키면 트리에 둘 다 *기록됨*(throw 안 함 — step 3 데이터 레이어 계약). 이건 fixture만으로 단위 테스트 가능.
+2. **apps 레벨**(routing): `apps/blog/src/lib/folderAggregation.test.ts`에 별도 mini-fixture(in-memory `NoteEntry` 배열)를 만들어 step 6에서 추가된 collision-guard 함수(또는 `getStaticPaths` 헬퍼)를 직접 호출 → throw 검증. 메시지에 폴더 경로(`posts/`)와 파일 경로(`apps/blog/src/pages/[...slug].astro`) 포함.
+
+vault-mixed fixture에는 case (d) 노트 두 개(`apps.md` + `apps/colliding/index.md`)를 *그대로 추가*해두되, build 자체가 fail하도록 만들지는 않는다 — vault-mixed가 build 입력으로 쓰이지 않아 영향 0.
 
 ### 5. 빌드 산출물 회귀 검사
 

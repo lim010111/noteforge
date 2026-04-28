@@ -58,7 +58,7 @@ export interface BaseLayoutProps {
 `packages/theme-default/tests/BaseLayout.test.ts` (있으면 추가, 없으면 신규):
 
 1. **`sidebar` prop 미지정** → 출력 HTML에 `<aside class="sidebar">` *없음*. v0.2 회귀 비교 스냅샷(데스크톱 grid가 단일 컬럼).
-2. **`sidebar` prop 지정** → lg+ grid 내 `<aside>` 1개 + 모바일 드로어 안 `<aside>` 1개(총 2회 렌더 — 의도된 동작).
+2. **`sidebar` prop 지정** → lg+ grid 내 `<aside>` 1개 + 모바일 드로어 안 `<aside>` 1개(총 2회 렌더 — 의도된 동작). 출력 HTML에 같은 `id="..."` 값이 *두 번* 나오는지 어서션(있으면 fail — step 4의 컴포넌트가 정적 id를 부여한 회귀).
 3. **active state 통과** → `sidebar.activeSlug`가 Sidebar에 그대로 전달되어 트리 안 `aria-current="page"`가 정확히 한 곳.
 4. **canonical/og 회귀** → 기존 `canonicalUrl` prop 통과 동작 보존(step 6 회귀 시 알람).
 5. **theme-init 보존** → 인라인 스크립트가 `<head>`에 *정확히 한 번* 존재.

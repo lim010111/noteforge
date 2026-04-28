@@ -33,9 +33,16 @@ export function pickCategoryAccentSlot(
   segment: string,
   slotCount: number,
 ): number | null;
+
+/**
+ * 코드 SSOT. design/TOKENS.md의 N과 일치해야 하며,
+ * tokens.css의 `--color-accent-cat-1`..`-N`까지 정의되어 있어야 한다.
+ * step 8의 sidebarPayload.ts는 이 상수를 import해서 SLOT_COUNT 하드코딩 회피.
+ */
+export const CATEGORY_ACCENT_SLOT_COUNT: number;  // 실값은 design/TOKENS.md (4~6)
 ```
 
-`slotCount`는 step 2 `tokens.css`의 `--color-accent-cat-N`까지의 N과 일치해야 한다. 호출부가 N을 넘기는 책임을 진다(상수 SSOT는 design/TOKENS.md).
+`packages/theme-default/src/index.ts`(barrel)에서 `pickCategoryAccentSlot`과 `CATEGORY_ACCENT_SLOT_COUNT`를 모두 named export 한다 — step 8이 `import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default'`로 받는다.
 
 테스트 `categoryAccent.test.ts`:
 - 같은 segment → 같은 슬롯(결정성, 100회 반복).
@@ -63,7 +70,7 @@ export interface AvatarBlockProps {
 
 Props:
 ```ts
-import type { FolderNode } from '@/lib/folderAggregation'; // 또는 packages/theme-default 측 재정의
+import type { FolderNode } from '../lib/folderTree.types';  // step 3에서 신규 생성된 SSOT
 export interface FolderTreeProps {
   root: FolderNode;
   activeSlug?: string;          // 현재 활성 노트 슬러그(예: 'AI/Claude/agents')
@@ -172,5 +179,6 @@ pnpm test
 - `client:load`/`client:idle`/`client:visible` 등 client 디렉티브를 어디에도 붙이지 마라. 이유: v0.2의 정적 출력 계약(`<head>` theme-init 1개 외 인터랙티브 JS 0).
 - 컴포넌트 CSS에 `#hex` 색을 직접 쓰지 마라. 이유: 토큰만 사용 — fork 사용자가 테마 커스터마이즈 가능해야 함.
 - 폴더 이름과 토글을 같은 hit zone에 두지 마라. 이유: 와이어프레임(parent_page.png)에서 둘이 분리되어 있고, 폴더 이름은 인덱스 페이지 이동, ▶는 펼침 — 두 행동이 의미적으로 다르다.
+- 컴포넌트 안에 정적 `id` 속성(또는 `for=`/`aria-labelledby`/`aria-controls`로 참조되는 id)을 부여하지 마라. 이유: BaseLayout(step 5)에서 데스크톱 grid 좌측과 모바일 `<details>` 드로어 안에 같은 `<Sidebar>`를 *두 번 렌더*한다. 같은 id가 한 페이지에 두 번 나오면 HTML 위반 + 보조기술 충돌. 필요하면 props로 id suffix를 받아 호출부가 differ하게 둔다.
 - `packages/core/src/privacy/**`을 수정하지 마라.
 - 빈 슬롯에 placeholder 텍스트("프로필 없음" 등)를 그리지 마라. 이유: empty-state 누설 — 어떤 사용자가 avatar/nickname을 *설정하지 않았다*는 정보 자체를 흘리지 않는다.

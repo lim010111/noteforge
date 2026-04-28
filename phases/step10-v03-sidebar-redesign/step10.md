@@ -23,12 +23,16 @@ pnpm -r typecheck && pnpm lint && pnpm test && pnpm --filter blog build && pnpm 
 
 위 5단이 모두 통과. 하나라도 실패하면 stop-the-line — error 또는 blocked로 보고.
 
-### 2. CHANGELOG.md `## v0.3.0` 항목 추가
+### 2. CHANGELOG.md `## [0.3.0]` 항목 추가
 
-기존 `## v0.2.0` 위에 새 섹션을 다음 구조로 추가:
+**기존 repo convention 확인**: `## [0.2.0] - 2026-04-26` 형식(브래킷 + 하이픈, em-dash 아님). `[Keep a Changelog](https://keepachangelog.com/en/1.1.0/)` 형식 준수. **이 형식을 그대로 따른다.**
+
+기존 `## [Unreleased]` 아래·`## [0.2.0] - 2026-04-26` 위에 새 섹션을 다음 구조로 추가:
 
 ```markdown
-## v0.3.0 — YYYY-MM-DD
+## [0.3.0] - YYYY-MM-DD
+
+v0.2 dogfood 결과로 사이드바 · 폴더 트리 · 홈 레일 · 아이덴티티(AvatarBlock) 도입. privacy 계약 · 정적 출력 계약 · 접근성은 v0.2와 동일하게 유지.
 
 ### Added
 - 좌측 사이드바 + 폴더 트리(데스크톱 lg+ 상시 / 모바일 햄버거 드로어). JS-less `<details>` 토글 + ARIA `<nav aria-label="Folder tree">` + `aria-current="page"`.
@@ -48,10 +52,16 @@ pnpm -r typecheck && pnpm lint && pnpm test && pnpm --filter blog build && pnpm 
 ### Docs
 - `docs/UI_GUIDE.md` v0.3 전면 개정. v0.2 백업: `docs/UI_GUIDE.v0.2.md`.
 - `docs/ARCHITECTURE.md`에 사이드바·폴더 라우팅 섹션 추가.
-- ADR 2건 — 팔레트 확장 / 폴더 라우팅 전략(`trailingSlash` + 충돌 throw).
+- ADR 2건(ADR-011, ADR-012) — 팔레트 확장 / 폴더 라우팅 전략(`trailingSlash` + 충돌 throw).
 ```
 
 날짜는 `git log` 기준 가장 최근 step 완료일자(또는 본 step 실행일).
+
+파일 끝의 release-link 섹션에도 한 줄 추가:
+```markdown
+[0.3.0]: https://github.com/lim010111/obsidian-blog/releases/tag/v0.3.0
+```
+(기존 `[0.2.0]: ...`/`[0.1.0]: ...` 줄 위에.)
 
 ### 3. README.md 보완
 
@@ -115,8 +125,8 @@ test "$(grep -rc 'FOLDER_TREE_DO_NOT_LEAK_8a4f2' apps/blog/dist | awk -F: '{prin
 # (step 6 AC의 node 스크립트 재실행 — 단순화 grep도 충분)
 
 # CHANGELOG/README/TODO 마감 sanity
-grep -c '## v0.3.0' CHANGELOG.md   # ≥ 1
-grep -c 'avatar'    README.md       # ≥ 1
+grep -cE '^## \[0\.3\.0\]' CHANGELOG.md   # ≥ 1 (Keep a Changelog 형식 — [버전] - 날짜)
+grep -c 'avatar' README.md                 # ≥ 1
 ! grep -E '^- \[ \] Step [0-9]+: .*v0\.3' TODO.md   # v0.3 미체크 항목 0
 ```
 
@@ -124,7 +134,8 @@ grep -c 'avatar'    README.md       # ≥ 1
 
 1. 위 AC 커맨드 실행 — 모든 단계 통과.
 2. 릴리스 체크리스트:
-   - CHANGELOG `## v0.3.0` 섹션이 Added/Changed/Privacy/Docs 4 카테고리로 작성?
+   - CHANGELOG `## [0.3.0] - YYYY-MM-DD` 섹션이 Keep a Changelog 형식(브래킷+하이픈)을 따르고 Added/Changed/Privacy/Docs 4 카테고리로 작성?
+   - 파일 하단 release-link 섹션에 `[0.3.0]: ...` 한 줄 추가?
    - README에 avatar/nickname 사용법 + trailingSlash 마이그레이션 노트?
    - TODO.md v0.3 11개 sub-step 모두 `[x]`?
    - CLAUDE.md canary 목록 갱신 (선택)?

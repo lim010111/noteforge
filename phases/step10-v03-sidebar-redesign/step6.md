@@ -60,20 +60,38 @@ type RouteProps =
 - 루트 폴더(path `''`)는 인덱스 페이지(`apps/blog/src/pages/index.astro`)가 담당하므로 *제외*.
 - folder slug는 슬래시 포함(예: `'AI/Claude'`). Astro가 trailing slash를 붙여 `/AI/Claude/` 출력.
 
-### 5. 충돌 throw 확장 (`[...slug].astro:39` 패턴 따름)
+### 5. 충돌 throw 확장 (`[...slug].astro:39` 패턴 통일 + 기존 alias throw도 갱신)
 
-기존:
+현재 `apps/blog/src/pages/[...slug].astro:39-44`의 alias 충돌 throw는 *파일 경로 표기 없음*. 본 step에서 새 folder 충돌 throw를 추가하면서 두 메시지의 형식을 *동일*하게 맞추기 위해 **기존 alias throw에도 파일 경로 trailer를 추가**한다(file:line 컨벤션 step 7c와 일관).
+
+기존 (변경 전, 라인 39-44):
 ```ts
-const claimed = new Set(noteRoutes.map((r) => r.params.slug));
 for (const alias of aliasEntries) {
   if (claimed.has(alias.id)) {
-    throw new Error(`[...slug] route collision: alias '${alias.id}' (→ '${alias.data.to}') ...`);
+    throw new Error(
+      `[...slug] route collision: alias '${alias.id}' (→ '${alias.data.to}') ` +
+        `would overwrite a note slug. Resolve in vault frontmatter before building.`,
+    );
   }
   claimed.add(alias.id);
 }
 ```
 
-확장:
+변경 후 (alias throw에 파일 경로 trailer 추가):
+```ts
+for (const alias of aliasEntries) {
+  if (claimed.has(alias.id)) {
+    throw new Error(
+      `[...slug] route collision: alias '${alias.id}' (→ '${alias.data.to}') ` +
+        `would overwrite a note slug. Resolve in vault frontmatter before building. ` +
+        `(apps/blog/src/pages/[...slug].astro)`,
+    );
+  }
+  claimed.add(alias.id);
+}
+```
+
+추가 (folder 충돌 throw):
 ```ts
 for (const folder of folderRoutes) {
   if (claimed.has(folder.params.slug)) {
@@ -86,7 +104,7 @@ for (const folder of folderRoutes) {
 }
 ```
 
-같은 메시지 형식(파일 경로 끝 표기, file:line 컨벤션 step 7c 참조).
+기존 alias↔note throw를 *건드리는 변경*임을 step8 회귀 가드 측면에서 명시 — step8에서 alias 메시지 wording을 정확히 검사하는 테스트가 있다면 그 테스트도 같이 갱신.
 
 ### 6. `FolderIndex.astro` 컴포넌트 + 페이지 분기
 

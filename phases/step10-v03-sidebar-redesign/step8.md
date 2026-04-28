@@ -20,15 +20,14 @@
 ### 1. 신규 헬퍼 `apps/blog/src/lib/sidebarPayload.ts`
 
 ```ts
-import type { NoteEntry } from './viewModels.ts';
+import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default';
+import type { FolderNode } from '@noteforge/theme-default';
 import { filterPublishable } from './viewModels.ts';
 import { buildFolderTree } from './folderAggregation.ts';
 import obpubConfig from '../../obsidian-blog.config.ts';
 
-const SLOT_COUNT = /* design/TOKENS.md의 N과 일치 — 상수로 박거나 process.env로 받지 않음 */ 6;
-
 export interface SidebarPayload {
-  folderTree: ReturnType<typeof buildFolderTree>;
+  folderTree: FolderNode;
   activeSlug?: string;
   activeFolderPath?: string;
   avatarSrc?: string;
@@ -42,6 +41,8 @@ export interface SidebarPayload {
  * - active 인자는 호출부가 정함. 노트 페이지 = entry.id, 폴더 인덱스 페이지 = `${path}/`,
  *   home/tags/graph/404 = undefined.
  * - obpubConfig.site.{avatar,nickname}을 읽어 옵션 통과.
+ * - slotCount는 step 4에서 export된 CATEGORY_ACCENT_SLOT_COUNT를 그대로 사용
+ *   (design/TOKENS.md → tokens.css → categoryAccent.ts SSOT 체인).
  */
 export function buildSidebarPayload(
   allEntries: Parameters<typeof filterPublishable>[0],
@@ -49,7 +50,7 @@ export function buildSidebarPayload(
 ): SidebarPayload;
 ```
 
-`SLOT_COUNT`는 상수로 박는다. design/TOKENS.md의 N과 일치해야 하며, 나중에 fork 사용자 튜닝 자리는 `obpubConfig`에 추가할 여지를 남기되 v0.3에서는 안 한다.
+**SLOT_COUNT 하드코딩 금지** — step 4의 `CATEGORY_ACCENT_SLOT_COUNT`를 import해서 그대로 통과시킨다. design/TOKENS.md → tokens.css → categoryAccent.ts → sidebarPayload 한 SSOT 체인을 깨면, design이 N=5라 결정했는데 코드가 N=6이면 빈 슬롯이 unset되어 시각 회귀.
 
 ### 2. 라우트 wiring
 
@@ -151,4 +152,5 @@ git diff --stat apps/blog/src/pages/api/graph.json.ts | grep -c '|' || true   # 
 - 헬퍼에서 `isPublic` 같은 privacy 판정을 직접 호출하지 마라. `filterPublishable`만 사용. 이유: 결정은 `packages/core/src/privacy/`에서만(CLAUDE.md CRITICAL).
 - `api/graph.json.ts`를 건드리지 마라. 이유: API 라우트는 데이터 출력이고, 사이드바 props가 의미 없음 + 의도치 않은 JSON 형태 변경은 step8의 graph 계약 회귀.
 - alias-redirect 페이지에 사이드바를 그리지 마라. 이유: 즉시 redirect 페이지에 사이드바를 그리면 (1) FOUC, (2) 외부 traffic이 redirect 도중 사이드바 트리(노트 슬러그)를 *0.x초간 보게 됨* — 의미 없는 누설 기회.
+- `SLOT_COUNT`나 카테고리 accent 슬롯 수를 본 파일에 매직넘버로 하드코딩하지 마라. 이유: design/TOKENS.md → tokens.css → `CATEGORY_ACCENT_SLOT_COUNT` SSOT 체인. 한 곳에서만 수정해도 전체가 따라가도록.
 - `packages/core/src/privacy/**`을 수정하지 마라.

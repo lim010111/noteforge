@@ -13,23 +13,39 @@
 
 이 step은 **TDD 강제** — 실패 테스트 → 통과 구현 순서. 컴포넌트가 아니므로 내부 구현 자유도는 높지만 시그니처와 결정성은 박힌다.
 
-### 1. 시그니처 정의
+### 1. 시그니처 정의 — 타입 위치는 `theme-default`, 함수는 `apps/blog`
 
-신규 파일 `apps/blog/src/lib/folderAggregation.ts`:
+monorepo 의존 방향상 `packages/theme-default`가 `apps/blog`를 import할 수 없다. 컴포넌트(step 4의 `FolderTree.astro`)가 `FolderNode`를 props로 소비하므로 **타입 SSOT는 `theme-default`에 둔다**. apps의 `folderAggregation.ts`(데이터 변환 함수)가 그 타입을 import해서 반환 타입으로 사용 — apps → packages 방향이라 정상.
+
+신규 파일 1: `packages/theme-default/src/lib/folderTree.types.ts` (타입만):
 
 ```ts
-import type { NoteEntry } from './viewModels.ts';
-
+/**
+ * Folder tree node — produced by apps/blog/src/lib/folderAggregation.ts,
+ * consumed by FolderTree.astro / FolderIndex.astro / Sidebar.astro.
+ *
+ * Type SSOT lives here in theme-default because the consumer is here, and
+ * apps → packages import direction is the only one allowed by the workspace.
+ */
 export interface FolderNode {
   /** 폴더 이름. 루트는 빈 문자열 ''. 그 외는 해당 segment 자체(예: 'AI', 'Claude'). */
   name: string;
-  /** 슬래시 구분 절대 경로. 루트는 ''. lg+ URL은 `/path/`(trailingSlash always는 step6 책임). */
+  /** 슬래시 구분 절대 경로. 루트는 ''. URL은 `/path/`(trailingSlash always는 step6 책임). */
   path: string;
   /** 자식 폴더(이름 alphabetical, 안정적). */
   children: FolderNode[];
   /** 이 폴더에 직접 속한 publishable 노트(슬러그 alphabetical, 안정적). */
   notes: { slug: string; title: string }[];
 }
+```
+
+`packages/theme-default/src/index.ts`(barrel)에 `export type { FolderNode } from './lib/folderTree.types.ts';` 한 줄 추가 — 컴포넌트 step 4와 BaseLayout step 5가 `import type { FolderNode } from '@noteforge/theme-default'`로 받게.
+
+신규 파일 2: `apps/blog/src/lib/folderAggregation.ts` (함수만):
+
+```ts
+import type { FolderNode } from '@noteforge/theme-default';
+import type { NoteEntry } from './viewModels.ts';
 
 export function buildFolderTree(entries: NoteEntry[]): FolderNode;
 ```
@@ -82,10 +98,12 @@ pnpm test apps/blog/src/lib/folderAggregation.test.ts
    - `folderAggregation.ts`에 `astro:content` import가 *없는가*?
    - `isPublic`/`filterPublishable` 호출이 *없는가*?
    - vault FS 접근(`fs`/`path` 모듈로 디스크 읽기)이 *없는가*?
+   - `FolderNode` 타입이 `packages/theme-default/src/lib/folderTree.types.ts`에 정의 + barrel export?
+   - apps 함수가 `import type { FolderNode } from '@noteforge/theme-default'`로 import?
    - 8개 이상의 테스트 케이스가 모두 통과하는가?
 3. canary 회귀: 빌드 산출물에 canary 0회 — `pnpm --filter blog build` 후 `grep -rc 'DO_NOT_LEAK_BANANA_6f3c1\|CLAUDE_COMMENT_LEAK_77b' apps/blog/dist/` == 0.
 4. 결과에 따라 `phases/step10-v03-sidebar-redesign/index.json`의 step 3을 업데이트:
-   - 성공 → `"status": "completed"`, `"summary": "buildFolderTree(entries) → FolderNode pure 함수 + 9 테스트(empty/single/depth3/sort/draft/alias-skip/slug-collision/deep-nesting/case-insensitive)"`
+   - 성공 → `"status": "completed"`, `"summary": "FolderNode 타입을 theme-default/src/lib/folderTree.types.ts(+barrel export)에, buildFolderTree pure 함수를 apps/blog/src/lib/folderAggregation.ts에 분리(monorepo 방향 준수) + 9 테스트(empty/single/depth3/sort/draft/alias-skip/slug-collision/deep-nesting/case-insensitive)"`
    - 실패 → `"status": "error"`, `"error_message": "<구체적>"`
    - 차단 → `"status": "blocked"`, `"blocked_reason": "<구체적>"`
 

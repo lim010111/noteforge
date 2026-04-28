@@ -53,15 +53,15 @@ v0.2 본문을 *기반*으로 다음을 반영:
 
 ### 4. `docs/ADR.md` — ADR 2건 추가
 
-기존 `### ADR-NNN` 번호 규약을 따라 다음 가용 번호 2개에 4-section 구조(`**결정**`, `**이유**`, `**대안**`, `**트레이드오프**`)로 추가.
+기존 `### ADR-NNN` 번호 규약을 따라 **ADR-011, ADR-012** 두 번호에 4-section 구조(`**결정**`, `**이유**`, `**대안**`, `**트레이드오프**`)로 추가. (현재 ADR.md는 ADR-001..ADR-010까지 — `grep -c '^### ADR-' docs/ADR.md`로 다음 번호 확인하고, 만약 다른 PR이 먼저 들어와 010 다음이 011이 아니면 그 다음 번호 2개로 자동 갱신.)
 
-ADR-A: **Chromatic 팔레트 확장 (v0.3)**
+ADR-011: **Chromatic 팔레트 확장 (v0.3)**
 - 결정: 보조 accent 1개 + 카테고리 accent 4~6개 + 새 surface tier 1개 도입.
 - 이유: v0.2 dogfood에서 단일 iron-oxide 액센트가 *production-grade* 결을 못 낸다고 평가. 컬러풀함은 사용자 요구.
 - 대안: (1) 토큰 손대지 않고 컴포넌트 레이아웃만 개편 — 시각 임팩트 부족. (2) 멀티 브랜드 색 시스템 도입 — v0.2 안티패턴 위반.
 - 트레이드오프: 토큰 추가는 fork 사용자가 테마 커스터마이즈 시 학습 비용 증가. UI_GUIDE에서 슬롯 의미를 vault-agnostic으로 적어 완화.
 
-ADR-B: **폴더 라우팅 전략 — `trailingSlash: 'always'` + 충돌 빌드 타임 throw**
+ADR-012: **폴더 라우팅 전략 — `trailingSlash: 'always'` + 충돌 빌드 타임 throw**
 - 결정: `astro.config.mjs`에서 `trailingSlash: 'never'` → `'always'` 전환. 폴더-노트/폴더-alias 슬러그 충돌은 `apps/blog/src/pages/[...slug].astro:39` 패턴으로 빌드 타임 throw.
 - 이유: 폴더 인덱스 URL(`/AI/Claude/`)과 노트 URL(`/AI/Claude/foo`)의 슬래시 정책을 한 규칙으로 통일하면 충돌면 축소. 충돌을 silent override하면 노트 누락 위험 — alias collision 가드와 동일 정책이 자연스럽다.
 - 대안: trailingSlash 유지 + 폴더 URL을 `/folders/...` 등 별도 prefix로 분리 — URL 디자인이 vault 사용자 관점에서 부자연스럽고 fork 사용자 학습 비용 증가.
