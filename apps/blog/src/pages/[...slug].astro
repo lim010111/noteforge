@@ -1,16 +1,32 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
-import { Backlinks, BaseLayout, Note } from '@noteforge/theme-default';
+import {
+  Backlinks,
+  BaseLayout,
+  FolderIndex,
+  Note,
+  type FolderIndexViewModel,
+} from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   buildBacklinksViewModel,
+  ensureTrailingSlash,
   entryToAliasRedirectViewModel,
   entryToNoteViewModel,
   filterPublishable,
   type AliasRedirectEntry,
   type NoteEntry,
 } from '../lib/viewModels.ts';
+import {
+  buildFolderIndexViewModel,
+  buildFolderTree,
+  walkFolders,
+} from '../lib/folderAggregation.ts';
+import {
+  assertNoAliasCollisions,
+  assertNoFolderCollisions,
+} from '../lib/routeCollisions.ts';
 import '../styles/global.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -33,28 +49,50 @@ export const getStaticPaths: GetStaticPaths = async () => {
   // (step 1) and `buildAliasRedirects` filters its own duplicates (step 0).
   // Re-checking here turns any future regression that lets two routes claim
   // the same slug into a build-time failure with a precise message rather
-  // than Astro's generic duplicate-route error.
-  const claimed = new Set(noteRoutes.map((r) => r.params.slug));
-  for (const alias of aliasEntries) {
-    if (claimed.has(alias.id)) {
-      throw new Error(
-        `[...slug] route collision: alias '${alias.id}' (→ '${alias.data.to}') ` +
-          `would overwrite a note slug. Resolve in vault frontmatter before building.`,
-      );
-    }
-    claimed.add(alias.id);
-  }
+  // than Astro's generic duplicate-route error. Folder-index routes (v0.3)
+  // share the same `claimed` set so a `posts/` folder colliding with a
+  // `posts` note or `posts` alias fails build-time with a parallel message.
+  const noteSlugs = new Set(noteRoutes.map((r) => r.params.slug));
+  assertNoAliasCollisions(
+    noteSlugs,
+    aliasEntries.map((a) => ({ slug: a.id, to: a.data.to })),
+  );
+  const claimed = new Set(noteSlugs);
+  for (const alias of aliasEntries) claimed.add(alias.id);
 
   const aliasRoutes = aliasEntries.map((entry) => ({
     params: { slug: entry.id },
     props: {
       kind: 'alias-redirect' as const,
       entry,
-      to: `/${entry.data.to}`,
+      to: ensureTrailingSlash(`/${entry.data.to}`),
     },
   }));
 
-  return [...noteRoutes, ...aliasRoutes];
+  // Folder-index routes (v0.3). The folder tree is built from the same
+  // `publishable` set the note routes use — privacy filtering happens once
+  // upstream, never re-derived here. Root folder (path '') is excluded; that
+  // URL is owned by `apps/blog/src/pages/index.astro`.
+  const tree = buildFolderTree(publishable);
+  const folderRoutes: Array<{
+    params: { slug: string };
+    props: { kind: 'folder-index'; viewModel: FolderIndexViewModel };
+  }> = [];
+  for (const folder of walkFolders(tree)) {
+    const viewModel = buildFolderIndexViewModel(tree, folder.path);
+    if (viewModel === null) continue;
+    folderRoutes.push({
+      params: { slug: folder.path },
+      props: { kind: 'folder-index', viewModel },
+    });
+  }
+
+  assertNoFolderCollisions(
+    claimed,
+    folderRoutes.map((f) => ({ slug: f.params.slug })),
+  );
+
+  return [...noteRoutes, ...aliasRoutes, ...folderRoutes];
 };
 
 type Props =
@@ -67,11 +105,15 @@ type Props =
       kind: 'alias-redirect';
       entry: AliasRedirectEntry;
       to: string;
+    }
+  | {
+      kind: 'folder-index';
+      viewModel: FolderIndexViewModel;
     };
 
 const props = Astro.props as Props;
 
-// Single invariant for both branches: canonical URLs require an origin, and
+// Single invariant for all branches: canonical URLs require an origin, and
 // `obsidian-blog.config.ts` mandates `site.url`. Surfacing the missing-config
 // case here as a build-time throw beats either silently falling back (alias
 // branch's old behaviour) or throwing deeper inside `new URL()` with a less
@@ -91,16 +133,26 @@ let noteCanonical: string | undefined;
 let aliasTo: string | null = null;
 let aliasCanonical: string | undefined;
 
+let folderCanonical: string | undefined;
+let folderTitle: string | undefined;
+
 if (props.kind === 'note') {
   const html = props.entry.rendered?.html ?? '';
   renderedNote = entryToNoteViewModel(props.entry, html);
   backlinks = buildBacklinksViewModel(props.entry, props.titleBySlug);
-  noteCanonical = new URL(Astro.url.pathname, siteOrigin).toString();
-} else {
+  noteCanonical = ensureTrailingSlash(
+    new URL(Astro.url.pathname, siteOrigin).toString(),
+  );
+} else if (props.kind === 'alias-redirect') {
   const absoluteTo = new URL(props.to, siteOrigin).toString();
   const vm = entryToAliasRedirectViewModel(props.entry, absoluteTo);
   aliasTo = vm.to;
   aliasCanonical = vm.canonicalUrl;
+} else {
+  folderCanonical = ensureTrailingSlash(
+    new URL(Astro.url.pathname, siteOrigin).toString(),
+  );
+  folderTitle = props.viewModel.folderName;
 }
 ---
 {props.kind === 'alias-redirect' ? (
@@ -111,9 +163,18 @@ if (props.kind === 'note') {
     siteName={obpubConfig.site.title}
   >
     <Fragment slot="head">
-      <meta http-equiv="refresh" content={`0; url=${aliasTo}`} />
+      <meta http-equiv="refresh" content={`0; url=${ensureTrailingSlash(aliasTo!)}`} />
     </Fragment>
     <p>이 페이지는 <a href={aliasTo}>여기</a>로 이동되었습니다.</p>
+  </BaseLayout>
+) : props.kind === 'folder-index' ? (
+  <BaseLayout
+    title={folderTitle!}
+    canonicalUrl={folderCanonical}
+    ogType="website"
+    siteName={obpubConfig.site.title}
+  >
+    <FolderIndex view={props.viewModel} />
   </BaseLayout>
 ) : (
   <BaseLayout

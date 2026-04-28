@@ -2,10 +2,13 @@
 import { BaseLayout, Graph as GraphView, type GraphViewModel } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import { getPipelineResult } from '../lib/pipelineCache.ts';
+import { ensureTrailingSlash } from '../lib/viewModels.ts';
 import '../styles/global.css';
 
 const result = await getPipelineResult();
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const canonicalUrl = ensureTrailingSlash(
+  new URL(Astro.url.pathname, Astro.site).toString(),
+);
 
 function lastSegment(slug: string): string {
   const i = slug.lastIndexOf('/');

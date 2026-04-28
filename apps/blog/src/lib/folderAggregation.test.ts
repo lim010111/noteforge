@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildFolderTree } from './folderAggregation.ts';
+import {
+  buildFolderIndexViewModel,
+  buildFolderTree,
+  walkFolders,
+} from './folderAggregation.ts';
 import type { NoteEntry } from './viewModels.ts';
 
 interface NoteEntryDataInput {
@@ -221,5 +225,100 @@ describe('buildFolderTree — title fallback', () => {
     // but at minimum it must be a non-empty string and stable.
     expect(typeof note.title).toBe('string');
     expect(note.title.length).toBeGreaterThan(0);
+  });
+});
+
+describe('walkFolders', () => {
+  it('yields every non-root folder, depth-first', () => {
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/agents', { title: 'agents' }),
+      makeEntry('AI/Gemini/notes', { title: 'notes' }),
+      makeEntry('DB/postgres', { title: 'pg' }),
+    ]);
+    const paths = [...walkFolders(tree)].map((n) => n.path);
+    expect(paths).toEqual([
+      'AI',
+      'AI/Claude',
+      'AI/Gemini',
+      'DB',
+    ]);
+  });
+
+  it('yields nothing for an empty tree', () => {
+    expect([...walkFolders(buildFolderTree([]))]).toEqual([]);
+  });
+});
+
+describe('buildFolderIndexViewModel', () => {
+  it('returns null for paths that do not exist in the tree', () => {
+    const tree = buildFolderTree([makeEntry('posts/foo', { title: 'foo' })]);
+    expect(buildFolderIndexViewModel(tree, 'missing')).toBeNull();
+  });
+
+  it('builds breadcrumb root → leaf with trailing-slash hrefs', () => {
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/opus', { title: 'opus' }),
+    ]);
+    const vm = buildFolderIndexViewModel(tree, 'AI/Claude');
+    expect(vm).not.toBeNull();
+    expect(vm!.folderName).toBe('Claude');
+    expect(vm!.folderPath).toBe('AI/Claude');
+    expect(vm!.breadcrumb).toEqual([
+      { label: 'home', href: '/' },
+      { label: 'AI', href: '/AI/' },
+      { label: 'Claude', href: '/AI/Claude/' },
+    ]);
+  });
+
+  it('aggregates child folder note counts recursively', () => {
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/a', { title: 'a' }),
+      makeEntry('AI/Claude/b', { title: 'b' }),
+      makeEntry('AI/Gemini/x', { title: 'x' }),
+    ]);
+    const vm = buildFolderIndexViewModel(tree, 'AI');
+    expect(vm).not.toBeNull();
+    expect(vm!.childFolders).toEqual([
+      { name: 'Claude', href: '/AI/Claude/', noteCount: 2 },
+      { name: 'Gemini', href: '/AI/Gemini/', noteCount: 1 },
+    ]);
+    expect(vm!.childNotes).toEqual([]);
+  });
+
+  it('emits child note hrefs with trailing slash', () => {
+    const tree = buildFolderTree([
+      makeEntry('posts/foo', { title: 'Foo' }),
+      makeEntry('posts/bar', { title: 'Bar' }),
+    ]);
+    const vm = buildFolderIndexViewModel(tree, 'posts');
+    expect(vm!.childNotes).toEqual([
+      { title: 'Bar', href: '/posts/bar/' },
+      { title: 'Foo', href: '/posts/foo/' },
+    ]);
+  });
+
+  it('assigns categorySlot to depth-0 folder via the FNV-1a slot mapper', () => {
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/x', { title: 'x' }),
+    ]);
+    const aiVm = buildFolderIndexViewModel(tree, 'AI');
+    expect(aiVm!.categorySlot).toBeDefined();
+    expect([1, 2, 3, 4, 5]).toContain(aiVm!.categorySlot);
+    // Deep folder still mirrors the depth-0 slot (first segment).
+    const deepVm = buildFolderIndexViewModel(tree, 'AI/Claude');
+    expect(deepVm!.categorySlot).toBe(aiVm!.categorySlot);
+  });
+
+  it('renders an empty viewmodel for a folder containing nothing visible', () => {
+    // We can't directly construct a public-but-empty folder via the public API;
+    // but a folder with only sub-folders is the same shape and is the more
+    // realistic path. childNotes empty + childFolders non-empty is the
+    // observable expectation here.
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/x', { title: 'x' }),
+    ]);
+    const vm = buildFolderIndexViewModel(tree, 'AI');
+    expect(vm!.childNotes).toEqual([]);
+    expect(vm!.childFolders.length).toBeGreaterThan(0);
   });
 });

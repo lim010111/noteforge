@@ -1,4 +1,15 @@
-import type { FolderNode } from '@noteforge/theme-default';
+import type {
+  FolderIndexViewModel,
+  FolderNode,
+} from '@noteforge/theme-default';
+// Deep-import the slot helper so value-level resolution does not pull in the
+// barrel's `.astro` re-exports (Vitest's default project lacks the Astro Vite
+// plugin needed to parse `.astro`). Type-only imports from the barrel above
+// are erased at compile time and remain safe.
+import {
+  CATEGORY_ACCENT_SLOT_COUNT,
+  pickCategoryAccentSlot,
+} from '@noteforge/theme-default/lib/categoryAccent.ts';
 import type { NoteEntry } from './viewModels.ts';
 
 function asString(v: unknown): string | undefined {
@@ -80,4 +91,93 @@ export function buildFolderTree(
 
   sortTree(root);
   return root;
+}
+
+function countNotesRecursive(node: FolderNode): number {
+  let n = node.notes.length;
+  for (const child of node.children) n += countNotesRecursive(child);
+  return n;
+}
+
+function findFolderByPath(
+  root: FolderNode,
+  path: string,
+): FolderNode | null {
+  if (path === '') return root;
+  const segments = path.split('/');
+  let cursor: FolderNode = root;
+  for (const seg of segments) {
+    const next = cursor.children.find((c) => c.name === seg);
+    if (next === undefined) return null;
+    cursor = next;
+  }
+  return cursor;
+}
+
+/**
+ * Walk a folder tree and yield every non-root folder node. Used by the
+ * routing layer to materialise one folder-index route per folder.
+ */
+export function* walkFolders(root: FolderNode): Generator<FolderNode> {
+  for (const child of root.children) {
+    yield child;
+    yield* walkFolders(child);
+  }
+}
+
+/**
+ * Build a `<FolderIndex />` view-model for a single folder path.
+ *
+ * Pure function — no privacy/Astro access. Caller passes the already-built
+ * tree and the folder path to render. Empty children/notes are reflected in
+ * the empty arrays; the component decides empty-state copy.
+ *
+ * `categorySlot` is computed for the *first* path segment (depth 0) using the
+ * same FNV-1a slot mapping as `FolderTree`. Returns `null` if the folder is
+ * not found in the tree (caller should treat this as a programmer error —
+ * the routing layer only emits routes for folders that exist in the tree).
+ */
+export function buildFolderIndexViewModel(
+  root: FolderNode,
+  folderPath: string,
+): FolderIndexViewModel | null {
+  const node = findFolderByPath(root, folderPath);
+  if (node === null) return null;
+
+  const segments = folderPath.length === 0 ? [] : folderPath.split('/');
+  const breadcrumb: FolderIndexViewModel['breadcrumb'] = [
+    { label: 'home', href: '/' },
+  ];
+  for (let i = 0; i < segments.length; i++) {
+    const subPath = segments.slice(0, i + 1).join('/');
+    breadcrumb.push({ label: segments[i]!, href: `/${subPath}/` });
+  }
+
+  const childFolders = node.children.map((child) => ({
+    name: child.name,
+    href: `/${child.path}/`,
+    noteCount: countNotesRecursive(child),
+  }));
+  const childNotes = node.notes.map((n) => ({
+    title: n.title,
+    href: `/${n.slug}/`,
+  }));
+
+  const vm: FolderIndexViewModel = {
+    folderName: node.name,
+    folderPath: node.path,
+    breadcrumb,
+    childFolders,
+    childNotes,
+  };
+
+  const firstSegment = segments[0];
+  if (firstSegment !== undefined) {
+    const slot = pickCategoryAccentSlot(firstSegment, CATEGORY_ACCENT_SLOT_COUNT);
+    if (slot !== null) {
+      vm.categorySlot = slot as 1 | 2 | 3 | 4 | 5;
+    }
+  }
+
+  return vm;
 }

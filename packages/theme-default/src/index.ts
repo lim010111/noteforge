@@ -47,3 +47,11 @@ export {
   pickCategoryAccentSlot,
   CATEGORY_ACCENT_SLOT_COUNT,
 } from './lib/categoryAccent.ts';
+export { default as FolderIndex } from './components/FolderIndex.astro';
+export type {
+  FolderIndexProps,
+  FolderIndexViewModel,
+  FolderIndexBreadcrumbSegment,
+  FolderIndexChildFolder,
+  FolderIndexChildNote,
+} from './components/FolderIndex.types.ts';

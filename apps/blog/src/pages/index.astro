@@ -2,16 +2,18 @@
 import { getCollection } from 'astro:content';
 import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
-import { filterPublishable, sortForHome } from '../lib/viewModels.ts';
+import { ensureTrailingSlash, filterPublishable, sortForHome } from '../lib/viewModels.ts';
 import '../styles/global.css';
 
 const all = await getCollection('notes');
 const sorted = sortForHome(filterPublishable(all));
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const canonicalUrl = ensureTrailingSlash(
+  new URL(Astro.url.pathname, Astro.site).toString(),
+);
 const items: NoteListEntry[] = sorted.map((entry) => {
   const dateRaw = entry.data.frontmatter['date'];
   const item: NoteListEntry = {
-    href: `/${entry.id}`,
+    href: `/${entry.id}/`,
     title: entry.data.title ?? entry.id,
   };
   if (typeof dateRaw === 'string') item.date = dateRaw;
