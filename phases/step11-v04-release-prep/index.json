@@ -7,7 +7,7 @@
       "name": "commit-split-4",
       "status": "completed",
       "started_at": "2026-04-29T20:44:31+0900",
-      "completed_at": "2026-04-29T20:46:34+0900",
+      "completed_at": "2026-04-29T20:48:02+0900",
       "summary": "5커밋 분리 (docs/plan + feat/core + feat/theme + feat/blog-pages + feat/blog-envvar), 27 파일, +1384/-58"
     },
     {
