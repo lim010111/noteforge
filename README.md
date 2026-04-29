@@ -51,8 +51,10 @@ git clone <this-repo> my-blog && cd my-blog
 # 2. 의존성 설치
 pnpm install
 
-# 3. vault 경로 설정
-# apps/blog/obsidian-blog.config.ts 편집 → vaults[0].path에 Obsidian vault 절대경로 입력
+# 3. vault 경로 설정 (.env 파일)
+cp .env.example .env
+# `.env`를 열어 OBPUB_VAULT_PATH= 뒤에 본인 Obsidian vault 절대 경로를 입력
+# 예: OBPUB_VAULT_PATH=/Users/you/Documents/Obsidian
 
 # 4. 개발 서버
 pnpm --filter blog dev  # http://localhost:4321
@@ -66,7 +68,7 @@ pnpm --filter blog build
 
 v0.1은 **Cloudflare Pages**(Direct Upload 방식)를 정식 지원합니다. 상세 절차는 [docs/DEPLOY.md](./docs/DEPLOY.md).
 
-기본 도메인은 `https://noteforge.pages.dev`이며, fork 후 가장 먼저 편집할 파일은 `apps/blog/obsidian-blog.config.ts`의 `vaults[0].path`입니다(자기 머신의 Obsidian vault 절대경로). 이 경로는 GitHub Actions runner에 존재하지 않으므로 빌드는 항상 자기 머신에서 실행하고, `wrangler pages deploy apps/blog/dist`로 업로드합니다.
+기본 도메인은 `https://noteforge.pages.dev`이며, fork 후 가장 먼저 할 일은 저장소 루트에 `.env`를 만들어 `OBPUB_VAULT_PATH`에 자기 머신의 Obsidian vault 절대 경로를 적는 것입니다(빠른 시작 §3). 이 경로는 GitHub Actions runner에 존재하지 않으므로 빌드는 항상 자기 머신에서 실행하고, `wrangler pages deploy apps/blog/dist`로 업로드합니다.
 
 Vercel/Netlify는 정적 출력이라 가능하지만 v0.1에서는 미문서화. v0.2 검토.
 
