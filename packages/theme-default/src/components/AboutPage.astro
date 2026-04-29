@@ -1,0 +1,108 @@
+---
+/**
+ * About — editorial portrait at `/about/`.
+ *
+ * Layout intent (editorial-technical):
+ *   - Masthead: mono "About" kicker + serif page title (constant copy).
+ *   - Identity block: 160px editorial avatar + nickname/author. Renders nothing
+ *     for the avatar slot when `identity.avatar` is missing — empty placeholder
+ *     would itself disclose "this site has an author who chose not to set one"
+ *     (mirrors AvatarBlock's privacy contract).
+ *   - Headline: serif pull-quote, hairline divider above.
+ *   - Social: opt-in icons via the shared `<SocialLinks />` component.
+ *   - Bio: serif body paragraphs at prose measure.
+ *   - Highlights: mono-uppercase chips reusing the `tag-chip` family.
+ *
+ * Why not `<AvatarBlock />` (intentional deviation from plan §3):
+ *   AvatarBlock is the 64px sidebar identity slot — fixed dimensions, inline
+ *   nickname caption, no surrounding identity-text column. The About surface
+ *   wants a 160px portrait paired with a separate text column (Real name /
+ *   headline / social). Forcing AvatarBlock to handle both would mean a
+ *   `size` prop and conditional layout, which is more surface area than two
+ *   small `<img>`s. The privacy contract (omit when avatar absent) is the
+ *   load-bearing piece, and that is faithfully replicated here.
+ *
+ * Privacy contract: the page does not read vault notes. All content comes
+ * from `obsidian-blog.config.ts`, which the user controls explicitly. The
+ * frontmatter allowlist is therefore irrelevant to this surface.
+ */
+import type { AboutPageProps } from "./AboutPage.types";
+import SocialLinks from "./SocialLinks.astro";
+
+const { identity, about } = Astro.props as AboutPageProps;
+const avatarAlt =
+  typeof identity.nickname === "string" && identity.nickname.length > 0
+    ? identity.nickname
+    : identity.author;
+const displayName =
+  typeof identity.nickname === "string" && identity.nickname.length > 0
+    ? identity.nickname
+    : identity.author;
+const hasAvatar =
+  typeof identity.avatar === "string" && identity.avatar.length > 0;
+const headline = about?.headline;
+const bio = about?.bio ?? [];
+const highlights = about?.highlights ?? [];
+const social = identity.social ?? {};
+const hasSocial =
+  (typeof social.github === "string" && social.github.length > 0) ||
+  (typeof social.email === "string" && social.email.length > 0);
+---
+<article class="about-page">
+  <header class="about-page__masthead">
+    <p class="about-page__kicker">About</p>
+    <h1 class="about-page__title">{displayName}</h1>
+  </header>
+
+  <section class="about-page__identity">
+    {hasAvatar && (
+      <img
+        class="about-page__avatar"
+        src={identity.avatar}
+        alt={avatarAlt}
+        width="160"
+        height="160"
+        loading="eager"
+        decoding="async"
+      />
+    )}
+    <div class="about-page__identity-text">
+      {identity.nickname !== undefined && identity.nickname !== identity.author && (
+        <p class="about-page__byline">
+          <span class="about-page__byline-label">Real name</span>
+          <span class="about-page__byline-value">{identity.author}</span>
+        </p>
+      )}
+      {headline !== undefined && (
+        <p class="about-page__headline">{headline}</p>
+      )}
+      {hasSocial && (
+        <div class="about-page__social">
+          <SocialLinks {...social} />
+        </div>
+      )}
+    </div>
+  </section>
+
+  {bio.length > 0 && (
+    <section class="about-page__bio" aria-labelledby="about-bio-label">
+      <p class="about-page__section-label" id="about-bio-label">Bio</p>
+      <div class="about-page__bio-body">
+        {bio.map((paragraph) => (
+          <p class="about-page__bio-paragraph">{paragraph}</p>
+        ))}
+      </div>
+    </section>
+  )}
+
+  {highlights.length > 0 && (
+    <section class="about-page__highlights" aria-labelledby="about-highlights-label">
+      <p class="about-page__section-label" id="about-highlights-label">Highlights</p>
+      <ul class="about-page__chips" role="list">
+        {highlights.map((item) => (
+          <li class="about-page__chip">{item}</li>
+        ))}
+      </ul>
+    </section>
+  )}
+</article>

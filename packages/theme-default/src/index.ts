@@ -43,6 +43,8 @@ export { default as AvatarBlock } from './components/AvatarBlock.astro';
 export type { AvatarBlockProps } from './components/AvatarBlock.types.ts';
 export { default as FolderTree } from './components/FolderTree.astro';
 export type { FolderTreeProps } from './components/FolderTree.types.ts';
+export { default as SocialLinks } from './components/SocialLinks.astro';
+export type { SocialLinksProps } from './components/SocialLinks.types.ts';
 export {
   pickCategoryAccentSlot,
   CATEGORY_ACCENT_SLOT_COUNT,
@@ -55,3 +57,15 @@ export type {
   FolderIndexChildFolder,
   FolderIndexChildNote,
 } from './components/FolderIndex.types.ts';
+export { default as CategoryOverview } from './components/CategoryOverview.astro';
+export type {
+  CategoryOverviewProps,
+  CategoryOverviewSection,
+  CategoryOverviewNote,
+} from './components/CategoryOverview.types.ts';
+export { default as AboutPage } from './components/AboutPage.astro';
+export type {
+  AboutPageProps,
+  AboutIdentity,
+  AboutContent,
+} from './components/AboutPage.types.ts';
