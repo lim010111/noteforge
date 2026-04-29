@@ -39,7 +39,7 @@
       "name": "changelog-and-tag-prep",
       "status": "completed",
       "started_at": "2026-04-29T20:54:37+0900",
-      "completed_at": "2026-04-29T20:56:30+0900",
+      "completed_at": "2026-04-29T20:56:21+0900",
       "summary": "CHANGELOG [0.4.0] - 2026-04-29 엔트리 + reference link 추가. 사용자 수동 액션: 1) git tag -a v0.4.0 -m \"v0.4.0 — nav swap + Categories/About + site.about\" && git push origin v0.4.0 2) GitHub Release notes 작성 (CHANGELOG.md [0.4.0] 인용 + 'Next' 단락에 후속 트랙 항목 직접 명기) 3) dogfood 스크린샷 docs/screenshots/dogfood-v0.4-{light,dark}.png 캡처 4) (선택) v0.2.0 / v0.3.0 누락 태그 백필 여부 결정 — 백필하려면 CHANGELOG 날짜 기준 기존 커밋에 lightweight tag (예: git tag v0.3.0 ba928d0)"
     }
   ],
