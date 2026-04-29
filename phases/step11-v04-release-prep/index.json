@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "readme-deploy-section",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-29T20:49:57+0900",
+      "completed_at": "2026-04-29T20:53:00+0900",
+      "summary": "README 배포 섹션 교체: 정책 한 줄 + 2행 표(Cloudflare 권장/GitHub Pages 대안) + Vercel/Netlify 1줄 + DEPLOY.md §9 cross-link 3개, +10/-1 라인"
     },
     {
       "step": 3,
