@@ -1,0 +1,117 @@
+---
+/**
+ * Categories overview — shown at `/categories/`.
+ *
+ * Each section is a top-level vault folder; its `notes[]` is the flattened
+ * descendants list, pre-sorted by the caller (date desc → href asc, mirroring
+ * `entriesForTag`). Top-level segments map deterministically to one of the
+ * `--color-accent-cat-1..N` token slots via the shared FNV-1a helper, so the
+ * dot before each heading matches the colour the same folder gets in the
+ * sidebar's `<FolderTree />`.
+ *
+ * Privacy contract: this component renders verbatim. The caller has already
+ * passed `filterPublishable` output through `buildFolderTree` and
+ * `buildCategoryOverviewSections`; nothing here re-derives privacy.
+ *
+ * Empty bucket handling: a section with `notes.length === 0` would mean a
+ * folder shaped purely by sub-folders that themselves are all empty — in
+ * practice this cannot happen because `buildFolderTree` only creates folder
+ * nodes when a publishable note lives inside. We still render a concise
+ * "비어 있음" line for symmetry with the rest of the UI.
+ */
+import type { CategoryOverviewProps } from "./CategoryOverview.types";
+import { pickCategoryAccentSlot } from "../lib/categoryAccent";
+
+const { sections, emptyMessage, slotCount } = Astro.props as CategoryOverviewProps;
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+---
+{sections.length === 0 ? (
+  <p class="category-overview__empty">{emptyMessage}</p>
+) : (
+  <div class="category-overview">
+    <header class="category-overview__masthead">
+      <p class="category-overview__kicker">Index</p>
+      <h1 class="category-overview__title">Categories</h1>
+      <p class="category-overview__lede">
+        Top-level folders from the vault. Each section flattens its descendants
+        chronologically — newest first.
+      </p>
+    </header>
+    <div class="category-overview__sections">
+      {sections.map((section, idx) => {
+        const slot =
+          section.name === 'Uncategorized'
+            ? null
+            : pickCategoryAccentSlot(section.name, slotCount);
+        const dotStyle =
+          slot === null
+            ? 'background-color: var(--color-text-faded)'
+            : `background-color: var(--color-accent-cat-${slot})`;
+        const count = section.notes.length;
+        return (
+          <section
+            class="category-overview__section"
+            aria-labelledby={`cat-${idx}`}
+          >
+            <div class="category-overview__section-head">
+              <span class="category-overview__index" aria-hidden="true">
+                {pad2(idx + 1)}
+              </span>
+              <span
+                class="category-overview__dot"
+                style={dotStyle}
+                aria-hidden="true"
+              />
+              <h2 id={`cat-${idx}`} class="category-overview__name">
+                {section.href !== undefined ? (
+                  <a class="category-overview__name-link" href={section.href}>
+                    {section.name}
+                  </a>
+                ) : (
+                  section.name
+                )}
+              </h2>
+              <span class="category-overview__count">
+                {count}{" "}
+                <span class="category-overview__count-label">
+                  {count === 1 ? 'note' : 'notes'}
+                </span>
+              </span>
+            </div>
+            {count === 0 ? (
+              <p class="category-overview__section-empty">비어 있음</p>
+            ) : (
+              <ul class="category-overview__list" role="list">
+                {section.notes.map((note) => (
+                  <li class="category-overview__item">
+                    <a class="category-overview__row" href={note.href}>
+                      {note.date !== undefined ? (
+                        <time
+                          datetime={note.date}
+                          class="category-overview__date"
+                        >
+                          {note.date}
+                        </time>
+                      ) : (
+                        <span
+                          class="category-overview__date category-overview__date--missing"
+                          aria-hidden="true"
+                        >
+                          ——
+                        </span>
+                      )}
+                      <span class="category-overview__row-title">{note.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  </div>
+)}

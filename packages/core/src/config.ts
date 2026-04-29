@@ -43,6 +43,25 @@ const vaultSchema = z.object({
   ignore: z.array(z.string()).default([]),
 });
 
+const socialSchema = z
+  .object({
+    github: z.string().url('유효한 URL이어야 합니다').optional(),
+    email: z.string().email('유효한 이메일 주소여야 합니다').optional(),
+  })
+  .optional();
+
+const aboutSchema = z
+  .object({
+    headline: z.string().min(1, '빈 문자열은 허용되지 않습니다').optional(),
+    bio: z
+      .array(z.string().min(1, '빈 문자열은 허용되지 않습니다'))
+      .default([]),
+    highlights: z
+      .array(z.string().min(1, '빈 문자열은 허용되지 않습니다'))
+      .default([]),
+  })
+  .optional();
+
 const siteSchema = z.object({
   title: z.string().min(1, '빈 문자열은 허용되지 않습니다'),
   url: z.string().url('유효한 URL이어야 합니다'),
@@ -56,6 +75,8 @@ const siteSchema = z.object({
     )
     .optional(),
   nickname: z.string().min(1, '빈 문자열은 허용되지 않습니다').optional(),
+  social: socialSchema,
+  about: aboutSchema,
 });
 
 const publishingSchema = z

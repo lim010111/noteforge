@@ -7,9 +7,17 @@
  *     the standard tree role mandates arrow-key handlers we deliberately do
  *     not ship (static-only, JS bundle 0). Tab + Enter/Space on <summary> is
  *     the entire keyboard contract.
- *   - Each folder: `<li><details>...<summary>chevron</summary><a>name</a><ul>kids</ul></details></li>`
- *     — chevron and folder-name are **separate hit zones**. Toggling does not
- *     navigate; navigating does not toggle.
+ *   - Each folder: `<li><details><summary>chevron + <a>name</a></summary><ul>kids</ul></details></li>`
+ *     — the folder-name link lives **inside** <summary> so it stays visible
+ *     when the folder is collapsed (browsers hide non-summary children of a
+ *     closed <details>). On a plain left-click the page navigates away, so the
+ *     bubble-up <details> toggle has no observable effect. On Cmd/Ctrl-click,
+ *     middle-click, or right-click → open-in-new-tab the current tab does not
+ *     navigate, so the <details> *will* toggle in place; this is recoverable
+ *     because `open={open}` is derived from `currentSlug` and the next page
+ *     load (or a refresh) restores the canonical open-state. JS-less by design,
+ *     so we accept that small flicker over a one-line `event.stopPropagation`.
+ *     Clicking the chevron / empty summary area toggles open state directly.
  *   - Each note: `<li class="...--leaf"><a href="/<slug>/">title</a></li>`
  *     (trailing slash per ADR-012).
  *   - Empty root (`children`+`notes` both 0) → component renders nothing
@@ -96,6 +104,7 @@ function dotSlot(folderPath: string): number | null {
 ---
 {!isBranch && !isEmpty && (
   <nav class="folder-tree" aria-label="Folder tree">
+    <h2 class="folder-tree__heading">Categories</h2>
     <ul class="folder-tree__list">
       {node.children.map((child) => {
         const slot = dotSlot(child.path);
@@ -106,22 +115,21 @@ function dotSlot(folderPath: string): number | null {
             <details class="folder-tree__details" open={open}>
               <summary class="folder-tree__summary">
                 <span class="folder-tree__chevron" aria-hidden="true">▸</span>
-                <span class="sr-only">{child.name} 펼치기/접기</span>
+                {slot !== null && (
+                  <span
+                    class="folder-tree__dot"
+                    aria-hidden="true"
+                    style={`background-color: var(--color-accent-cat-${slot})`}
+                  />
+                )}
+                <a
+                  class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                  href={`/${child.path}/`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {child.name}
+                </a>
               </summary>
-              {slot !== null && (
-                <span
-                  class="folder-tree__dot"
-                  aria-hidden="true"
-                  style={`background-color: var(--color-accent-cat-${slot})`}
-                />
-              )}
-              <a
-                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
-                href={`/${child.path}/`}
-                aria-current={active ? "page" : undefined}
-              >
-                {child.name}
-              </a>
               <Astro.self
                 root={props.root}
                 slotCount={slotCount}
@@ -162,22 +170,21 @@ function dotSlot(folderPath: string): number | null {
           <details class="folder-tree__details" open={open}>
             <summary class="folder-tree__summary">
               <span class="folder-tree__chevron" aria-hidden="true">▸</span>
-              <span class="sr-only">{child.name} 펼치기/접기</span>
+              {slot !== null && (
+                <span
+                  class="folder-tree__dot"
+                  aria-hidden="true"
+                  style={`background-color: var(--color-accent-cat-${slot})`}
+                />
+              )}
+              <a
+                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                href={`/${child.path}/`}
+                aria-current={active ? "page" : undefined}
+              >
+                {child.name}
+              </a>
             </summary>
-            {slot !== null && (
-              <span
-                class="folder-tree__dot"
-                aria-hidden="true"
-                style={`background-color: var(--color-accent-cat-${slot})`}
-              />
-            )}
-            <a
-              class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
-              href={`/${child.path}/`}
-              aria-current={active ? "page" : undefined}
-            >
-              {child.name}
-            </a>
             <Astro.self
               root={props.root}
               slotCount={slotCount}

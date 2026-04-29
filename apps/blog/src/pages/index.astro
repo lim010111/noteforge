@@ -35,7 +35,7 @@ const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
 ---
-<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
+<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
   <section aria-labelledby="recent-heading">
     <h2 id="recent-heading">Recent</h2>
     <NoteList entries={recentItems} emptyMessage="아직 공개된 글이 없습니다." />

@@ -1,0 +1,52 @@
+---
+import { getCollection } from 'astro:content';
+import {
+  BaseLayout,
+  CategoryOverview,
+  CATEGORY_ACCENT_SLOT_COUNT,
+  type CategoryOverviewSection,
+} from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
+import {
+  ensureTrailingSlash,
+  filterPublishable,
+  type NoteEntry,
+} from '../lib/viewModels.ts';
+import { buildFolderTree } from '../lib/folderAggregation.ts';
+import { buildCategoryOverviewSections } from '../lib/categoryOverviewPayload.ts';
+import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
+import '../styles/global.css';
+
+const all = await getCollection('notes');
+const publishable = filterPublishable(all);
+const tree = buildFolderTree(publishable);
+
+const dateBySlug = new Map<string, string>();
+for (const entry of publishable as readonly NoteEntry[]) {
+  const raw = entry.data.frontmatter['date'];
+  if (typeof raw === 'string') dateBySlug.set(entry.id, raw);
+}
+
+const sections: CategoryOverviewSection[] = buildCategoryOverviewSections(
+  tree,
+  dateBySlug,
+);
+const sidebar = buildSidebarPayload(all);
+const canonicalUrl = ensureTrailingSlash(
+  new URL(Astro.url.pathname, Astro.site).toString(),
+);
+---
+<BaseLayout
+  title="Categories"
+  canonicalUrl={canonicalUrl}
+  ogType="website"
+  siteName={obpubConfig.site.title}
+  sidebar={sidebar}
+  social={obpubConfig.site.social}
+>
+  <CategoryOverview
+    sections={sections}
+    emptyMessage="아직 공개된 글이 없습니다."
+    slotCount={CATEGORY_ACCENT_SLOT_COUNT}
+  />
+</BaseLayout>

@@ -1,0 +1,49 @@
+---
+import { getCollection } from 'astro:content';
+import {
+  AboutPage,
+  BaseLayout,
+  type AboutContent,
+  type AboutIdentity,
+} from '@noteforge/theme-default';
+import obpubConfig from '../../obsidian-blog.config.ts';
+import { ensureTrailingSlash } from '../lib/viewModels.ts';
+import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
+import '../styles/global.css';
+
+const identity: AboutIdentity = { author: obpubConfig.site.author };
+if (obpubConfig.site.nickname !== undefined) {
+  identity.nickname = obpubConfig.site.nickname;
+}
+if (obpubConfig.site.avatar !== undefined) {
+  identity.avatar = obpubConfig.site.avatar;
+}
+if (obpubConfig.site.social !== undefined) {
+  identity.social = obpubConfig.site.social;
+}
+
+const aboutCfg = obpubConfig.site.about;
+const about: AboutContent | undefined =
+  aboutCfg === undefined
+    ? undefined
+    : {
+        bio: aboutCfg.bio,
+        highlights: aboutCfg.highlights,
+        ...(aboutCfg.headline !== undefined ? { headline: aboutCfg.headline } : {}),
+      };
+
+const sidebar = buildSidebarPayload(await getCollection('notes'));
+const canonicalUrl = ensureTrailingSlash(
+  new URL(Astro.url.pathname, Astro.site).toString(),
+);
+---
+<BaseLayout
+  title="About"
+  canonicalUrl={canonicalUrl}
+  ogType="profile"
+  siteName={obpubConfig.site.title}
+  sidebar={sidebar}
+  social={obpubConfig.site.social}
+>
+  <AboutPage identity={identity} about={about} />
+</BaseLayout>
