@@ -31,7 +31,7 @@
       "name": "deploy-md-other-hosts",
       "status": "completed",
       "started_at": "2026-04-29T20:53:15+0900",
-      "completed_at": "2026-04-29T20:54:30+0900",
+      "completed_at": "2026-04-29T20:54:37+0900",
       "summary": "DEPLOY.md §9 부록 append: 9.1 GitHub Pages / 9.2 Vercel / 9.3 Netlify, §1–8 무수정"
     },
     {
