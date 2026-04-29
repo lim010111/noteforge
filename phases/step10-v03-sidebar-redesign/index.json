@@ -77,10 +77,7 @@
     {
       "step": 9,
       "name": "privacy-tdd-and-fixtures",
-      "status": "error",
-      "started_at": "2026-04-28T23:37:33+0900",
-      "error_message": "[3회 시도 후 실패] Step did not update status",
-      "failed_at": "2026-04-28T23:37:40+0900"
+      "status": "pending"
     },
     {
       "step": 10,
