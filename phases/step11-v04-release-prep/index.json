@@ -1,0 +1,35 @@
+{
+  "project": "Obsidian-Publish-OSS",
+  "phase": "step11-v04-release-prep",
+  "steps": [
+    {
+      "step": 0,
+      "name": "commit-split-4",
+      "status": "completed",
+      "started_at": "2026-04-29T20:44:31+0900",
+      "completed_at": "2026-04-29T20:46:34+0900",
+      "summary": "5커밋 분리 (docs/plan + feat/core + feat/theme + feat/blog-pages + feat/blog-envvar), 27 파일, +1384/-58"
+    },
+    {
+      "step": 1,
+      "name": "verify-build-test-audit",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "readme-deploy-section",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "deploy-md-other-hosts",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "changelog-and-tag-prep",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-29T20:44:31+0900"
+}

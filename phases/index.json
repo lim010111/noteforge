@@ -84,6 +84,10 @@
       "dir": "step10-v03-sidebar-redesign",
       "status": "completed",
       "completed_at": "2026-04-29T14:01:00+0900"
+    },
+    {
+      "dir": "step11-v04-release-prep",
+      "status": "pending"
     }
   ]
 }
