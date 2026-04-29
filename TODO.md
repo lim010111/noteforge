@@ -111,7 +111,7 @@ v0.1의 미니멀("읽기 우선 · 장식 없음 · SaaS 클리셰 금지") 톤
 - [x] Step 5: backlinks-tags-graph (Backlinks/TagList/Graph 시각 개편)
 - [x] Step 6: dogfood-and-screenshots (apps/blog 시각 검증, audit/typecheck/test 회귀 0; canary 0/0; CHANGELOG/README/TODO 마감. 스크린샷 캡처는 사용자 액션 — 본인 vault에서 노트를 `public: true`로 발행한 뒤 v0.2 dogfood 페이지를 캡처해 `docs/screenshots/`에 추가)
 
-## v0.3 — 사이드바·폴더트리·홈·아이덴티티 개편 (Step 10)
+## v0.3 — 사이드바·폴더트리·홈·아이덴티티 개편 (Step 10) ✅
 
 v0.1 → v0.2를 거친 dogfood 결과, 사용자가 현재 디자인을 "처참하다"고 평가하며 대대적인 프론트엔드 개편을 요청. 참조 와이어프레임은 `main_page.png`(좌측 사이드바 + 아바타/닉네임 + 폴더 트리, 우측 Recent + 커스텀 Post 모음)와 `parent_page.png`(폴더 이름 클릭 시 폴더 인덱스 페이지). 와이어프레임은 구조 참고용이고 시각은 "훨씬 더 컬러풀하고 세련" — v0.3 마일스톤으로 토큰 확장 허용.
 
@@ -127,17 +127,17 @@ privacy 계약(`packages/core/src/privacy/`, `filterPublishable()`, `private/**`
 - 디자인 = v0.3 마일스톤으로 토큰 확장 허용 (보조 accent · 카테고리 accent · surface tier 추가)
 - 폴더 인덱스 URL = `/AI/Claude/` 형태 (`trailingSlash: 'always'` 전환)
 
-- [ ] Step 0: design-direction-v0.3 (frontend-design 스킬 호출 → MOODBOARD/TOKENS/COMPONENTS/ANTIPATTERNS 4종 산출. 코드 변경 0)
-- [ ] Step 1: docs-rewrite-and-backup (`UI_GUIDE.md` → `UI_GUIDE.v0.2.md` 백업 후 v0.3 재작성, ARCHITECTURE에 사이드바·폴더 라우팅 섹션, ADR 2건 추가 — 컬러 확장 + 폴더 라우팅 전략)
-- [ ] Step 2: tokens-and-config-extension (`tokens.css` v0.3 델타 적용 + `siteSchema`에 `avatar?`/`nickname?` 추가 — 외부 호스트 차단 검증 포함, `apps/blog/public/avatar.*` 자산 컨벤션)
-- [ ] Step 3: folder-tree-data-model (TDD) (`apps/blog/src/lib/folderAggregation.ts` `buildFolderTree(entries) → FolderNode`, 7~8 케이스 — 깊이 3·private 부재·draft 제외·정렬 안정성·슬러그 충돌)
-- [ ] Step 4: sidebar-and-avatar-components (`AvatarBlock.astro` + `FolderTree.astro` + `Sidebar.astro` 신규. `<details>` 기반 JS-less 토글, 폴더 이름 링크와 `▶` 토글 영역 분리, ARIA tree role)
-- [ ] Step 5: base-layout-grid-integration (BaseLayout grid 재배치 lg+ `[16rem | 1fr]` / 모바일 단일 컬럼 + 사이드바 드로어. 신규 props `sidebar?: { folderTree, activeSlug?, avatarSrc?, nickname? }`. 펼침 상태 영속화 안 함)
-- [ ] Step 6: folder-index-route-and-collision (`trailingSlash: 'never'` → `'always'` 전환, `[...slug].astro`에 `kind: 'folder-index'` 분기 + alias·노트·폴더 prefix 충돌 빌드 타임 throw, 신규 `FolderIndex.astro`)
-- [ ] Step 7: home-recent-and-featured-rails (홈 두 레일. `selectRecent(n=10)` + `selectFeatured(n=6)` 헬퍼. featured 0개면 레일 전체 숨김 — empty-state 누설 0)
-- [ ] Step 8: wire-sidebar-into-all-routes (`apps/blog/src/lib/sidebarPayload.ts` 헬퍼로 모든 라우트(`[...slug]`, `tags/*`, `graph`, `404`)에 사이드바 props 일괄 주입)
-- [ ] Step 9: privacy-tdd-and-fixtures (`vault-mixed`에 폴더 케이스 4종 추가, 신규 canary `FOLDER_TREE_DO_NOT_LEAK_*` 도입, 폴더-노트 충돌 케이스 e2e)
-- [ ] Step 10: dogfood-screenshots-and-release (typecheck/lint/test/build/audit 모두 통과, CHANGELOG v0.3.0, README에 avatar/nickname 사용법, 스크린샷 캡처는 사용자 액션)
+- [x] Step 0: design-direction-v0.3 (frontend-design 스킬 호출 → MOODBOARD/TOKENS/COMPONENTS/ANTIPATTERNS 4종 산출. 코드 변경 0)
+- [x] Step 1: docs-rewrite-and-backup (`UI_GUIDE.md` → `UI_GUIDE.v0.2.md` 백업 후 v0.3 재작성, ARCHITECTURE에 사이드바·폴더 라우팅 섹션, ADR 2건 추가 — 컬러 확장 + 폴더 라우팅 전략)
+- [x] Step 2: tokens-and-config-extension (`tokens.css` v0.3 델타 적용 + `siteSchema`에 `avatar?`/`nickname?` 추가 — 외부 호스트 차단 검증 포함, `apps/blog/public/avatar.*` 자산 컨벤션)
+- [x] Step 3: folder-tree-data-model (TDD) (`apps/blog/src/lib/folderAggregation.ts` `buildFolderTree(entries) → FolderNode`, 7~8 케이스 — 깊이 3·private 부재·draft 제외·정렬 안정성·슬러그 충돌)
+- [x] Step 4: sidebar-and-avatar-components (`AvatarBlock.astro` + `FolderTree.astro` + `Sidebar.astro` 신규. `<details>` 기반 JS-less 토글, 폴더 이름 링크와 `▶` 토글 영역 분리, ARIA tree role)
+- [x] Step 5: base-layout-grid-integration (BaseLayout grid 재배치 lg+ `[16rem | 1fr]` / 모바일 단일 컬럼 + 사이드바 드로어. 신규 props `sidebar?: { folderTree, activeSlug?, avatarSrc?, nickname? }`. 펼침 상태 영속화 안 함)
+- [x] Step 6: folder-index-route-and-collision (`trailingSlash: 'never'` → `'always'` 전환, `[...slug].astro`에 `kind: 'folder-index'` 분기 + alias·노트·폴더 prefix 충돌 빌드 타임 throw, 신규 `FolderIndex.astro`)
+- [x] Step 7: home-recent-and-featured-rails (홈 두 레일. `selectRecent(n=10)` + `selectFeatured(n=6)` 헬퍼. featured 0개면 레일 전체 숨김 — empty-state 누설 0)
+- [x] Step 8: wire-sidebar-into-all-routes (`apps/blog/src/lib/sidebarPayload.ts` 헬퍼로 모든 라우트(`[...slug]`, `tags/*`, `graph`, `404`)에 사이드바 props 일괄 주입)
+- [x] Step 9: privacy-tdd-and-fixtures (`vault-mixed`에 폴더 케이스 4종 추가, 신규 canary `FOLDER_TREE_DO_NOT_LEAK_*` 도입, 폴더-노트 충돌 케이스 e2e)
+- [x] Step 10: dogfood-screenshots-and-release (typecheck/lint/test/build/audit 모두 통과, CHANGELOG v0.3.0, README에 avatar/nickname 사용법, 스크린샷 캡처는 사용자 액션)
 
 ### v0.3 트리키한 결정 사항 (구현자 참고)
 

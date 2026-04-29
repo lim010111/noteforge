@@ -85,7 +85,10 @@
     {
       "step": 10,
       "name": "dogfood-screenshots-and-release",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-29T13:55:46+0900",
+      "summary": "v0.3.0 릴리스 마감 — typecheck/lint/test/build/audit 5단 그린(602/602 테스트 + 0 lint + 0 typecheck error + audit 0 violations + dist 23 files), 3종 canary dist 0/0/0 (DO_NOT_LEAK_BANANA_6f3c1·CLAUDE_COMMENT_LEAK_77b·FOLDER_TREE_DO_NOT_LEAK_8a4f2), step8 ops 회귀 가드(canonical/og:url 모두 trailing slash) 통과. CHANGELOG.md [0.3.0] - 2026-04-29 (Added/Changed/Privacy·Security/Docs 4 카테고리, release-link 줄 포함) + README.md (avatar/nickname 사용 예시 + trailingSlash 마이그레이션 노트 + v0.3 스크린샷 placeholder + 상태/체크리스트 v0.3.0 갱신) + TODO.md v0.3 11/11 [x] + CLAUDE.md canary 목록 3종으로 갱신. 사용자 액션: dogfood 스크린샷(docs/screenshots/dogfood-v0.3-{light,dark}.png) + git tag v0.3.0 push + wrangler pages deploy apps/blog/dist.",
+      "completed_at": "2026-04-29T14:00:18+0900"
     }
   ],
   "created_at": "2026-04-28T21:59:21+0900"
