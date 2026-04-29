@@ -81,3 +81,42 @@ CI(`.github/workflows/ci.yml`)는 typecheck / lint / test / CLI 빌드까지만 
 - `/fonts/*`에 대해 1년 immutable 캐시 + CORS 허용
 
 CSP(Content-Security-Policy)는 v0.2에 포함하지 않는다. Astro가 사용하는 inline style/script(테마 토글 FOUC 방지 IIFE 등) 호환성 검증이 끝나야 하며, `unsafe-inline` 없이 동작하는 nonce 또는 hash 전략이 필요하다. v0.3에서 도입 예정이다.
+
+## 9. 다른 무료 호스트 (선택)
+
+Cloudflare Pages가 권장 default이지만, 사용자가 원하면 동일한 `dist/` 산출물을 다른 정적 호스트에도 올릴 수 있습니다. 어느 경우든 빌드는 항상 로컬 (§7 참고: vault 경로 제약은 모든 호스트에 동일하게 적용).
+
+### 9.1 GitHub Pages
+
+```bash
+pnpm --filter blog build
+
+# 첫 배포에만 1회: gh-pages worktree 준비
+git worktree add /tmp/gh-pages -b gh-pages
+cp -R apps/blog/dist/. /tmp/gh-pages/
+cd /tmp/gh-pages && git add -A && git commit -m "deploy" && git push -u origin gh-pages
+```
+
+이후부터는 빌드 → 동일 worktree에 dist 복사 → push만 반복하면 됩니다. 무료 URL은 `https://<USER>.github.io/<REPO>/` 형태.
+
+### 9.2 Vercel
+
+```bash
+pnpm --filter blog build
+vercel deploy --prebuilt --prod apps/blog/dist
+```
+
+`--prebuilt` 플래그가 핵심 — Vercel CI가 본인 경로에 vault가 없어 빌드 실패하는 것을 회피합니다.
+
+### 9.3 Netlify
+
+```bash
+pnpm --filter blog build
+netlify deploy --dir=apps/blog/dist --prod
+```
+
+### 공통
+
+- 어느 호스트든 빌드 단계는 `pnpm --filter blog build`로 동일.
+- 호스트 간 차이는 dist 업로드 경로뿐.
+- §7의 *"GitHub Actions 자동 빌드는 vault 경로 제약상 불가"*는 모든 호스트에 동일 적용. CI는 typecheck/lint/test/CLI 빌드까지만.
