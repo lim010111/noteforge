@@ -300,6 +300,98 @@ describe('site.avatar / site.nickname (v0.3)', () => {
   });
 });
 
+describe('site.social (v0.3 polish)', () => {
+  function withSite(overrides: Record<string, unknown>): ObpubConfigInput {
+    return baseInput({
+      site: { title: 'Example', url: 'https://example.com', author: 'Tester', ...overrides },
+    } as Partial<ObpubConfigInput>);
+  }
+
+  it('accepts site without a social block (entirely optional)', () => {
+    const cfg = defineConfig(baseInput());
+    expect(cfg.site.social).toBeUndefined();
+  });
+
+  it('accepts a social block with only github', () => {
+    const cfg = defineConfig(
+      withSite({ social: { github: 'https://github.com/lim010111' } }),
+    );
+    expect(cfg.site.social?.github).toBe('https://github.com/lim010111');
+    expect(cfg.site.social?.email).toBeUndefined();
+  });
+
+  it('accepts a social block with only email', () => {
+    const cfg = defineConfig(withSite({ social: { email: 'me@example.com' } }));
+    expect(cfg.site.social?.email).toBe('me@example.com');
+    expect(cfg.site.social?.github).toBeUndefined();
+  });
+
+  it('rejects a non-URL github value', () => {
+    expect(() =>
+      defineConfig(withSite({ social: { github: 'lim010111' } })),
+    ).toThrow(ObpubConfigError);
+  });
+
+  it('rejects a malformed email value', () => {
+    expect(() =>
+      defineConfig(withSite({ social: { email: 'not-an-email' } })),
+    ).toThrow(ObpubConfigError);
+  });
+});
+
+describe('site.about (v0.4)', () => {
+  function withSite(overrides: Record<string, unknown>): ObpubConfigInput {
+    return baseInput({
+      site: { title: 'Example', url: 'https://example.com', author: 'Tester', ...overrides },
+    } as Partial<ObpubConfigInput>);
+  }
+
+  it('accepts site without about (entirely optional)', () => {
+    const cfg = defineConfig(baseInput());
+    expect(cfg.site.about).toBeUndefined();
+  });
+
+  it('accepts about with all fields populated', () => {
+    const cfg = defineConfig(
+      withSite({
+        about: {
+          headline: 'Frontend engineer',
+          bio: ['line one', 'line two'],
+          highlights: ['TypeScript', 'Astro', 'Obsidian'],
+        },
+      }),
+    );
+    expect(cfg.site.about?.headline).toBe('Frontend engineer');
+    expect(cfg.site.about?.bio).toEqual(['line one', 'line two']);
+    expect(cfg.site.about?.highlights).toEqual(['TypeScript', 'Astro', 'Obsidian']);
+  });
+
+  it('defaults bio and highlights to empty arrays when about is partial', () => {
+    const cfg = defineConfig(withSite({ about: { headline: 'x' } }));
+    expect(cfg.site.about?.headline).toBe('x');
+    expect(cfg.site.about?.bio).toEqual([]);
+    expect(cfg.site.about?.highlights).toEqual([]);
+  });
+
+  it('rejects empty headline string', () => {
+    expect(() => defineConfig(withSite({ about: { headline: '' } }))).toThrow(
+      ObpubConfigError,
+    );
+  });
+
+  it('rejects empty string in bio array', () => {
+    expect(() => defineConfig(withSite({ about: { bio: ['ok', ''] } }))).toThrow(
+      ObpubConfigError,
+    );
+  });
+
+  it('rejects empty string in highlights array', () => {
+    expect(() =>
+      defineConfig(withSite({ about: { highlights: ['ok', ''] } })),
+    ).toThrow(ObpubConfigError);
+  });
+});
+
 describe('getClassifyRule', () => {
   it('derives a ClassifyRule with the default tripwire path', () => {
     const cfg = defineConfig(baseInput());
