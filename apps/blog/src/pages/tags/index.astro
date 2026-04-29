@@ -2,14 +2,19 @@
 import { getCollection } from 'astro:content';
 import { BaseLayout, TagList } from '@noteforge/theme-default';
 import obpubConfig from '../../../obsidian-blog.config.ts';
-import { filterPublishable } from '../../lib/viewModels.ts';
+import { ensureTrailingSlash, filterPublishable } from '../../lib/viewModels.ts';
 import { summarizeTags } from '../../lib/tagAggregation.ts';
+import { buildSidebarPayload } from '../../lib/sidebarPayload.ts';
 import '../../styles/global.css';
 
-const publishable = filterPublishable(await getCollection('notes'));
+const all = await getCollection('notes');
+const publishable = filterPublishable(all);
 const summaries = summarizeTags(publishable);
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const canonicalUrl = ensureTrailingSlash(
+  new URL(Astro.url.pathname, Astro.site).toString(),
+);
+const sidebar = buildSidebarPayload(all);
 ---
-<BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title}>
+<BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <TagList taglist={{ tags: summaries }} />
 </BaseLayout>

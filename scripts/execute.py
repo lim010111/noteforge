@@ -235,8 +235,12 @@ class StepExecutor:
             sys.exit(1)
 
         prompt = preamble + step_file.read_text()
+        # prompt를 stdin으로 전달한다. argv 인자로 넘기면 누적 summary+docs로 인해
+        # 후반 step에서 ARG_MAX(OS exec 인자 길이 한계, 보통 ~128KB)를 초과해
+        # `OSError: [Errno 7] Argument list too long`가 발생한다 (step 9에서 관측됨).
         result = subprocess.run(
-            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
+            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json"],
+            input=prompt,
             cwd=self._root, capture_output=True, text=True, timeout=1800,
         )
 

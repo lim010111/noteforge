@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildBacklinksViewModel,
+  ensureTrailingSlash,
   entryToAliasRedirectViewModel,
   entryToNoteViewModel,
   filterPublishable,
@@ -159,7 +160,7 @@ describe('filterPublishable', () => {
 });
 
 describe('entryToAliasRedirectViewModel', () => {
-  it('returns from/to/canonicalUrl with leading slash on `to`', () => {
+  it('returns from/to/canonicalUrl with leading + trailing slash on `to`', () => {
     const entry = makeAliasEntry('legacy-name', 'projects/foo');
     const vm = entryToAliasRedirectViewModel(
       entry,
@@ -167,9 +168,38 @@ describe('entryToAliasRedirectViewModel', () => {
     );
     expect(vm).toEqual({
       from: 'legacy-name',
-      to: '/projects/foo',
-      canonicalUrl: 'https://example.com/projects/foo',
+      to: '/projects/foo/',
+      canonicalUrl: 'https://example.com/projects/foo/',
     });
+  });
+
+  it('does not double-slash a `to` value that already trails with /', () => {
+    const entry = makeAliasEntry('legacy', 'projects/foo/');
+    const vm = entryToAliasRedirectViewModel(entry, 'https://x.com/projects/foo/');
+    expect(vm.to).toBe('/projects/foo/');
+    expect(vm.canonicalUrl).toBe('https://x.com/projects/foo/');
+  });
+});
+
+describe('ensureTrailingSlash', () => {
+  it('appends a trailing slash to URLs without one', () => {
+    expect(ensureTrailingSlash('https://x.com/foo')).toBe('https://x.com/foo/');
+    expect(ensureTrailingSlash('/foo')).toBe('/foo/');
+  });
+
+  it('leaves URLs that already trail with / untouched', () => {
+    expect(ensureTrailingSlash('https://x.com/foo/')).toBe('https://x.com/foo/');
+    expect(ensureTrailingSlash('/foo/')).toBe('/foo/');
+  });
+
+  it('preserves query and fragment by inserting / before them', () => {
+    expect(ensureTrailingSlash('/foo?x=1')).toBe('/foo/?x=1');
+    expect(ensureTrailingSlash('/foo#hash')).toBe('/foo/#hash');
+    expect(ensureTrailingSlash('/foo/?x=1')).toBe('/foo/?x=1');
+  });
+
+  it('returns / for the empty input', () => {
+    expect(ensureTrailingSlash('')).toBe('/');
   });
 });
 

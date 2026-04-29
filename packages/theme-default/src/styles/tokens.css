@@ -1,6 +1,8 @@
 /*
- * Design tokens — v0.2 (light + dark).
- * SSOT: phases/step9-design-overhaul/design/TOKENS.md  (this file mirrors it 1:1).
+ * Design tokens — v0.2 base + v0.3 delta (light + dark).
+ * SSOT v0.2: phases/step9-design-overhaul/design/TOKENS.md
+ * SSOT v0.3 delta: phases/step10-v03-sidebar-redesign/design/TOKENS.md
+ * (this file mirrors both 1:1; v0.3 adds *only*, never renames v0.2 tokens).
  *
  * Mode resolution
  *   default (no [data-theme])     → @media (prefers-color-scheme) decides
@@ -47,6 +49,30 @@
   /* Color — Accent (single brand: iron oxide) */
   --color-accent: #a83612;
   --color-accent-soft: #f3e1d6;
+
+  /* Color — v0.3 secondary accent (forest moss).
+     Identity / current-location channel, parallel to but distinct from
+     iron-oxide's action role. Warm earth tone — never purple/indigo/neon. */
+  --color-accent-2: #4d6948;
+  --color-accent-2-hover: #3a5234;
+  --color-accent-2-soft: #e3eadd;
+
+  /* Color — v0.3 category accent slots (warm earth tone ring, AA on both
+     --color-bg-page and --color-bg-sidebar). Slot indices are semantically
+     neutral; slot→segment mapping is decided in @noteforge/core. Five-slot
+     ceiling — see phases/step10-v03-sidebar-redesign/design/ANTIPATTERNS.md. */
+  --color-accent-cat-1: #a83612; /* iron oxide — mirrors --color-accent */
+  --color-accent-cat-2: #9a6f0e; /* ochre */
+  --color-accent-cat-3: #5d6f3a; /* moss */
+  --color-accent-cat-4: #7d4f1c; /* bronze */
+  --color-accent-cat-5: #3a4d50; /* slate */
+
+  /* Color — v0.3 sidebar surface tier (light defaults).
+     One tonal step warmer-darker than --color-bg-page; deliberately near-
+     imperceptible (Δ luminance ~1.05:1) so the sidebar reads as a recess,
+     not a panel. Right-edge --color-border hairline does the actual visual
+     separation. */
+  --color-bg-sidebar: #f4efe5;
 
   /* Typography — font stacks. All web families self-hosted under
      apps/blog/public/fonts/ — never CDN (referrer/IP leak). */
@@ -132,6 +158,10 @@
   --container-main: 72ch;
   --container-index: 56rem;
   --margin-col-w: 12rem;
+
+  /* Layout — v0.3 sidebar dimension. Fixed width on lg+; below lg the
+     sidebar collapses to a <details> drawer and this value is unused. */
+  --container-sidebar-w: 16rem;
 }
 
 /*
@@ -159,6 +189,16 @@
   --color-accent: #a83612;
   --color-accent-soft: #f3e1d6;
   --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.06);
+  /* v0.3 delta */
+  --color-accent-2: #4d6948;
+  --color-accent-2-hover: #3a5234;
+  --color-accent-2-soft: #e3eadd;
+  --color-accent-cat-1: #a83612;
+  --color-accent-cat-2: #9a6f0e;
+  --color-accent-cat-3: #5d6f3a;
+  --color-accent-cat-4: #7d4f1c;
+  --color-accent-cat-5: #3a4d50;
+  --color-bg-sidebar: #f4efe5;
 }
 
 /* Explicit user toggle: dark pinned, OS preference ignored. */
@@ -183,6 +223,16 @@
   --color-accent: #f0a373;
   --color-accent-soft: #3a261b;
   --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+  /* v0.3 delta */
+  --color-accent-2: #9ec19a;
+  --color-accent-2-hover: #bcd3b8;
+  --color-accent-2-soft: #1f2a1d;
+  --color-accent-cat-1: #f0a373;
+  --color-accent-cat-2: #d4a849;
+  --color-accent-cat-3: #a3b46b;
+  --color-accent-cat-4: #c79866;
+  --color-accent-cat-5: #9aabaa;
+  --color-bg-sidebar: #13161d;
 }
 
 /*
@@ -211,6 +261,16 @@
     --color-accent: #f0a373;
     --color-accent-soft: #3a261b;
     --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+    /* v0.3 delta */
+    --color-accent-2: #9ec19a;
+    --color-accent-2-hover: #bcd3b8;
+    --color-accent-2-soft: #1f2a1d;
+    --color-accent-cat-1: #f0a373;
+    --color-accent-cat-2: #d4a849;
+    --color-accent-cat-3: #a3b46b;
+    --color-accent-cat-4: #c79866;
+    --color-accent-cat-5: #9aabaa;
+    --color-bg-sidebar: #13161d;
   }
 }
 

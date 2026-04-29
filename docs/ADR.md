@@ -91,3 +91,32 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 - 다른 사용자가 자기 vault를 연결하는 패턴이 동일 (도구성).
 **대안**: 레포 내 `vault/` + `.gitignore` — 설치는 쉽지만 실수 위험.
 **트레이드오프**: 초기 설정에서 절대경로 지정 단계 필요. `obpub status` 등 CLI가 config를 쉽게 안내.
+
+---
+
+### ADR-011: Chromatic 팔레트 확장 (v0.3)
+**결정**: v0.3에서 보조 액센트(`--color-accent-2`, forest-moss `#4d6948` / `#9ec19a`) 1개 + 카테고리 액센트 슬롯(`--color-accent-cat-1..5`, iron-oxide / ochre / moss / bronze / slate) 5개 + 사이드바 surface tier(`--color-bg-sidebar`) 1개를 도입. 모두 *warm earth tone family* 안에 머물며, per-슬롯 hover/soft 변종은 토큰으로 만들지 않는다.
+**이유**:
+- v0.2 도그푸드 결과, 단일 iron-oxide 액센트만으로는 사이드바·폴더 트리·breadcrumb·홈 레일이 평면적이라는 평가. *production-grade*의 결을 내려면 *identity / current-location*용 보조 채널과 폴더별 색-코딩이 필요.
+- "사용자가 컬러풀함을 원한다"는 요구를 보라/인디고/네온으로 풀면 v0.2 안티패턴(보라/인디고 브랜드, AI 무지개)을 다시 들이는 셈. warm earth tone 가족만 따라 *coordinated*하게 확장하면 SaaS 클리셰를 들이지 않으면서도 분위기를 다층화할 수 있다.
+- 사이드바 surface tier는 *recess* 신호(Δ 휘도 < 1.5:1)로만 작동 — `--color-bg-sidebar`는 페이지 색의 한 단계 단차일 뿐, panel처럼 도드라지지 않는다. 1px 우측 헤어라인이 실제 분리를 담당.
+**대안**:
+- (1) **토큰 손대지 않고 컴포넌트 레이아웃만 개편** — 사이드바 추가만으로는 트리/레일이 여전히 단색이라 *vault의 모양*이 색으로는 안 읽힘. 시각 임팩트 부족.
+- (2) **멀티 브랜드 색 시스템 도입(보라/인디고/시안 같은 cool 가족 추가)** — v0.2 안티패턴 §"보라/인디고 브랜드 색상" 행을 정면 위반. 거부.
+- (3) **slot ceiling 6+ + per-슬롯 hover/soft 변종 풀세트** — hue 영역이 warm 가족 밖으로 밀려나거나, 호출부가 per-카테고리 surface 시스템을 합성할 수 있어 multi-brand 시각으로 변질될 위험. 5슬롯 + flat tier로 막는다.
+**트레이드오프**: 토큰 추가는 fork 사용자가 테마를 커스터마이즈할 때 학습 비용이 늘어남(액센트가 *primary action* / *secondary identity* / *5 카테고리 슬롯*으로 분기). 완화책으로 `docs/UI_GUIDE.md` §3·§4-5에서 슬롯 의미를 vault-agnostic 언어로(슬롯 인덱스는 의미 중립, 매핑은 결정론적 해시) 명문화한다. WCAG AA 검증은 모든 신규 토큰에 대해 페이지/사이드바 양쪽 배경 대비로 두 번 수행(`phases/step10-v03-sidebar-redesign/design/TOKENS.md`).
+
+---
+
+### ADR-012: 폴더 라우팅 전략 — `trailingSlash: 'always'` + 충돌 빌드 타임 throw
+**결정**: v0.3에서 `astro.config.mjs`의 `trailingSlash`를 `'never'`(v0.2)에서 `'always'`로 전환. 모든 내부 URL은 trailing slash로 끝난다(`/AI/Claude/`, `/AI/Claude/foo/`, `/tags/typescript/`). 폴더-노트 / 폴더-alias 슬러그 충돌은 `apps/blog/src/pages/[...slug].astro:39`의 alias↔note 충돌 throw 패턴을 그대로 따라 빌드 타임 throw로 처리한다.
+**이유**:
+- v0.3가 폴더 인덱스 URL(`/AI/Claude/`)을 도입하면서 노트 URL(`/AI/Claude/foo`)과의 슬래시 정책 차이가 *vacuous*하지 않게 됐다. 두 정책이 다르면 매칭 우선순위·canonical/og:url·`_headers` 매처·alias `<meta http-equiv="refresh">`가 모두 갈라져 회귀 추적이 어렵다. 한 규칙으로 통일하면 충돌 면이 닫힌다.
+- 충돌이 발생하면 silent override(어느 분기가 이긴 건지 사용자가 알기 어려움)가 아니라 명시적 fail-fast가 자연스럽다 — alias collision 가드(`apps/blog/src/pages/[...slug].astro:39`)와 동일 정책. 빌드 메시지로 사용자가 vault frontmatter 또는 폴더 레이아웃에서 즉시 해결 가능.
+**대안**:
+- **trailingSlash 유지 + 폴더 URL을 `/folders/...` 등 별도 prefix로 분리** — URL 디자인이 vault 사용자 관점에서 부자연스럽고("내 노트 폴더가 왜 `/folders/AI/Claude/`?"), fork 사용자 학습 비용 증가. Obsidian의 폴더 멘탈 모델과도 맞지 않음.
+- **silent override** — 충돌 시 후순위 라우트를 무시 — 사고 시 노트 1편이 dist에서 사라지는 결과. fail-fast가 안전.
+- **trailingSlash 유지(`'never'`) + 폴더 URL을 `/AI/Claude/index`로 우회** — trailing slash 없는 폴더 인덱스가 검색엔진/canonical에서 어색하고, alias와 동일 슬러그 충돌 가능성은 그대로 남음.
+**트레이드오프**:
+- 기존 step8 canonical / og:url / alias meta-refresh / `_headers` 매처가 모두 새 슬래시 정책으로 한꺼번에 갱신되어야 함(step 6 작업). step 8 audit이 dist에서 모든 내부 URL이 trailing slash를 갖는지 검증.
+- Cloudflare Pages는 `trailingSlash: 'always'`를 자연스럽게 지원하지만, fork 사용자가 다른 호스팅(Netlify/Vercel)을 쓸 경우 매처 동작 차이를 `docs/DEPLOY.md`(미래 갱신)에 명시 필요. 현재는 v0.2 release 채택 호스팅이 Cloudflare 단일이라 즉시 영향 없음.

@@ -110,3 +110,44 @@ v0.1의 미니멀("읽기 우선 · 장식 없음 · SaaS 클리셰 금지") 톤
 - [x] Step 4: note-and-prose (`Note.astro` 본문 타이포·코드블록·인용·이미지 처리, heading anchor 도입)
 - [x] Step 5: backlinks-tags-graph (Backlinks/TagList/Graph 시각 개편)
 - [x] Step 6: dogfood-and-screenshots (apps/blog 시각 검증, audit/typecheck/test 회귀 0; canary 0/0; CHANGELOG/README/TODO 마감. 스크린샷 캡처는 사용자 액션 — 본인 vault에서 노트를 `public: true`로 발행한 뒤 v0.2 dogfood 페이지를 캡처해 `docs/screenshots/`에 추가)
+
+## v0.3 — 사이드바·폴더트리·홈·아이덴티티 개편 (Step 10) ✅
+
+v0.1 → v0.2를 거친 dogfood 결과, 사용자가 현재 디자인을 "처참하다"고 평가하며 대대적인 프론트엔드 개편을 요청. 참조 와이어프레임은 `main_page.png`(좌측 사이드바 + 아바타/닉네임 + 폴더 트리, 우측 Recent + 커스텀 Post 모음)와 `parent_page.png`(폴더 이름 클릭 시 폴더 인덱스 페이지). 와이어프레임은 구조 참고용이고 시각은 "훨씬 더 컬러풀하고 세련" — v0.3 마일스톤으로 토큰 확장 허용.
+
+v0.2의 editorial-technical 골격(serif/sans/mono triad, hairline border)은 유지하면서 (1) **vault 폴더 구조를 그대로 노출하는 좌측 사이드바**, (2) **로컬 아바타+닉네임 아이덴티티 블록**, (3) **Recent + Featured 두 레일로 구성한 홈**, (4) **카테고리 강조와 보조 chromatic accent를 도입한 더 컬러풀한 팔레트**를 더한다. v0.2 ANTIPATTERNS 금지 조항(글래스 모피즘·gradient orb·균일 pill·보라/인디고 SaaS 클리셰·다단 그림자)은 그대로 유지하되 **컬러 확장**과 **추가 surface tier**는 허용 — TOKENS/UI_GUIDE는 v0.3로 개정하고 v0.2 사본은 백업.
+
+privacy 계약(`packages/core/src/privacy/`, `filterPublishable()`, `private/**` tripwire, frontmatter allowlist)은 한 줄도 바꾸지 않는다. 사이드바 폴더 트리도 동일한 publishable 집합에서 파생되므로 private-only 폴더는 트리에서 자연스럽게 사라진다(시각 단계 책임 0).
+
+설계 강제: 첫 step에서 반드시 `affaan-m-everything-claude-code-frontend-design` 스킬을 호출해 사이드바·홈 레일·아바타 블록·확장 팔레트의 무드보드 + 컴포넌트 시안 + 토큰 델타 4종을 `phases/step10-v03-sidebar-redesign/design/`에 보존한다(v0.2 패턴과 동일).
+
+사용자 결정 사항(plan 단계에서 확정):
+- 커스텀 Post 모음 = `featured: true` 프론트매터 (이미 allowlist에 존재 — 새 메커니즘 0)
+- 사이드바 = 데스크톱 lg+ 상시 노출 + 모바일 햄버거 드로어
+- 디자인 = v0.3 마일스톤으로 토큰 확장 허용 (보조 accent · 카테고리 accent · surface tier 추가)
+- 폴더 인덱스 URL = `/AI/Claude/` 형태 (`trailingSlash: 'always'` 전환)
+
+- [x] Step 0: design-direction-v0.3 (frontend-design 스킬 호출 → MOODBOARD/TOKENS/COMPONENTS/ANTIPATTERNS 4종 산출. 코드 변경 0)
+- [x] Step 1: docs-rewrite-and-backup (`UI_GUIDE.md` → `UI_GUIDE.v0.2.md` 백업 후 v0.3 재작성, ARCHITECTURE에 사이드바·폴더 라우팅 섹션, ADR 2건 추가 — 컬러 확장 + 폴더 라우팅 전략)
+- [x] Step 2: tokens-and-config-extension (`tokens.css` v0.3 델타 적용 + `siteSchema`에 `avatar?`/`nickname?` 추가 — 외부 호스트 차단 검증 포함, `apps/blog/public/avatar.*` 자산 컨벤션)
+- [x] Step 3: folder-tree-data-model (TDD) (`apps/blog/src/lib/folderAggregation.ts` `buildFolderTree(entries) → FolderNode`, 7~8 케이스 — 깊이 3·private 부재·draft 제외·정렬 안정성·슬러그 충돌)
+- [x] Step 4: sidebar-and-avatar-components (`AvatarBlock.astro` + `FolderTree.astro` + `Sidebar.astro` 신규. `<details>` 기반 JS-less 토글, 폴더 이름 링크와 `▶` 토글 영역 분리, ARIA tree role)
+- [x] Step 5: base-layout-grid-integration (BaseLayout grid 재배치 lg+ `[16rem | 1fr]` / 모바일 단일 컬럼 + 사이드바 드로어. 신규 props `sidebar?: { folderTree, activeSlug?, avatarSrc?, nickname? }`. 펼침 상태 영속화 안 함)
+- [x] Step 6: folder-index-route-and-collision (`trailingSlash: 'never'` → `'always'` 전환, `[...slug].astro`에 `kind: 'folder-index'` 분기 + alias·노트·폴더 prefix 충돌 빌드 타임 throw, 신규 `FolderIndex.astro`)
+- [x] Step 7: home-recent-and-featured-rails (홈 두 레일. `selectRecent(n=10)` + `selectFeatured(n=6)` 헬퍼. featured 0개면 레일 전체 숨김 — empty-state 누설 0)
+- [x] Step 8: wire-sidebar-into-all-routes (`apps/blog/src/lib/sidebarPayload.ts` 헬퍼로 모든 라우트(`[...slug]`, `tags/*`, `graph`, `404`)에 사이드바 props 일괄 주입)
+- [x] Step 9: privacy-tdd-and-fixtures (`vault-mixed`에 폴더 케이스 4종 추가, 신규 canary `FOLDER_TREE_DO_NOT_LEAK_*` 도입, 폴더-노트 충돌 케이스 e2e)
+- [x] Step 10: dogfood-screenshots-and-release (typecheck/lint/test/build/audit 모두 통과, CHANGELOG v0.3.0, README에 avatar/nickname 사용법, 스크린샷 캡처는 사용자 액션)
+
+### v0.3 트리키한 결정 사항 (구현자 참고)
+
+| 결정 | 채택값 | 근거 |
+|---|---|---|
+| 폴더-노트 슬러그 충돌 | 빌드 타임 throw | alias 충돌 가드와 동일 패턴, silent override는 노트 누락 위험 |
+| `trailingSlash` | `'never'` → `'always'` | 폴더 인덱스 URL과 노트 URL을 한 규칙으로 통일하면 충돌 면 축소 |
+| `buildFolderTree` 위치 | `apps/blog/src/lib/folderAggregation.ts` | 입력이 Astro CollectionEntry, core 재사용 가치 낮음 |
+| 사이드바 펼침 상태 영속화 | 영속화 안 함(`<details>` native + activeSlug 자동 open) | privacy-first + 정적 출력 + 직관 충돌 없음 |
+| 모바일 드로어 메커니즘 | 기존 `<details class="mobile-menu">`와 동일 패턴 | 새 JS 0 |
+| 아바타/닉네임 전달 경로 | `obpubConfig.site.{avatar,nickname}` → BaseLayoutProps | 페이지가 이미 collection을 읽고 있어 props 한 단계로 흘림 |
+| featured 레일 cap | 6, named const | 0개면 레일 전체 숨김 |
+| 카테고리 accent 매핑 | 첫 slug segment → 토큰 1개. 미매핑은 기본 accent | vault-agnostic 의미 중립 |

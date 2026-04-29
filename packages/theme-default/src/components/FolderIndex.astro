@@ -1,0 +1,87 @@
+---
+/**
+ * FolderIndex — page rendered at `/<folder>/` URLs (collision rules with note
+ * slugs are guarded build-time in `apps/blog/src/pages/[...slug].astro`).
+ * Lists immediate child *folders* first, then immediate child *notes*, with a
+ * breadcrumb above. See `phases/step10-v03-sidebar-redesign/design/COMPONENTS.md`
+ * §FolderIndex for the visual contract.
+ *
+ * Privacy contract: this component is a *pure renderer*. It never touches
+ * `getCollection`, the file system, or the privacy pipeline; all filtering
+ * happened upstream in `filterPublishable` + `buildFolderTree`. Empty-state
+ * copy is intentionally vague ("공개된 글이 없습니다") — never disclose whether
+ * the folder once held private notes.
+ */
+import type { FolderIndexProps } from "./FolderIndex.types";
+
+const { view } = Astro.props as FolderIndexProps;
+const lastIdx = view.breadcrumb.length - 1;
+---
+<article class="folder-index">
+  <nav class="folder-index__breadcrumb" aria-label="breadcrumb">
+    {view.breadcrumb.map((seg, i) => (
+      <Fragment>
+        {i === 0 && view.categorySlot !== undefined && (
+          <span
+            class="folder-index__dot"
+            aria-hidden="true"
+            style={`background-color: var(--color-accent-cat-${view.categorySlot})`}
+          />
+        )}
+        {i < lastIdx ? (
+          <a class="folder-index__crumb-link" href={seg.href}>{seg.label}</a>
+        ) : (
+          <span class="folder-index__crumb-current" aria-current="page">{seg.label}</span>
+        )}
+        {i < lastIdx && <span class="folder-index__crumb-sep" aria-hidden="true">/</span>}
+      </Fragment>
+    ))}
+  </nav>
+
+  <h1 class="folder-index__title">{view.folderName}</h1>
+
+  {view.childFolders.length > 0 && (
+    <section class="folder-index__section" aria-labelledby="folder-index-folders-heading">
+      <h2 id="folder-index-folders-heading" class="folder-index__section-heading">
+        ▸ folders
+      </h2>
+      <ul class="folder-index__list">
+        {view.childFolders.map((f) => (
+          <li class="folder-index__item">
+            <a class="folder-index__row folder-index__row--folder" href={f.href}>
+              <span class="folder-index__row-label">
+                <span class="folder-index__row-glyph" aria-hidden="true">▸</span>
+                <span>{f.name}</span>
+              </span>
+              <span class="folder-index__row-meta">{f.noteCount} notes</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {view.childNotes.length > 0 && (
+    <section class="folder-index__section" aria-labelledby="folder-index-notes-heading">
+      <h2 id="folder-index-notes-heading" class="folder-index__section-heading">
+        ▸ notes
+      </h2>
+      <ul class="folder-index__list">
+        {view.childNotes.map((n) => (
+          <li class="folder-index__item">
+            <a class="folder-index__row folder-index__row--note" href={n.href}>
+              {n.date && (
+                <time class="folder-index__row-date" datetime={n.date}>{n.date}</time>
+              )}
+              <span class="folder-index__row-title">{n.title}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {view.childFolders.length === 0 && view.childNotes.length === 0 && (
+    <p class="folder-index__empty">이 폴더에는 공개된 글이 없습니다.</p>
+  )}
+</article>

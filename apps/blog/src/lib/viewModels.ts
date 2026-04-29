@@ -34,6 +34,29 @@ function lastSegment(slug: string): string {
 }
 
 /**
+ * Append a trailing slash to a URL string if it does not already end with one.
+ *
+ * Astro's `trailingSlash: 'always'` is the SSOT for route URLs (ADR-012), but
+ * `Astro.url.pathname` and the values flowing into `<meta refresh url=…>` can
+ * still arrive without a trailing slash. Normalising here keeps canonical /
+ * og:url / alias-refresh values aligned with the routing config so search
+ * engines and the Cloudflare `_headers` path-prefix matcher all see the same
+ * canonical form. Skips fragment/query-only edge cases by anchoring on the
+ * URL pathname rather than re-parsing.
+ */
+export function ensureTrailingSlash(url: string): string {
+  if (url.length === 0) return '/';
+  // Strip query/fragment, append slash to the path, re-attach.
+  const hashIdx = url.indexOf('#');
+  const queryIdx = url.indexOf('?');
+  const cutIdx =
+    hashIdx === -1 ? queryIdx : queryIdx === -1 ? hashIdx : Math.min(hashIdx, queryIdx);
+  const head = cutIdx === -1 ? url : url.slice(0, cutIdx);
+  const tail = cutIdx === -1 ? '' : url.slice(cutIdx);
+  return head.endsWith('/') ? `${head}${tail}` : `${head}/${tail}`;
+}
+
+/**
  * Content Layer entry → `<Note />` view-model.
  *
  * The privacy pipeline in `@noteforge/core/privacy` already filtered `frontmatter`
@@ -104,6 +127,12 @@ export function filterPublishable(
  * Map an alias-redirect entry to the minimal view-model the alias route needs.
  * `canonicalUrl` is built by the caller from `Astro.site` because absolute URLs
  * depend on per-environment site config that this pure helper cannot see.
+ *
+ * Both `to` (the relative redirect target written into `<meta refresh url=…>`)
+ * and `canonicalUrl` are normalised to a trailing slash so they align with the
+ * site-wide `trailingSlash: 'always'` routing contract (ADR-012). A redirect
+ * landing on `/foo` would force a second 301 from Cloudflare's path-prefix
+ * matcher and break the canonical-URL invariant the audit relies on.
  */
 export function entryToAliasRedirectViewModel(
   entry: AliasRedirectEntry,
@@ -111,8 +140,8 @@ export function entryToAliasRedirectViewModel(
 ): { from: string; to: string; canonicalUrl: string } {
   return {
     from: entry.id,
-    to: `/${entry.data.to}`,
-    canonicalUrl,
+    to: ensureTrailingSlash(`/${entry.data.to}`),
+    canonicalUrl: ensureTrailingSlash(canonicalUrl),
   };
 }
 

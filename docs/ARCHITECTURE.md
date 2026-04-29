@@ -136,6 +136,68 @@ dist/
 - `@noteforge/theme-default`: Astro 컴포넌트. 교체 가능한 하나의 테마.
 - `@noteforge/cli`: 사용자 진입점. 내부적으로 Astro CLI를 래핑.
 
+## 사이드바 · 폴더 라우팅
+
+v0.3에서 도입된 사이드바와 폴더 인덱스는 *데이터 레이어 → 시각 레이어*의 분업을 v0.2의 그래프/백링크와 같은 방식으로 따른다 — privacy 필터링은 `packages/core`에서 끝내고, Astro 라우트와 테마 컴포넌트는 받은 데이터만 그린다.
+
+### 데이터 흐름
+
+```
+Content Layer: getCollection('notes')
+    │
+    ▼
+filterPublishable (apps/blog/src/lib/viewModels.ts)
+    │  ── alias-redirect / draft / private 제외 (Phase B/C 결과 적용)
+    ▼
+buildFolderTree(entries) → FolderNode
+    │  ── 슬러그 세그먼트로 트리 조립, 각 depth-0 폴더에 categorySlot 결정론적 해시
+    ▼
+Sidebar(props: { tree, currentPath, avatar, nickname, ... })
+    │  ── 시각만 — 자체 필터링 없음
+    ▼
+FolderTree / FolderIndex / RecentRail / FeaturedRail
+```
+
+private 노트는 `filterPublishable` 단계에서 이미 빠지므로 트리에는 자연히 부재한다 — 컴포넌트가 빈 폴더를 "비공개 가능성 있음" 같은 신호로 표시할 책임이 없다(`docs/UI_GUIDE.md` §14 참조). `FolderTree` 컴포넌트는 빈 children `<ul>` 자체를 렌더하지 않아 누설 표면이 0이다.
+
+### 폴더 라우팅
+
+`apps/blog/src/pages/[...slug].astro`의 단일 dynamic route가 세 가지 분기를 처리한다.
+
+```
+kind: 'note'             ── 공개 노트의 본문 페이지
+kind: 'alias-redirect'   ── 별칭 → canonical 슬러그로 meta-refresh (v0.1)
+kind: 'folder-index'     ── 폴더 인덱스 페이지 (v0.3 신규)
+```
+
+- 폴더 인덱스 URL은 `/path/with/slashes/` (`trailingSlash: 'always'`, ADR-012).
+- `getStaticPaths`는 세 분기를 모두 합쳐 반환하며, props의 `kind` 필드로 페이지가 분기 렌더한다.
+- `kind: 'folder-index'` props는 `breadcrumb`, `categorySlot`, `childFolders`, `childNotes`를 담는다(`docs/UI_GUIDE.md` 7-5).
+
+### 충돌 가드 — 빌드 타임 throw
+
+폴더 경로가 노트 슬러그 또는 alias id와 충돌하면 빌드 타임에 throw한다. 이 가드는 `apps/blog/src/pages/[...slug].astro:39`의 alias↔note 충돌 throw 패턴을 그대로 따른다.
+
+```ts
+// 의사 코드 — 정확한 구현은 step 6
+const claimed = new Set<string>();
+for (const route of [...noteRoutes, ...aliasRoutes, ...folderIndexRoutes]) {
+  if (claimed.has(route.params.slug)) {
+    throw new Error(
+      `[...slug] route collision: '${route.params.slug}' (${route.props.kind}) ` +
+        `would overwrite an existing route. Resolve in vault frontmatter or folder layout before building.`,
+    );
+  }
+  claimed.add(route.params.slug);
+}
+```
+
+silent override는 *어느 분기가 이긴 건지* 사용자가 알기 어려워 노트 누락 사고로 이어진다 — alias collision 가드와 동일하게 명시적으로 fail-fast한다.
+
+### `buildFolderTree` 위치 결정 — `apps/blog/src/lib/folderAggregation.ts`
+
+폴더 트리 빌드는 `packages/core` 재사용 가치가 낮다고 판단해 `apps/blog/src/lib/folderAggregation.ts`에 둔다. 입력이 Astro `CollectionEntry`(Content Layer 타입)이고 출력이 `Sidebar`/`FolderIndex` props 형태이므로, 코어 재사용 시점에서는 어차피 어댑터 레이어가 다시 필요하다. 트레이드오프 표는 `phases/step10-v03-sidebar-redesign/TODO.md`(트리키한 결정 사항)에 정리되어 있다. 슬롯 매핑 해시(`categorySlot.ts`)만 코어로 — 그건 vault-agnostic.
+
 ## 다이어그램 (MVP 이후)
 - v0.2: 다중 vault 테마 해석 프로토콜 — 각 vault의 `theme` 경로를 Astro config에 동적으로 merge.
 - v0.3: Obsidian 플러그인 래퍼 — Obsidian 내부에서 CLI를 호출하고 진행 상황을 사이드바에 표시.

@@ -12,7 +12,7 @@ import obpubConfig from './obsidian-blog.config.ts';
 // Mirroring the config here keeps both code paths visually consistent.
 export default defineConfig({
   site: obpubConfig.site.url,
-  trailingSlash: 'never',
+  trailingSlash: 'always',
   output: 'static',
   markdown: {
     shikiConfig: {

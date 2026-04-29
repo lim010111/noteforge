@@ -23,6 +23,8 @@
 import { describe, expect, it } from 'vitest';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import BaseLayout from '../src/layouts/BaseLayout.astro';
+import type { FolderNode } from '../src/lib/folderTree.types';
+import { CATEGORY_ACCENT_SLOT_COUNT } from '../src/lib/categoryAccent';
 
 async function render(props: Record<string, unknown>): Promise<string> {
   const container = await AstroContainer.create();
@@ -31,6 +33,57 @@ async function render(props: Record<string, unknown>): Promise<string> {
 
 function countMatches(haystack: string, pattern: RegExp): number {
   return haystack.match(pattern)?.length ?? 0;
+}
+
+/**
+ * Sidebar fixture used by step-5 layout integration tests. Mirrors the
+ * fixture in tests/Sidebar.test.ts (depth 3, mixed folders + leaf notes)
+ * — kept identical so the same DOM contract is exercised end-to-end.
+ */
+function buildSidebarTree(): FolderNode {
+  return {
+    name: '',
+    path: '',
+    children: [
+      {
+        name: 'AI',
+        path: 'AI',
+        children: [
+          {
+            name: 'Claude',
+            path: 'AI/Claude',
+            children: [],
+            notes: [{ slug: 'AI/Claude/agents', title: 'agents' }],
+          },
+        ],
+        notes: [],
+      },
+      {
+        name: 'posts',
+        path: 'posts',
+        children: [],
+        notes: [
+          { slug: 'posts/a', title: 'a' },
+          { slug: 'posts/b', title: 'b' },
+        ],
+      },
+    ],
+    notes: [{ slug: 'about', title: 'about' }],
+  };
+}
+
+function findDuplicateIds(html: string): string[] {
+  const ids: string[] = [];
+  const re = /\bid="([^"]+)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    if (m[1] !== undefined) ids.push(m[1]);
+  }
+  const seen = new Map<string, number>();
+  for (const id of ids) seen.set(id, (seen.get(id) ?? 0) + 1);
+  const dupes: string[] = [];
+  for (const [id, count] of seen) if (count > 1) dupes.push(id);
+  return dupes;
 }
 
 describe('BaseLayout', () => {
@@ -279,6 +332,131 @@ describe('BaseLayout', () => {
     expect(
       countMatches(html, /<link\s+rel="canonical"/g),
       '<link rel="canonical"> must be emitted exactly once — search engines treat duplicate canonicals as a signal to ignore the page (or pick arbitrarily)',
+    ).toBe(1);
+  });
+
+  // ── v0.3 sidebar integration (step 5) ────────────────────────────────────
+
+  it('(15) sidebar prop omitted → no <aside class="sidebar"> in output, single-column shell preserved (v0.2 regression guard)', async () => {
+    const html = await render({ title: 'T' });
+    expect(
+      countMatches(html, /<aside\s[^>]*\bclass="sidebar"/g),
+      'sidebar prop is OPTIONAL — when omitted, BaseLayout must NOT render any <aside class="sidebar">. Forks that opt out of v0.3 navigation must keep the v0.2 single-column layout exactly.',
+    ).toBe(0);
+    expect(
+      html,
+      'no sidebar prop ⇒ no .site-shell--with-sidebar grid class — the wrapper stays a plain block-flow container so site-main keeps its v0.2 centering',
+    ).not.toMatch(/site-shell--with-sidebar/);
+    expect(
+      html,
+      'no sidebar prop ⇒ <body> must not carry the .has-sidebar class (a class drives the lg+ mobile-menu breakpoint shift; absent for v0.2)',
+    ).not.toMatch(/<body[^>]*\bclass="[^"]*\bhas-sidebar\b/);
+  });
+
+  it('(16) sidebar prop provided → exactly two <aside class="sidebar"> (lg+ column + mobile drawer copy), no duplicate static ids', async () => {
+    const html = await render({
+      title: 'T',
+      sidebar: {
+        folderTree: buildSidebarTree(),
+        slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      },
+    });
+    expect(
+      countMatches(html, /<aside\s[^>]*\bclass="sidebar"/g),
+      'sidebar must render twice — once in the .site-shell__sidebar grid column (visible on lg+), once inside .mobile-menu (visible on < lg). CSS hides whichever copy is wrong for the viewport. Two server renders cost nothing on a static site.',
+    ).toBe(2);
+    expect(
+      html,
+      'with-sidebar shell modifier must be present so the lg+ grid layout engages',
+    ).toMatch(/site-shell--with-sidebar/);
+    expect(
+      html,
+      '<body> must carry .has-sidebar so the mobile-menu hide breakpoint shifts from md+ (v0.2) to lg+ (v0.3)',
+    ).toMatch(/<body[^>]*\bclass="[^"]*\bhas-sidebar\b/);
+    const dupes = findDuplicateIds(html);
+    expect(
+      dupes,
+      `rendering Sidebar twice MUST NOT produce any duplicate id attribute — a regression in step 4 (e.g. attaching a static id to AvatarBlock or FolderTree) would surface here. Found duplicate ids: ${dupes.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('(17) sidebar.activeSlug threads through to FolderTree → exactly one aria-current="page" inside both <aside> copies combined', async () => {
+    const html = await render({
+      title: 'T',
+      sidebar: {
+        folderTree: buildSidebarTree(),
+        activeSlug: 'AI/Claude/agents',
+        slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      },
+    });
+    // Per-aside count: each <aside> renders the FolderTree once with the
+    // active note marked. Two asides ⇒ two aria-current="page" total. We
+    // assert the per-render contract via the expected per-render markup.
+    expect(
+      countMatches(html, /\baria-current="page"/g),
+      'two <aside> copies × one active link each = exactly two aria-current="page" attributes — anything else means activeSlug failed to thread through, or FolderTree is marking multiple rows',
+    ).toBe(2);
+    expect(
+      html,
+      'aria-current=page must land on the matching note slug link (trailing slash per ADR-012)',
+    ).toMatch(
+      /<a\s[^>]*\bhref="\/AI\/Claude\/agents\/"[^>]*\baria-current="page"/,
+    );
+  });
+
+  it('(18) sidebar prop does not regress canonical/og meta — meta block is still gated solely on canonicalUrl', async () => {
+    const html = await render({
+      title: 'Article',
+      description: 'desc',
+      canonicalUrl: 'https://example.com/posts/hello',
+      ogType: 'article',
+      siteName: 'shine notes',
+      sidebar: {
+        folderTree: buildSidebarTree(),
+        slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      },
+    });
+    expect(
+      countMatches(html, /<link\s+rel="canonical"/g),
+      'introducing the sidebar prop must not alter canonical emission — canonicalUrl still gates exactly one <link rel="canonical">',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:url"\s+content="https:\/\/example\.com\/posts\/hello"/g),
+      'og:url must echo canonicalUrl byte-for-byte regardless of whether sidebar is provided — trailingSlash adoption (step 6) drives the value upstream, not BaseLayout',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:type"\s+content="article"/g),
+      'og:type contract is independent of sidebar wiring',
+    ).toBe(1);
+    expect(
+      countMatches(html, /<meta\s+property="og:site_name"\s+content="shine notes"/g),
+      'og:site_name contract is independent of sidebar wiring',
+    ).toBe(1);
+  });
+
+  it('(19) themeInitScript inline block survives sidebar wiring — exactly one <script> inside <head> calls localStorage.getItem("theme")', async () => {
+    const withSidebar = await render({
+      title: 'T',
+      sidebar: {
+        folderTree: buildSidebarTree(),
+        slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      },
+    });
+    const headMatch = withSidebar.match(/<head[^>]*>([\s\S]*?)<\/head>/);
+    expect(headMatch, '<head> region must be present').not.toBeNull();
+    const headInner = headMatch![1]!;
+    expect(
+      countMatches(headInner, /localStorage\.getItem\("theme"\)/g),
+      'theme-init inline script must appear in <head> exactly once — the sole inline JS in v0.2 (FOUC-prevention) must remain untouched after step 5',
+    ).toBe(1);
+    // Cross-check against the no-sidebar render: the head should be
+    // byte-identical from the perspective of the FOUC script presence.
+    const withoutSidebar = await render({ title: 'T' });
+    const headMatch2 = withoutSidebar.match(/<head[^>]*>([\s\S]*?)<\/head>/);
+    expect(headMatch2).not.toBeNull();
+    expect(
+      countMatches(headMatch2![1]!, /localStorage\.getItem\("theme"\)/g),
+      'sidebar prop must not affect <head> — the theme-init script appears exactly once whether the sidebar is wired or not',
     ).toBe(1);
   });
 });

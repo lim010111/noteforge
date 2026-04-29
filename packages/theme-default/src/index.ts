@@ -36,3 +36,22 @@ export type {
   TagPageViewModel,
   TagPageEntry,
 } from './components/TagPage.types.ts';
+export type { FolderNode } from './lib/folderTree.types.ts';
+export { default as Sidebar } from './components/Sidebar.astro';
+export type { SidebarProps } from './components/Sidebar.types.ts';
+export { default as AvatarBlock } from './components/AvatarBlock.astro';
+export type { AvatarBlockProps } from './components/AvatarBlock.types.ts';
+export { default as FolderTree } from './components/FolderTree.astro';
+export type { FolderTreeProps } from './components/FolderTree.types.ts';
+export {
+  pickCategoryAccentSlot,
+  CATEGORY_ACCENT_SLOT_COUNT,
+} from './lib/categoryAccent.ts';
+export { default as FolderIndex } from './components/FolderIndex.astro';
+export type {
+  FolderIndexProps,
+  FolderIndexViewModel,
+  FolderIndexBreadcrumbSegment,
+  FolderIndexChildFolder,
+  FolderIndexChildNote,
+} from './components/FolderIndex.types.ts';

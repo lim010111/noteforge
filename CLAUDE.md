@@ -35,7 +35,7 @@ obsidian_blog/
 
 ## 개발 프로세스
 - **CRITICAL**: 새 기능은 **TDD** — 실패 테스트 작성 → 통과 구현. privacy 로직은 엄격 적용.
-- **CRITICAL**: privacy 관련 모든 PR은 `packages/core/tests/fixtures/vault-mixed/` fixture에서 canary(`DO_NOT_LEAK_BANANA_6f3c1`, `CLAUDE_COMMENT_LEAK_77b`)가 렌더 HTML에 0회 등장하는지 검증.
+- **CRITICAL**: privacy 관련 모든 PR은 `packages/core/tests/fixtures/vault-mixed/` fixture에서 canary(`DO_NOT_LEAK_BANANA_6f3c1`, `CLAUDE_COMMENT_LEAK_77b`, `FOLDER_TREE_DO_NOT_LEAK_8a4f2`)가 렌더 HTML에 0회 등장하는지 검증.
 - 커밋 메시지는 conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, `build:`).
 - 머지 전 로컬: `pnpm -r typecheck && pnpm lint && pnpm test && pnpm --filter blog build`.
 - 작은 PR 선호. privacy 파일(`packages/core/src/privacy/**`)을 건드리는 PR은 별도로 분리.
