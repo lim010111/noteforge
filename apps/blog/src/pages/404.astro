@@ -7,6 +7,6 @@ import '../styles/global.css';
 
 const sidebar = buildSidebarPayload(await getCollection('notes'));
 ---
-<BaseLayout title="찾을 수 없습니다" siteName={obpubConfig.site.title} sidebar={sidebar}>
+<BaseLayout title="찾을 수 없습니다" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
   <NotFound />
 </BaseLayout>

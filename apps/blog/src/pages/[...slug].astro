@@ -173,6 +173,7 @@ if (props.kind === 'note') {
     canonicalUrl={aliasCanonical}
     ogType="website"
     siteName={obpubConfig.site.title}
+    social={obpubConfig.site.social}
   >
     <Fragment slot="head">
       <meta http-equiv="refresh" content={`0; url=${ensureTrailingSlash(aliasTo!)}`} />
@@ -186,6 +187,7 @@ if (props.kind === 'note') {
     ogType="website"
     siteName={obpubConfig.site.title}
     sidebar={sidebar}
+    social={obpubConfig.site.social}
   >
     <FolderIndex view={props.viewModel} />
   </BaseLayout>
@@ -197,6 +199,7 @@ if (props.kind === 'note') {
     ogType="article"
     siteName={obpubConfig.site.title}
     sidebar={sidebar}
+    social={obpubConfig.site.social}
   >
     <Note note={renderedNote!} />
     <Backlinks backlinks={backlinks!} />
