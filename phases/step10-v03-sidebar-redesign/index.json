@@ -80,7 +80,7 @@
       "status": "completed",
       "started_at": "2026-04-29T13:35:54+0900",
       "summary": "vault-mixed에 폴더 케이스 4종 추가(case a deep-public posts/AI/Claude/agents · case b tripwire private/secrets/diary · case c draft+visible posts/mix · case d folder/note 충돌 apps + apps/colliding/index) + 새 canary FOLDER_TREE_DO_NOT_LEAK_8a4f2 도입(case b의 frontmatter title + body 동시 임베드) + vault-mixed.test.ts 업데이트(publicSlugs 8→13, [6b] case b tripwire 가드, [2b] canary C 누출 0회) + loader.test.ts EXPECTED_PUBLIC 13개 + canary C 누출 가드 + folderAggregation.test.ts 7 신규 테스트(fixture-driven 4 + apps-level collision 3 — 실제 runCorePipeline 호출로 publishable set 도출) 602/602 통과 + lint + typecheck + 3종 canary dist 0/0/0 + audit 통과 + privacy 코어 수정 0(git diff packages/core/src/privacy/ empty)",
-      "completed_at": "2026-04-29T13:53:40+0900"
+      "completed_at": "2026-04-29T13:55:46+0900"
     },
     {
       "step": 10,
