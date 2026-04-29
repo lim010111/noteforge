@@ -131,6 +131,9 @@ async function runLoad(
 }
 
 describe('obpubLoader (Astro Content Layer adapter)', () => {
+  // 8 v0.1/v0.2 notes + 5 v0.3 fixture additions: case (a) deep-public branch,
+  // case (c) draft+visible mix, and case (d) folder-vs-note slug collision.
+  // Case (b) `private/secrets/diary` stays excluded by the tripwire.
   const EXPECTED_PUBLIC = new Set([
     'public-note',
     'another-public',
@@ -140,6 +143,11 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-extra-fm',
     'public-with-secret-tag',
     'note-with-alias',
+    'posts/ai/claude/agents',
+    'posts/mix/visible',
+    'posts/mix/wip',
+    'apps',
+    'apps/colliding/index',
   ]);
 
   let loader: Loader;
@@ -153,7 +161,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     await runLoad(loader, store, logger);
   });
 
-  it('(1) emits exactly the 8 public slugs as note-kind store keys', () => {
+  it('(1) emits exactly the 13 public slugs as note-kind store keys', () => {
     const noteKeys = store
       .values()
       .filter((e) => (e.data as Record<string, unknown>)['kind'] === 'note')
@@ -173,14 +181,19 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
           k === 'private-secret' ||
           k === 'family-photos' ||
           k === 'Private Secret' ||
-          k === 'private/family-photos',
+          k === 'private/family-photos' ||
+          k === 'private/secrets/diary',
         `store key '${k}' looks like a private identifier — Content Layer must never index private notes`,
       ).toBe(false);
     }
     const serialized = JSON.stringify(store.values());
     expect(
       serialized.includes('DO_NOT_LEAK_BANANA_6f3c1'),
-      'canary string from Private Secret.md must not appear in any store entry — that would be a 2nd-order render leak',
+      'canary A from Private Secret.md must not appear in any store entry — that would be a 2nd-order render leak',
+    ).toBe(false);
+    expect(
+      serialized.includes('FOLDER_TREE_DO_NOT_LEAK_8a4f2'),
+      'canary C from private/secrets/diary.md (v0.3 case b) must not surface — title or body of a tripwire-rejected note must never reach the store',
     ).toBe(false);
   });
 

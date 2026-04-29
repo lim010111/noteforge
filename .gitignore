@@ -29,3 +29,11 @@ pnpm-debug.log*
 /private
 private
 /private/0417
+
+# Re-include test fixture: vault-mixed deliberately seeds a `private/` branch
+# under the core test fixtures so the privacy pipeline's tripwire can be
+# exercised end-to-end. Without this exception the broad `private` rule above
+# silently drops new fixture additions (step 9 case (b) tripwire fixture lived
+# only on disk, never in git, until this exception was added).
+!packages/core/tests/fixtures/vault-mixed/private/
+!packages/core/tests/fixtures/vault-mixed/private/**

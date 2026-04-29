@@ -27,6 +27,7 @@ const VAULT_ROOT = path.resolve(HERE, '..', 'fixtures', 'vault-mixed');
 
 const CANARY_A_RE = /DO_NOT_LEAK_BANANA_[A-Za-z0-9]+/;
 const CANARY_B_RE = /CLAUDE_COMMENT_LEAK_[A-Za-z0-9]+/;
+const CANARY_C_RE = /FOLDER_TREE_DO_NOT_LEAK_[A-Za-z0-9]+/;
 
 async function readFixture(rel: string): Promise<string> {
   return fs.readFile(path.join(VAULT_ROOT, rel), 'utf8');
@@ -46,6 +47,25 @@ async function loadCanaryB(): Promise<string> {
   const m = CANARY_B_RE.exec(body);
   if (m === null) {
     throw new Error('fixture public-with-comment.md does not contain canary B');
+  }
+  return m[0];
+}
+
+/**
+ * Canary C lives in v0.3 case (b)'s tripwire fixture (`private/secrets/diary.md`),
+ * embedded both in the frontmatter `title` and once in the body. Both call sites
+ * must remain absent from any rendered public HTML — the title check guards
+ * against a future regression where audit's `private-note-title-in-html` is
+ * weakened, and the body check parallels canary A's classic "private body never
+ * leaks" invariant.
+ */
+async function loadCanaryC(): Promise<string> {
+  const body = await readFixture('private/secrets/diary.md');
+  const m = CANARY_C_RE.exec(body);
+  if (m === null) {
+    throw new Error(
+      'fixture private/secrets/diary.md does not contain canary C',
+    );
   }
   return m[0];
 }
@@ -76,15 +96,22 @@ describe('vault-mixed integration — privacy invariants', () => {
   let concatPublicHtml: string;
   let canaryA: string;
   let canaryB: string;
+  let canaryC: string;
 
   beforeAll(async () => {
     canaryA = await loadCanaryA();
     canaryB = await loadCanaryB();
+    canaryC = await loadCanaryC();
     result = await run();
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
 
-  it('[1] publicSlugs matches the exact expected set of 8 public notes', () => {
+  it('[1] publicSlugs matches the exact expected set of 13 public notes', () => {
+    // The set spans the v0.1/v0.2 baseline (8 notes) plus the v0.3 fixture
+    // additions: case (a) deep-public branch, case (c) draft+visible mix, and
+    // case (d) folder-vs-note slug collision (`apps` note + `apps/colliding/index`
+    // sibling). Case (b) `private/secrets/diary` is intentionally absent — the
+    // tripwire guard fires below in [12].
     const expected = new Set([
       'public-note',
       'another-public',
@@ -94,6 +121,11 @@ describe('vault-mixed integration — privacy invariants', () => {
       'public-with-extra-fm',
       'public-with-secret-tag',
       'note-with-alias',
+      'posts/ai/claude/agents',
+      'posts/mix/visible',
+      'posts/mix/wip',
+      'apps',
+      'apps/colliding/index',
     ]);
     expect([...result.publicSlugs].sort()).toEqual([...expected].sort());
   });
@@ -101,6 +133,15 @@ describe('vault-mixed integration — privacy invariants', () => {
   it('[2] canary A (DO_NOT_LEAK_BANANA_*) does not appear in any rendered public HTML', () => {
     expect(canaryA).toMatch(/^DO_NOT_LEAK_BANANA_/);
     expect(concatPublicHtml.includes(canaryA)).toBe(false);
+  });
+
+  it('[2b] canary C (FOLDER_TREE_DO_NOT_LEAK_*) — case (b) tripwire fixture\'s title + body never reach rendered HTML', () => {
+    // Canary C is embedded in BOTH the frontmatter `title` and the body of
+    // `private/secrets/diary.md`. Two distinct leak surfaces, one assertion —
+    // a future regression that, say, renders private titles into og:image alt
+    // text would surface here before reaching the audit's redacted-title path.
+    expect(canaryC).toMatch(/^FOLDER_TREE_DO_NOT_LEAK_/);
+    expect(concatPublicHtml.includes(canaryC)).toBe(false);
   });
 
   it('[3] no <a ...> tag has "private secret" in its href or title attribute', () => {
@@ -131,6 +172,21 @@ describe('vault-mixed integration — privacy invariants', () => {
       (w) =>
         w.code === 'TRIPWIRE_REJECTED' &&
         (w.file ?? '').replace(/\\/g, '/') === 'private/family-photos.md',
+    );
+    expect(tripwireHits).toHaveLength(1);
+  });
+
+  it('[6b] private/secrets/diary.md (v0.3 case b) is tripwire-rejected and never appears in publicSlugs', () => {
+    // Case (b) is the deeper-nested mirror of [6] — the tripwire predicate
+    // matches `private/**` recursively, so a note buried two folders down must
+    // also be rejected even when its frontmatter declares `public: true`. This
+    // assertion guards the tripwire glob against future regressions that match
+    // only the immediate `private/<file>.md` pattern.
+    expect(result.publicSlugs.has('private/secrets/diary')).toBe(false);
+    const tripwireHits = result.warnings.filter(
+      (w) =>
+        w.code === 'TRIPWIRE_REJECTED' &&
+        (w.file ?? '').replace(/\\/g, '/') === 'private/secrets/diary.md',
     );
     expect(tripwireHits).toHaveLength(1);
   });
