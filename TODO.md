@@ -151,3 +151,58 @@ privacy 계약(`packages/core/src/privacy/`, `filterPublishable()`, `private/**`
 | 아바타/닉네임 전달 경로 | `obpubConfig.site.{avatar,nickname}` → BaseLayoutProps | 페이지가 이미 collection을 읽고 있어 props 한 단계로 흘림 |
 | featured 레일 cap | 6, named const | 0개면 레일 전체 숨김 |
 | 카테고리 accent 매핑 | 첫 slug segment → 토큰 1개. 미매핑은 기본 accent | vault-agnostic 의미 중립 |
+
+## v0.4 — nav 교체 + Categories/About + site.about (Step 11) ✅
+
+v0.3 dogfood 결과로 사용자가 상단 nav를 일반 블로그 컨벤션(`Home / Categories / About`)에 맞추고 각 메뉴를 동작하는 페이지로 구현하길 요청. 별도 런타임 설정 UI는 만들지 않고 About 컨텐츠도 기존 `obsidian-blog.config.ts`(=`site.social.github`/`site.social.email`이 사는 자리)에서 관리한다. 추가로 코드 리뷰에서 vault 경로 하드코딩 문제가 드러나 `OBPUB_VAULT_PATH` 환경변수로 분리 — fork 사용자가 `config.ts`를 손대지 않고 `.env`만 채우면 됨.
+
+privacy 계약(`packages/core/src/privacy/**`, `filterPublishable()`, `private/**` tripwire, frontmatter allowlist)은 한 줄도 바꾸지 않는다. Categories 페이지도 사이드바와 동일하게 publishable 집합에서 파생된 `FolderNode`를 평탄화해 사용 — private는 시각 단계에서 자연스럽게 사라진다(시각 단계 책임 0). 기존 `/tags`, `/graph` 라우트는 페이지·기능 유지하고 상단 메뉴에서만 제거(노트 본문 태그 칩은 그대로 `/tags/[tag]` 동작). plan SSOT는 `docs/dev_contexts/nav_categories_about.md`.
+
+사용자 결정 사항:
+- About 컨텐츠 소스 = `obsidian-blog.config.ts`의 `site.about` (별도 설정 UI 페이지 없음)
+- Categories 레이아웃 = flat (최상위 폴더가 H2, descendant 모두 평탄화). vault 루트 노트는 `Uncategorized` 섹션
+- Nav 텍스트 = 영문(`Home / Categories / About`) — 사이드바·footer 카피와 일치
+- Categories 정렬 = 폴더명 case-insensitive, `Uncategorized` 항상 맨 끝. 노트는 date desc → slug asc
+- About 스키마 = 구조화 필드(`headline?` / `bio[]` / `highlights[]`). markdown 파서 미도입 (표현력 부족 시 후속 PR)
+
+### Feature 작업 (phase11 진입 전 working tree)
+
+- [x] `siteSchema.about` 추가 — `aboutSchema` (`headline?` / `bio[]` / `highlights[]`) optional + 6 test (`packages/core/src/config.ts`, `packages/core/tests/config.test.ts`)
+- [x] Nav 교체 — desktop + mobile drawer 동일 (`notes/tags/graph` → `Home/Categories/About`) (`packages/theme-default/src/layouts/BaseLayout.astro`)
+- [x] `BaseLayoutProps.ogType` 유니온에 `'profile'` 추가 (About 페이지 OpenGraph profile object 지원)
+- [x] `CategoryOverview.astro` + types — 섹션 리스트 렌더 (순수 렌더, privacy 책임은 caller)
+- [x] `AboutPage.astro` + types — Identity + Headline + Social + Bio + Highlights 렌더 (`site.about`이 비어있어도 identity만으로 의미 있게 렌더)
+- [x] `SocialLinks.astro` + types — 헤더 액션 + About identity 공통 사용 (presence-based 렌더)
+- [x] `buildCategoryOverviewSections` payload helper — `FolderNode + dateBySlug → CategoryOverviewSection[]` + 6 unit test (`apps/blog/src/lib/categoryOverviewPayload.ts`, `apps/blog/tests/categoryOverviewPayload.test.ts`)
+- [x] `/categories` 페이지 — FolderNode + dateBySlug → CategoryOverviewSection 평탄화
+- [x] `/about` 페이지 — `site.author/nickname/avatar/social` + `site.about`으로 AboutPage 호출
+- [x] `OBPUB_VAULT_PATH` 환경변수 분리 — Node 22+의 `process.loadEnvFile()`로 zero-dep `.env` 로딩, 누락 시 한국어 에러 throw (cp 가이드 포함). `.env.example` 신규 (`apps/blog/obsidian-blog.config.ts`, `.env.example`)
+- [x] 기존 5개 페이지(`404`, `[...slug]`, `graph`, `index`, `tags/*`) v0.4 변경분 미세 적용 (BaseLayout 새 props 등)
+
+### Phase11 — `step11-v04-release-prep` (release prep 5 step)
+
+- [x] Step 0: commit-split-4 (5커밋 분리 — `docs(plan)` / `feat(core)` / `feat(theme)` / `feat(blog)` pages / `feat(blog)` envvar. 27 파일 +1384/-58)
+- [x] Step 1: verify-build-test-audit (5단 그린 — typecheck 5pkgs / lint / test 619 / build 19 pages / audit 0 violations 38 files. canary 0/0/0)
+- [x] Step 2: readme-deploy-section (정책 한 줄 + 2행 호스팅 표 Cloudflare 권장/GitHub Pages 대안 + Vercel/Netlify 1줄 + DEPLOY.md §9 cross-link 3개)
+- [x] Step 3: deploy-md-other-hosts (`docs/DEPLOY.md` §9 부록 append — 9.1 GitHub Pages / 9.2 Vercel / 9.3 Netlify, §1–8 무수정)
+- [x] Step 4: changelog-and-tag-prep (`CHANGELOG [0.4.0] - 2026-04-29` 엔트리 + reference link)
+
+### v0.4 사용자 후속 액션 (수동)
+
+- [ ] `git tag -a v0.4.0 -m "v0.4.0 — nav swap + Categories/About + site.about" && git push origin v0.4.0`
+- [ ] GitHub Release notes 작성 (CHANGELOG `[0.4.0]` 인용 + 'Next' 단락에 후속 트랙 직접 명기)
+- [ ] dogfood 스크린샷 캡처 → `docs/screenshots/dogfood-v0.4-{light,dark}.png`
+- [ ] (선택) v0.2.0 / v0.3.0 누락 태그 백필 여부 결정 — 백필 시 lightweight tag (예: `git tag v0.3.0 ba928d0`)
+
+### v0.4 트리키한 결정 사항 (구현자 참고)
+
+| 결정 | 채택값 | 근거 |
+|---|---|---|
+| About 컨텐츠 소스 | `obsidian-blog.config.ts`의 `site.about` | 기존 `site.social` 자리와 동일. 런타임 설정 UI 도입 회피 |
+| About 마크다운 파싱 | 미도입, 구조화 필드 (`headline`/`bio[]`/`highlights[]`) | 정적 출력 계약 + 표현력 부족 시 후속 PR |
+| 기존 `/tags`, `/graph` 라우트 | 페이지·기능 유지, nav만 제거 | 노트 태그 칩 동작 유지, 회귀 면 0 |
+| Categories 레이아웃 | flat (descendant 평탄화) | 최상위 폴더 = vault 카테고리. 깊이 변동 흡수, 사용자 멘탈 모델 단순 |
+| `Uncategorized` 위치 | 항상 맨 끝 고정 | 알파벳 정렬 어디 들어가도 의미 충돌. 명시적 fallback이 직관적 |
+| Vault 경로 외부화 메커니즘 | `OBPUB_VAULT_PATH` env + `process.loadEnvFile()` | Node 22+ 내장, 의존성 0. fork 사용자 `.env`만 채우면 됨 |
+| 누락 시 동작 | 한국어 에러 throw + cp 가이드 | silent fallback은 원인 추적 어려움 — 빌드 실패가 더 안전 |
+| brand 텍스트 하드코딩(`noteforge`) | v0.4 scope 외, out of scope 표시 | 실제 `site.title`은 `shine notes` — 별도 PR에서 `obpubConfig.site.title` 흘리는 방식 권장 |
