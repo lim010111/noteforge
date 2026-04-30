@@ -237,6 +237,20 @@ describe('BaseLayout', () => {
     ).toMatch(/<nav[^>]*\baria-label="[^"]+"/);
   });
 
+  it('(11a) primary nav links target trailing-slash routes (matches site trailingSlash:"always")', async () => {
+    const html = await render({ title: 'T' });
+    for (const href of ['/categories/', '/about/']) {
+      expect(
+        html,
+        `nav link to ${href} must include the trailing slash — without it Astro's trailingSlash:"always" policy serves a 404 redirect prompt instead of the page`,
+      ).toMatch(new RegExp(`<a\\s[^>]*\\bhref="${href.replace(/\//g, '\\/')}"`));
+    }
+    expect(
+      html,
+      'no internal nav link should target a slashless category/about path',
+    ).not.toMatch(/<a\s[^>]*\bhref="\/(categories|about)"/);
+  });
+
   it('(12) inlines themeInitScript inside <head> (FOUC prevention runs before <body> paints)', async () => {
     const html = await render({ title: 'T' });
     const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/);
