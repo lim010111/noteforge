@@ -26,10 +26,6 @@ import type { CategoryOverviewProps } from "./CategoryOverview.types";
 const { sections, emptyMessage, slotCount } =
   Astro.props as CategoryOverviewProps;
 void slotCount;
-
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
-}
 ---
 {sections.length === 0 ? (
   <p class="category-overview__empty">{emptyMessage}</p>
@@ -44,9 +40,6 @@ function pad2(n: number): string {
             aria-labelledby={`cat-${idx}`}
           >
             <div class="category-overview__section-head">
-              <span class="category-overview__index" aria-hidden="true">
-                {pad2(idx + 1)}
-              </span>
               <h2 id={`cat-${idx}`} class="category-overview__name">
                 {section.href !== undefined ? (
                   <a class="category-overview__name-link" href={section.href}>

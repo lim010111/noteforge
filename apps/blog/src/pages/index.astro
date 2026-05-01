@@ -46,10 +46,6 @@ const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
-}
-
 interface HomeSection {
   id: string;
   name: string;
@@ -84,7 +80,7 @@ if (featuredItems.length > 0) {
       <p class="category-overview__empty">아직 공개된 글이 없습니다.</p>
     ) : (
       <div class="category-overview__sections">
-        {sections.map((section, idx) => {
+        {sections.map((section) => {
           const count = section.items.length;
           return (
             <section
@@ -92,9 +88,6 @@ if (featuredItems.length > 0) {
               aria-labelledby={`home-${section.id}`}
             >
               <div class="category-overview__section-head">
-                <span class="category-overview__index" aria-hidden="true">
-                  {pad2(idx + 1)}
-                </span>
                 <h2
                   id={`home-${section.id}`}
                   class="category-overview__name"

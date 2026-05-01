@@ -595,20 +595,12 @@
 }
 .category-overview__section-head {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: baseline;
   column-gap: var(--space-3);
   row-gap: var(--space-1);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-border);
-}
-.category-overview__index {
-  font-family: var(--font-mono);
-  font-size: var(--text-meta);
-  font-weight: var(--weight-meta);
-  letter-spacing: var(--ls-meta);
-  color: var(--color-text-faded);
-  font-variant-numeric: tabular-nums;
 }
 .category-overview__name {
   font-family: var(--font-serif);
