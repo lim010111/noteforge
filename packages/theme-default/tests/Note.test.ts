@@ -193,6 +193,26 @@ describe('Note', () => {
     ).not.toMatch(/note-header--with-hero/);
   });
 
+  it('(11) dev image picker renders only when slug/sourcePath are present and receives public image candidates', async () => {
+    const withoutPicker = await render({ title: 'T', tags: [], body: '' });
+    expect(withoutPicker).not.toContain('dev-image-picker');
+
+    const withPicker = await render({
+      slug: 'post',
+      title: 'T',
+      tags: [],
+      body: '',
+      heroImage: '/attachments/hero.png',
+      embeddedImages: ['/attachments/hero.png', 'https://example.com/a.png'],
+      sourcePath: 'post.md',
+    });
+    expect(withPicker).toContain('data-dev-image-picker');
+    expect(withPicker).toContain('이미지 설정');
+    expect(withPicker).toContain('/attachments/hero.png');
+    expect(withPicker).toContain('https://example.com/a.png');
+    expect(withPicker).toContain('post.md');
+  });
+
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
     const raw = await fs.readFile(`${FIXTURE_DIR}public-with-comment.md`, 'utf8');
     const bodyOnly = raw.replace(/^---[\s\S]*?---\s*/, '');

@@ -16,13 +16,25 @@
  * `set:html` picks up the same rules as native Astro children.
  */
 import type { NoteProps } from "./Note.types";
+import DevImagePicker from "./DevImagePicker.astro";
 
 const { note } = Astro.props as NoteProps;
+const showDevImagePicker =
+  import.meta.env.DEV && note.slug !== undefined && note.sourcePath !== undefined;
 ---
 <article class="prose w-full mx-auto max-w-[var(--measure-prose)]">
   <header
     class={`note-header not-prose${note.heroImage ? " note-header--with-hero" : ""}`}
   >
+    {showDevImagePicker && (
+      <DevImagePicker
+        slug={note.slug!}
+        heroImage={note.heroImage}
+        thumbnailImage={note.thumbnailImage}
+        embeddedImages={note.embeddedImages}
+        sourcePath={note.sourcePath!}
+      />
+    )}
     {note.heroImage && (
       <div
         class="note-header__hero"

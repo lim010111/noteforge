@@ -53,6 +53,10 @@ import type { ObpubConfig } from '@noteforge/core/config';
 import { runCorePipeline } from '@noteforge/core/pipeline';
 import { remarkWikilink, type RemarkWikilinkOptions } from './remarkWikilink.ts';
 import { createWatcher, type Watcher, type WatcherEvent } from './watcher.ts';
+import {
+  createDevCoverMiddleware,
+  type DevCoverPipelineSnapshot,
+} from './devCoverMiddleware.ts';
 
 export interface ObpubIntegrationOptions {
   /**
@@ -150,12 +154,18 @@ export function obpub(
   const runPipeline = opts.runPipelineImpl ?? runCorePipeline;
 
   let watcher: Watcher | undefined;
-  // Attachment closure cache for the dev middleware. The pipeline is the
-  // SSOT — this cache is just a memoised view, refreshed at server:setup
-  // and on every coalesced watcher invalidation. Lookups must always go
-  // through `getAttachmentClosure()` so the latest snapshot is honoured.
-  let attachmentClosureCache: ReadonlySet<string> = new Set();
-  const getAttachmentClosure = (): ReadonlySet<string> => attachmentClosureCache;
+  // Dev pipeline cache. The pipeline is the SSOT — this cache is just a
+  // memoised view, refreshed at server:setup and on every coalesced watcher
+  // invalidation. Lookups must always go through these getters so the latest
+  // snapshot is honoured by both /attachments and /__obpub/cover.
+  let pipelineCache: DevCoverPipelineSnapshot = {
+    attachmentClosure: new Set(),
+    publicSlugs: new Set(),
+    sourcePathBySlug: new Map(),
+  };
+  const getAttachmentClosure = (): ReadonlySet<string> =>
+    pipelineCache.attachmentClosure;
+  const getPipelineSnapshot = (): DevCoverPipelineSnapshot => pipelineCache;
 
   return {
     name: '@noteforge/astro',
@@ -186,13 +196,17 @@ export function obpub(
           return;
         }
 
-        const refreshAttachmentClosure = async (): Promise<void> => {
+        const refreshPipelineCache = async (): Promise<void> => {
           try {
             const result = await runPipeline(config);
-            attachmentClosureCache = new Set(result.attachmentClosure);
+            pipelineCache = {
+              attachmentClosure: new Set(result.attachmentClosure ?? []),
+              publicSlugs: new Set(result.publicSlugs ?? []),
+              sourcePathBySlug: new Map(result.sourcePathBySlug ?? []),
+            };
           } catch (err) {
             logger.warn(
-              `obpub: attachment closure refresh failed — ${
+              `obpub: dev pipeline cache refresh failed — ${
                 err instanceof Error ? err.message : String(err)
               }`,
             );
@@ -210,7 +224,7 @@ export function obpub(
             // becomes streamable on the next request without blocking the
             // HMR signal. Errors surface via logger.warn — they should not
             // poison the reload path.
-            void refreshAttachmentClosure();
+            void refreshPipelineCache();
             if (opts.onDevInvalidate !== undefined) {
               opts.onDevInvalidate(
                 events.map((e) => ({ kind: e.kind, slug: e.slug })),
@@ -243,13 +257,18 @@ export function obpub(
         // Closure must be primed before the first request reaches the
         // middleware; otherwise the dev server would 404 every attachment
         // until the user happened to save a file.
-        await refreshAttachmentClosure();
+        await refreshPipelineCache();
         registerAttachmentMiddleware({
           server,
           vaultPath: vault.path,
           getClosure: getAttachmentClosure,
           fs,
           logger,
+        });
+        registerDevCoverMiddleware({
+          server,
+          vaultPath: vault.path,
+          getPipelineResult: getPipelineSnapshot,
         });
       },
       'astro:server:done': async () => {
@@ -432,5 +451,28 @@ function registerAttachmentMiddleware(deps: AttachmentMiddlewareDeps): void {
           res.end();
         });
     },
+  );
+}
+
+interface DevCoverRegistrationDeps {
+  server: unknown;
+  vaultPath: string;
+  getPipelineResult: () => DevCoverPipelineSnapshot;
+}
+
+function registerDevCoverMiddleware(deps: DevCoverRegistrationDeps): void {
+  const middlewares = (
+    deps.server as {
+      middlewares?: { use?: (path: string, handler: unknown) => unknown };
+    }
+  ).middlewares;
+  if (typeof middlewares?.use !== 'function') return;
+
+  middlewares.use(
+    '/__obpub/cover',
+    createDevCoverMiddleware({
+      vaultPath: deps.vaultPath,
+      getPipelineResult: deps.getPipelineResult,
+    }),
   );
 }
