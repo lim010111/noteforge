@@ -109,9 +109,51 @@ describe('filterFrontmatter', () => {
     expect(result.cover).toBe(cover);
   });
 
-  it('is case-sensitive: Title and title are distinct', () => {
+  it('prefers exact (case-sensitive) match when both casings are present', () => {
+    // When the author wrote the canonical key, that's their intent — use it
+    // verbatim and ignore any other casing variants that would otherwise be
+    // picked up by the case-insensitive fallback below.
     const result = filterFrontmatter({ Title: 'A', title: 'B' }, ['title']);
     expect(result).toEqual({ title: 'B' });
     expect(result).not.toHaveProperty('Title');
+  });
+
+  it('falls back to case-insensitive match for allowlisted keys', () => {
+    // Obsidian's Property panel preserves the user's typed casing
+    // (e.g. `Date: 2026-05-01`). Without case-insensitive fallback, those
+    // notes lose their date silently because the allowlist is documented
+    // lowercase and the strict match drops `Date`. Output uses the canonical
+    // (allowlisted) key so consumers always read `frontmatter['date']`.
+    const result = filterFrontmatter(
+      { Date: '2026-05-01', Title: 'Hello' },
+      ['date', 'title'],
+    );
+    expect(result).toEqual({ date: '2026-05-01', title: 'Hello' });
+  });
+
+  it('case-insensitive fallback does not introduce non-allowlisted keys', () => {
+    // Privacy contract: case-insensitive matching only relaxes the casing of
+    // *allowlisted* semantic fields. A non-allowlisted key like `Mood` must
+    // still be dropped — otherwise we would smuggle arbitrary fields through
+    // by varying their case.
+    const result = filterFrontmatter(
+      { Mood: 'happy', personalNote: 'secret' },
+      ['title'],
+    );
+    expect(result).toEqual({});
+  });
+
+  it('case-insensitive fallback returns the first matching variant only', () => {
+    // If the same semantic key appears multiple times under different casing,
+    // we keep the first one we encounter and ignore the rest. The exact
+    // canonical match (`date`) would have been picked up by the precedence
+    // branch already; the fallback only fires when the canonical key is
+    // absent, so callers see deterministic output even with authoring drift.
+    const result = filterFrontmatter(
+      { DATE: '2026-01-01', Date: '2026-05-01' },
+      ['date'],
+    );
+    expect(Object.keys(result)).toEqual(['date']);
+    expect(typeof result.date).toBe('string');
   });
 });
