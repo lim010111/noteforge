@@ -100,7 +100,11 @@ export interface PipelineResult {
   publicSlugs: Set<string>;
   /** Rendered HTML per public slug, after linkRewriter + transclude + serialization. */
   renderedHtml: Map<string, string>;
-  /** Allowlist-filtered frontmatter per public slug. */
+  /**
+   * Allowlist-filtered frontmatter per public slug. `cover`/`thumbnail` values
+   * are additionally gated against the public attachment closure before they
+   * enter this adapter-facing side channel.
+   */
   publicFrontmatter: Map<string, Record<string, unknown>>;
   /** Blocklist-filtered tag list per public slug. */
   publicTags: Map<string, string[]>;
@@ -121,6 +125,14 @@ export interface PipelineResult {
    * intentionally dropped — surfacing a broken hero is worse than no hero.
    */
   firstImage: Map<string, string>;
+  /**
+   * Document-order image candidates per public slug, after the same privacy
+   * gate as `firstImage`. Used by dev-only picker UI; private-only attachments
+   * must never enter this side channel.
+   */
+  embeddedImages: Map<string, readonly string[]>;
+  /** Slug → vault-relative source markdown path. Dev tooling uses this to edit frontmatter. */
+  sourcePathBySlug: Map<string, string>;
   /**
    * Title-shaped strings of every private note (frontmatter `title` and the bare
    * filename, both included). Audit consumers scan rendered HTML for these to detect
@@ -205,10 +217,12 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   // mdasts are unused in practice — but keeping the data shape symmetric is cheap.)
   const rewrittenMdastBySlug = new Map<string, Root>();
   const notesBySlug = new Map<string, ParsedNote>();
+  const sourcePathBySlug = new Map<string, string>();
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined) continue;
     notesBySlug.set(slug, n);
+    sourcePathBySlug.set(slug, n.relativePath);
     if (publicSlugs.has(slug)) {
       // micromark-extension-math + mdast-util-math turn `$x$` into `inlineMath`
       // and `$$x$$` into `math` mdast nodes; without them the dollar-sign
@@ -357,6 +371,9 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allReferences: attachmentRefs,
     allowedExtensions: config.attachments.allowedExtensions,
   });
+  for (const frontmatter of publicFrontmatter.values()) {
+    sanitizePublicImageFrontmatter(frontmatter, closure.included);
+  }
 
   // First-image extraction per public slug. Walked AFTER linkRewriter +
   // expandTransclusions so wikilink-embedded `![[image.png]]` references have
@@ -365,21 +382,16 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   // the hero channel out to dist (privacy first: same gate as the image's own
   // <img src>; the hero just consumes a side-channel from the same closure).
   const firstImage = new Map<string, string>();
+  const embeddedImages = new Map<string, readonly string[]>();
   for (const slug of publicSlugs) {
     const tree = rewrittenMdastBySlug.get(slug);
     if (tree === undefined) continue;
-    const url = findFirstImageUrl(tree);
-    if (url === undefined) continue;
-    if (/^https?:\/\//i.test(url)) {
-      firstImage.set(slug, url);
-      continue;
-    }
-    if (url.startsWith('/attachments/')) {
-      const id = url.slice('/attachments/'.length);
-      if (closure.included.has(id)) firstImage.set(slug, url);
-    }
-    // Other shapes (bare relative paths) are intentionally skipped — the
-    // current pipeline cannot guarantee they resolve to anything in dist.
+    const urls = findAllImageUrls(tree).filter((url) =>
+      isPublicImageUrl(url, closure.included),
+    );
+    if (urls.length === 0) continue;
+    embeddedImages.set(slug, urls);
+    firstImage.set(slug, urls[0]!);
   }
 
   // Alias redirects from frontmatter `aliases`. Built only from the publishable
@@ -422,6 +434,8 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     },
     attachmentClosure: new Set(closure.included),
     firstImage,
+    embeddedImages,
+    sourcePathBySlug,
     privateNoteTitles,
     allAttachments: new Set(attachments),
     aliasRedirects: aliasResult.redirects,
@@ -599,29 +613,67 @@ function extractEdges(
 }
 
 /**
- * Document-order first `image` node URL in an mdast tree. Walks pre-order
- * depth-first so the leftmost image in source wins, matching what a reader
- * sees as "the first image in the post".
+ * Document-order `image` node URLs in an mdast tree. Walks pre-order
+ * depth-first so the candidate picker matches the order a reader sees.
  */
-function findFirstImageUrl(tree: Root): string | undefined {
+function findAllImageUrls(tree: Root): string[] {
   interface ImageLike {
     type: string;
     url?: string;
     children?: ImageLike[];
   }
-  function walk(node: ImageLike): string | undefined {
+  const out: string[] = [];
+  function walk(node: ImageLike): void {
     if (node.type === 'image' && typeof node.url === 'string') {
-      return node.url;
+      out.push(node.url);
     }
     if (Array.isArray(node.children)) {
       for (const child of node.children) {
-        const hit = walk(child);
-        if (hit !== undefined) return hit;
+        walk(child);
       }
     }
-    return undefined;
   }
-  return walk(tree as unknown as ImageLike);
+  walk(tree as unknown as ImageLike);
+  return out;
+}
+
+function isPublicImageUrl(url: string, attachmentClosure: ReadonlySet<string>): boolean {
+  if (/^https?:\/\//i.test(url)) return true;
+  if (url.startsWith('/attachments/')) {
+    const id = url.slice('/attachments/'.length);
+    return attachmentClosure.has(id);
+  }
+  return false;
+}
+
+function sanitizePublicImageFrontmatter(
+  frontmatter: Record<string, unknown>,
+  attachmentClosure: ReadonlySet<string>,
+): void {
+  for (const key of ['cover', 'thumbnail'] as const) {
+    const value = resolvePublicImageFrontmatterValue(
+      frontmatter[key],
+      attachmentClosure,
+    );
+    if (value === undefined) {
+      delete frontmatter[key];
+    } else {
+      frontmatter[key] = value;
+    }
+  }
+}
+
+function resolvePublicImageFrontmatterValue(
+  value: unknown,
+  attachmentClosure: ReadonlySet<string>,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cleaned = value.trim();
+  if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  if (!cleaned.startsWith('/')) return undefined;
+  if (!cleaned.startsWith('/attachments/')) return cleaned;
+  const id = cleaned.slice('/attachments/'.length);
+  return attachmentClosure.has(id) ? cleaned : undefined;
 }
 
 function cloneTree(tree: Root | undefined): Root {

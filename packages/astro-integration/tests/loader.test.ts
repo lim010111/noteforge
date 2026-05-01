@@ -268,6 +268,26 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     }
   });
 
+  it('(5b) gates cover/thumbnail attachment frontmatter and exposes safe picker metadata', () => {
+    const imageEntry = store.get('public-with-image');
+    expect(imageEntry).toBeDefined();
+    const data = imageEntry!.data as Record<string, unknown>;
+
+    expect(data['heroImage']).toBe('/attachments/only-public.png');
+    expect(data['thumbnailImage']).toBeUndefined();
+    expect(data['embeddedImages']).toEqual([
+      '/attachments/only-public.png',
+      'https://example.com/remote.png',
+    ]);
+    expect(data['sourcePath']).toBe('public-with-image.md');
+
+    const serialized = JSON.stringify(imageEntry);
+    expect(
+      serialized,
+      'loader must not surface a private-only attachment path via hero/thumbnail/frontmatter side channels',
+    ).not.toContain('/attachments/only-private.png');
+  });
+
   it('(6a) every note entry carries kind:"note" and alias entries are kind:"alias-redirect" with only `to`', () => {
     // The vault-mixed fixture declares `aliases: [구이름]` on another-public.md,
     // so the loader must surface a single alias entry here. (Step 2 will broaden

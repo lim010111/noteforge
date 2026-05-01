@@ -9,6 +9,7 @@ const DEFAULT_ALLOWLIST = [
   'tags',
   'aliases',
   'cover',
+  'thumbnail',
   'author',
   'draft',
   'public',
@@ -43,7 +44,7 @@ describe('filterFrontmatter', () => {
     expect(Object.keys(result)).toHaveLength(2);
   });
 
-  it('passes exactly the 14 default allowlist fields, drops others', () => {
+  it('passes exactly the 15 default allowlist fields, drops others', () => {
     const input: Record<string, unknown> = {
       title: 'T',
       description: 'D',
@@ -52,6 +53,7 @@ describe('filterFrontmatter', () => {
       tags: ['a'],
       aliases: ['b'],
       cover: 'c.png',
+      thumbnail: 't.png',
       author: 'me',
       draft: false,
       public: true,

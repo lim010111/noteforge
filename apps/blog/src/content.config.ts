@@ -9,6 +9,10 @@ const noteSchema = z
     frontmatter: z.record(z.unknown()),
     tags: z.array(z.string()),
     backlinks: z.array(z.string()),
+    heroImage: z.string().optional(),
+    thumbnailImage: z.string().optional(),
+    embeddedImages: z.array(z.string()).optional(),
+    sourcePath: z.string().optional(),
   })
   .strict();
 

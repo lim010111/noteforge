@@ -177,6 +177,36 @@ describe('vault-mixed integration — privacy invariants', () => {
     }
   });
 
+  it('[4c] embeddedImages exposes public candidates only, and sourcePathBySlug maps slugs to vault-relative source files', () => {
+    expect(result.embeddedImages.get('public-with-image')).toEqual([
+      '/attachments/only-public.png',
+      'https://example.com/remote.png',
+    ]);
+    for (const urls of result.embeddedImages.values()) {
+      for (const url of urls) {
+        expect(
+          url,
+          'private-only attachment paths must not enter the image candidate side channel',
+        ).not.toBe('/attachments/only-private.png');
+        if (url.startsWith('/attachments/')) {
+          const id = url.slice('/attachments/'.length);
+          expect(result.attachmentClosure.has(id)).toBe(true);
+        }
+      }
+    }
+    expect(result.sourcePathBySlug.get('public-with-image')).toBe(
+      'public-with-image.md',
+    );
+  });
+
+  it('[4d] publicFrontmatter does not expose private-only cover/thumbnail attachment paths', () => {
+    const fm = result.publicFrontmatter.get('public-with-image');
+    expect(fm).toBeDefined();
+    expect(fm).not.toHaveProperty('cover');
+    expect(fm).not.toHaveProperty('thumbnail');
+    expect(JSON.stringify(fm)).not.toContain('/attachments/only-private.png');
+  });
+
   it('[5] publicGraph contains only public nodes and edges whose endpoints are public', () => {
     const publicSet = result.publicSlugs;
     for (const n of result.publicGraph.nodes) {
