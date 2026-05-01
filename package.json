@@ -17,7 +17,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "obpub": "pnpm --filter @noteforge/cli obpub",
-    "vendor:fonts": "node scripts/vendor-fonts.mjs"
+    "vendor:fonts": "node scripts/vendor-fonts.mjs",
+    "vendor:katex": "node scripts/vendor-katex.mjs",
+    "vendor:assets": "pnpm vendor:fonts && pnpm vendor:katex"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

@@ -19,13 +19,50 @@ import { toHast } from 'mdast-util-to-hast';
 import { toHtml } from 'hast-util-to-html';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-import type { Root as MdastRoot } from 'mdast';
+import rehypeKatex from 'rehype-katex';
+import type { Literal, Root as MdastRoot } from 'mdast';
 import type { Element, Root as HastRoot } from 'hast';
 
 const HEADING_ANCHOR_TAGS: ReadonlySet<string> = new Set(['h2', 'h3', 'h4']);
 const HEADING_ANCHOR_CLASS = 'heading-anchor';
 
 type HastTransformer = (tree: HastRoot) => void;
+
+// mdast-util-to-hast doesn't ship handlers for the `math` / `inlineMath`
+// nodes that micromark-extension-math + mdast-util-math emit, and the default
+// unknown-handler degrades them to plain text — which then bypasses
+// rehype-katex entirely. These two handlers wrap the raw LaTeX source in the
+// `math math-inline` / `math math-display` class names that rehype-katex
+// recognises, mirroring what remark-math does inside the unified pipeline.
+const mathHandlers = {
+  inlineMath(_state: unknown, node: Literal): Element {
+    return {
+      type: 'element',
+      tagName: 'span',
+      properties: { className: ['math', 'math-inline'] },
+      children: [{ type: 'text', value: String(node.value) }],
+    };
+  },
+  math(_state: unknown, node: Literal): Element {
+    return {
+      type: 'element',
+      tagName: 'div',
+      properties: { className: ['math', 'math-display'] },
+      children: [{ type: 'text', value: String(node.value) }],
+    };
+  },
+};
+
+// `output: 'html'` (default is `htmlAndMathml`) keeps the DOM half the size;
+// HTML alone is enough for sighted users *and* screen readers (KaTeX uses
+// aria-hidden and visually-hidden text to expose the formula). `strict:
+// 'ignore'` lets unknown LaTeX macros render as raw text instead of crashing
+// the build — vault notes are user-authored and we don't want a typo to
+// gate a release.
+const katexStep = rehypeKatex({
+  output: 'html',
+  strict: 'ignore',
+}) as HastTransformer;
 
 // Both plugins are visitor transformers — calling them as plain functions
 // (rather than spinning up `unified()`) keeps this module dependency-light.
@@ -63,11 +100,19 @@ function hasHeadingAnchorChild(heading: Element): boolean {
  * (matches the prior pipeline behaviour for empty bodies).
  */
 export function renderMdastToHtml(tree: MdastRoot): string {
-  const hast = toHast(tree, { allowDangerousHtml: false });
+  const hast = toHast(tree, {
+    allowDangerousHtml: false,
+    handlers: mathHandlers,
+  });
   if (hast === null || hast === undefined) return '';
   // Narrow to Root — toHast on an mdast Root always returns a hast Root, but
   // the upstream type is the wider Nodes union.
   if (hast.type !== 'root') return toHtml(hast);
+  // KaTeX SSR runs before the heading-anchor steps because anchors target
+  // h2-h4 and KaTeX never emits those tags — the order is decoupled, but
+  // running math first keeps the tree closer to its final shape when slugStep
+  // walks it.
+  katexStep(hast);
   applyHeadingAnchors(hast);
   return toHtml(hast);
 }

@@ -5,7 +5,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "predev": "pnpm -w vendor:assets",
     "dev": "astro dev",
+    "prebuild": "pnpm -w vendor:assets",
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check"

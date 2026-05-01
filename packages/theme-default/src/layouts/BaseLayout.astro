@@ -40,6 +40,12 @@ const hasSidebar = sidebar !== undefined;
         headings is a one-paint flash that's preferable to two preload
         round-trips on every page. */}
     <link rel="preload" href="/fonts/NotoSansKR-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    {/* KaTeX stylesheet — vendored under /styles/katex/ by scripts/
+        vendor-katex.mjs (run by the apps/blog prebuild hook). Loaded as a
+        regular stylesheet rather than preloaded because pages without math
+        shouldn't pay the bandwidth; modern browsers already prioritise
+        late-discovered render-blocking CSS aggressively. */}
+    <link rel="stylesheet" href="/styles/katex/katex.min.css" />
     <script is:inline set:html={themeInitScript}></script>
     <slot name="head" />
   </head>

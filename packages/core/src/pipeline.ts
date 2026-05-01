@@ -17,6 +17,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import picomatch from 'picomatch';
 import { fromMarkdown } from 'mdast-util-from-markdown';
+import { mathFromMarkdown } from 'mdast-util-math';
+import { math as mathSyntax } from 'micromark-extension-math';
 import type { Root } from 'mdast';
 
 import { renderMdastToHtml } from './render/htmlFromMdast.ts';
@@ -49,6 +51,32 @@ import {
 import { computeSlug } from './slug.ts';
 import type { ParsedNote } from './types.ts';
 
+/**
+ * Lift a `$$expr$$` that occupies its own line into the fenced-block form
+ * that micromark-extension-math recognises as display math.
+ *
+ * Why: Obsidian users routinely write display formulas as a single line —
+ *   `$$W \leftarrow W + \Delta W$$`
+ * — but the math micromark grammar only treats the fenced form (the `$$`
+ * pair on its own line, with the expression between them) as block math.
+ * Without this normalisation those single-line formulas end up parsed as
+ * inline math and render without the centred display layout the author
+ * intended. We only rewrite lines whose entire content (after optional
+ * indentation) is a single `$$…$$` group, so multi-formula paragraphs and
+ * inline `$$x$$` mid-sentence are untouched.
+ */
+function promoteSingleLineDisplayMath(body: string): string {
+  // JS regex replacement strings interpret `$$` as a literal `$`, so the
+  // fenced delimiters need to be written as `$$$$` to emit `$$` in the
+  // output. This was the bug that quietly downgraded promoted lines to a
+  // single dollar — never let it back in without round-tripping through
+  // the test fixture below.
+  return body.replace(
+    /^([ \t]*)\$\$([^$\n]+?)\$\$[ \t]*$/gm,
+    '$1$$$$\n$2\n$$$$',
+  );
+}
+
 export interface PipelineWarning {
   readonly code: string;
   readonly file?: string;
@@ -80,6 +108,19 @@ export interface PipelineResult {
   publicGraph: PublicGraph;
   /** Vault-relative paths of attachments included in the public closure. */
   attachmentClosure: Set<string>;
+  /**
+   * First image URL per public slug, used by the theme to render a hero
+   * background on the note header.
+   *
+   * privacy contract: `/attachments/<id>` URLs are validated against
+   * `attachmentClosure` before they enter this map — an image whose source is
+   * referenced only by a private note never reaches downstream consumers.
+   * Absolute http(s):// URLs pass through verbatim (the network leak risk is
+   * the author's choice and matches the `<img src>` they wrote). Other relative
+   * URLs (paths the wikilink/attachment matcher could not normalise) are
+   * intentionally dropped — surfacing a broken hero is worse than no hero.
+   */
+  firstImage: Map<string, string>;
   /**
    * Title-shaped strings of every private note (frontmatter `title` and the bare
    * filename, both included). Audit consumers scan rendered HTML for these to detect
@@ -169,7 +210,17 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     if (slug === undefined) continue;
     notesBySlug.set(slug, n);
     if (publicSlugs.has(slug)) {
-      rewrittenMdastBySlug.set(slug, fromMarkdown(n.body) as unknown as Root);
+      // micromark-extension-math + mdast-util-math turn `$x$` into `inlineMath`
+      // and `$$x$$` into `math` mdast nodes; without them the dollar-sign
+      // syntax flowed through as plain text and reached the rendered HTML
+      // unchanged. KaTeX SSR is applied later in renderMdastToHtml.
+      rewrittenMdastBySlug.set(
+        slug,
+        fromMarkdown(promoteSingleLineDisplayMath(n.body), {
+          extensions: [mathSyntax()],
+          mdastExtensions: [mathFromMarkdown()],
+        }) as unknown as Root,
+      );
     }
   }
 
@@ -298,6 +349,30 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allowedExtensions: config.attachments.allowedExtensions,
   });
 
+  // First-image extraction per public slug. Walked AFTER linkRewriter +
+  // expandTransclusions so wikilink-embedded `![[image.png]]` references have
+  // already been normalised into mdast `image` nodes with `/attachments/<id>`
+  // urls. The closure check below ensures a private-only attachment cannot ride
+  // the hero channel out to dist (privacy first: same gate as the image's own
+  // <img src>; the hero just consumes a side-channel from the same closure).
+  const firstImage = new Map<string, string>();
+  for (const slug of publicSlugs) {
+    const tree = rewrittenMdastBySlug.get(slug);
+    if (tree === undefined) continue;
+    const url = findFirstImageUrl(tree);
+    if (url === undefined) continue;
+    if (/^https?:\/\//i.test(url)) {
+      firstImage.set(slug, url);
+      continue;
+    }
+    if (url.startsWith('/attachments/')) {
+      const id = url.slice('/attachments/'.length);
+      if (closure.included.has(id)) firstImage.set(slug, url);
+    }
+    // Other shapes (bare relative paths) are intentionally skipped — the
+    // current pipeline cannot guarantee they resolve to anything in dist.
+  }
+
   // Alias redirects from frontmatter `aliases`. Built only from the publishable
   // subset — private notes' aliases must never reach an adapter (single privacy
   // funnel: classify → publishable filter → buildAliasRedirects).
@@ -337,6 +412,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
       edges: pubGraph.edges.map((e) => ({ from: e.from, to: e.to })),
     },
     attachmentClosure: new Set(closure.included),
+    firstImage,
     privateNoteTitles,
     allAttachments: new Set(attachments),
     aliasRedirects: aliasResult.redirects,
@@ -511,6 +587,32 @@ function extractEdges(
     }
   }
   return out;
+}
+
+/**
+ * Document-order first `image` node URL in an mdast tree. Walks pre-order
+ * depth-first so the leftmost image in source wins, matching what a reader
+ * sees as "the first image in the post".
+ */
+function findFirstImageUrl(tree: Root): string | undefined {
+  interface ImageLike {
+    type: string;
+    url?: string;
+    children?: ImageLike[];
+  }
+  function walk(node: ImageLike): string | undefined {
+    if (node.type === 'image' && typeof node.url === 'string') {
+      return node.url;
+    }
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        const hit = walk(child);
+        if (hit !== undefined) return hit;
+      }
+    }
+    return undefined;
+  }
+  return walk(tree as unknown as ImageLike);
 }
 
 function cloneTree(tree: Root | undefined): Root {
