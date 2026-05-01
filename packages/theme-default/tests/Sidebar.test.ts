@@ -279,28 +279,24 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
     expect(nameOnly).toMatch(/limwoohyun/);
   });
 
-  it('(7) category accent slot is deterministic across renders', async () => {
-    const html1 = await renderSidebar({
+  it('(7) v0.5 — folder-tree no longer emits the category-accent dot', async () => {
+    // The v0.5 design refresh dropped the per-folder colour dot from the
+    // sidebar. The accent token ring (`--color-accent-cat-1..N`) still
+    // exists for FolderIndex's breadcrumb, so this assertion narrows to
+    // the sidebar surface only — neither the legacy dot class nor any
+    // inline `--color-accent-cat-N` style must appear in the rendered HTML.
+    const html = await renderSidebar({
       folderTree: buildFixture(),
       slotCount: CATEGORY_ACCENT_SLOT_COUNT,
     });
-    const html2 = await renderSidebar({
-      folderTree: buildFixture(),
-      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
-    });
-    const aiSlot1 = html1.match(/--color-accent-cat-(\d)\)\s*"[^>]*><\/span><a\s[^>]*\bhref="\/AI\/"/);
-    const aiSlot2 = html2.match(/--color-accent-cat-(\d)\)\s*"[^>]*><\/span><a\s[^>]*\bhref="\/AI\/"/);
-    expect(aiSlot1, 'AI dot must produce a --color-accent-cat-N slot').not.toBeNull();
-    expect(aiSlot2).not.toBeNull();
     expect(
-      aiSlot1![1],
-      'same first-segment ("AI") must hash to the same slot every render',
-    ).toBe(aiSlot2![1]);
-    // And the same first-segment ("posts" → different slot, but stable).
-    const postsSlot1 = html1.match(/--color-accent-cat-(\d)\)\s*"[^>]*><\/span><a\s[^>]*\bhref="\/posts\/"/);
-    const postsSlot2 = html2.match(/--color-accent-cat-(\d)\)\s*"[^>]*><\/span><a\s[^>]*\bhref="\/posts\/"/);
-    expect(postsSlot1).not.toBeNull();
-    expect(postsSlot1![1]).toBe(postsSlot2![1]);
+      html,
+      'folder-tree__dot class must be removed — keeping it as dead markup invites a future style regression to "wake the dot back up"',
+    ).not.toMatch(/folder-tree__dot/);
+    expect(
+      html,
+      '--color-accent-cat-N must not be inlined anywhere in folder-tree output',
+    ).not.toMatch(/--color-accent-cat-/);
   });
 
   it('(8) canary text from a hypothetically-filtered private branch never reaches the DOM', async () => {

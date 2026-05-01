@@ -42,7 +42,6 @@
  */
 import type { FolderTreeProps } from "./FolderTree.types";
 import type { FolderNode } from "../lib/folderTree.types";
-import { pickCategoryAccentSlot } from "../lib/categoryAccent";
 
 type Props = FolderTreeProps & {
   /** Internal recursion: present on sub-invocations of <Astro.self />. */
@@ -57,7 +56,12 @@ const props = Astro.props as Props;
 const isBranch = props.branch !== undefined;
 const node: FolderNode = isBranch ? (props.branch as FolderNode) : props.root;
 const activeSlug = props.activeSlug;
+// `slotCount` is preserved on the props contract for API stability across
+// theme consumers, but the v0.5 design refresh dropped the per-folder colour
+// dot; the prop is intentionally unused here. See CategoryOverview/FolderIndex
+// for the surfaces that still consume it.
 const slotCount = props.slotCount;
+void slotCount;
 
 const normalizedActiveFolder = isBranch
   ? props.normalizedActiveFolder
@@ -65,7 +69,6 @@ const normalizedActiveFolder = isBranch
     ? props.activeFolderPath.replace(/\/+$/, "")
     : undefined;
 
-const childDepth = isBranch ? (props.depth as number) : 0;
 const isEmpty = node.children.length === 0 && node.notes.length === 0;
 
 function isFolderOpen(folderPath: string): boolean {
@@ -91,23 +94,12 @@ function isFolderActive(folderPath: string): boolean {
 function isNoteActive(slug: string): boolean {
   return activeSlug === slug;
 }
-
-function firstSegment(p: string): string {
-  const i = p.indexOf("/");
-  return i === -1 ? p : p.slice(0, i);
-}
-
-function dotSlot(folderPath: string): number | null {
-  if (childDepth !== 0) return null;
-  return pickCategoryAccentSlot(firstSegment(folderPath), slotCount);
-}
 ---
 {!isBranch && !isEmpty && (
   <nav class="folder-tree" aria-label="Folder tree">
     <h2 class="folder-tree__heading">Categories</h2>
     <ul class="folder-tree__list">
       {node.children.map((child) => {
-        const slot = dotSlot(child.path);
         const open = isFolderOpen(child.path);
         const active = isFolderActive(child.path);
         return (
@@ -115,13 +107,6 @@ function dotSlot(folderPath: string): number | null {
             <details class="folder-tree__details" open={open}>
               <summary class="folder-tree__summary">
                 <span class="folder-tree__chevron" aria-hidden="true">▸</span>
-                {slot !== null && (
-                  <span
-                    class="folder-tree__dot"
-                    aria-hidden="true"
-                    style={`background-color: var(--color-accent-cat-${slot})`}
-                  />
-                )}
                 <a
                   class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
                   href={`/${child.path}/`}
@@ -162,7 +147,6 @@ function dotSlot(folderPath: string): number | null {
 {isBranch && !isEmpty && (
   <ul class="folder-tree__children">
     {node.children.map((child) => {
-      const slot = dotSlot(child.path);
       const open = isFolderOpen(child.path);
       const active = isFolderActive(child.path);
       return (
@@ -170,13 +154,6 @@ function dotSlot(folderPath: string): number | null {
           <details class="folder-tree__details" open={open}>
             <summary class="folder-tree__summary">
               <span class="folder-tree__chevron" aria-hidden="true">▸</span>
-              {slot !== null && (
-                <span
-                  class="folder-tree__dot"
-                  aria-hidden="true"
-                  style={`background-color: var(--color-accent-cat-${slot})`}
-                />
-              )}
               <a
                 class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
                 href={`/${child.path}/`}
@@ -190,7 +167,7 @@ function dotSlot(folderPath: string): number | null {
               slotCount={slotCount}
               activeSlug={activeSlug}
               branch={child}
-              depth={childDepth + 1}
+              depth={(props.depth as number) + 1}
               normalizedActiveFolder={normalizedActiveFolder}
             />
           </details>
