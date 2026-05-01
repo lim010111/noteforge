@@ -8,6 +8,7 @@ import {
 } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
+  coerceDate,
   ensureTrailingSlash,
   filterPublishable,
   type NoteEntry,
@@ -23,8 +24,8 @@ const tree = buildFolderTree(publishable);
 
 const dateBySlug = new Map<string, string>();
 for (const entry of publishable as readonly NoteEntry[]) {
-  const raw = entry.data.frontmatter['date'];
-  if (typeof raw === 'string') dateBySlug.set(entry.id, raw);
+  const d = coerceDate(entry.data.frontmatter['date']);
+  if (d !== undefined) dateBySlug.set(entry.id, d);
 }
 
 const sections: CategoryOverviewSection[] = buildCategoryOverviewSections(

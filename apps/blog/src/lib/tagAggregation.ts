@@ -1,5 +1,5 @@
 import type { TagPageEntry, TagSummary } from '@noteforge/theme-default';
-import type { NoteEntry } from './viewModels.ts';
+import { coerceDate, type NoteEntry } from './viewModels.ts';
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
@@ -39,7 +39,7 @@ export function entriesForTag(
     if (e.data.tags.includes(tag) === false) continue;
     if (e.id.length === 0) continue;
     const title = e.data.title ?? asString(e.data.frontmatter['title']) ?? lastSegment(e.id);
-    const date = asString(e.data.frontmatter['date']);
+    const date = coerceDate(e.data.frontmatter['date']);
     const item: TagPageEntry = { slug: e.id, title };
     if (date !== undefined) item.date = date;
     matched.push(item);

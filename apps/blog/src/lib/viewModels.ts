@@ -28,9 +28,45 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
-function lastSegment(slug: string): string {
+/**
+ * Normalize a frontmatter `date`-shaped value to a `YYYY-MM-DD` string.
+ *
+ * gray-matter (used in `parseNote`) runs js-yaml with its default schema,
+ * which interprets unquoted YAML 1.1 timestamp scalars like `date: 2026-05-01`
+ * as JS `Date` objects rather than strings. The home rails, category overview
+ * and tag pages all gate display on `typeof === 'string'`, so a Date object
+ * silently falls through to the `——` placeholder. Centralising the coercion
+ * here keeps every listing on one fallback path.
+ *
+ * Date objects are formatted via `toISOString().slice(0, 10)` (UTC). Dates
+ * authored as bare `YYYY-MM-DD` are normalised to UTC midnight by js-yaml so
+ * the slice round-trips without timezone drift; values with explicit local
+ * times can shift by ±1 day, which we accept — quote the value
+ * (`date: "2026-05-01T09:00:00+09:00"`) to opt out and pass it through verbatim.
+ */
+export function coerceDate(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) {
+    const t = value.getTime();
+    if (Number.isNaN(t)) return undefined;
+    return value.toISOString().slice(0, 10);
+  }
+  return undefined;
+}
+
+/**
+ * Trailing path segment of a slug (`a/b/c` → `c`). Exported so listing
+ * pages share a single fallback when a note's frontmatter `title` is
+ * missing — without it, callers default to `entry.id` and surface the
+ * full slug path (e.g. `ai/gen-ai/공부-일지/lora`) as user-visible text.
+ */
+export function slugBasename(slug: string): string {
   const i = slug.lastIndexOf('/');
   return i === -1 ? slug : slug.slice(i + 1);
+}
+
+function lastSegment(slug: string): string {
+  return slugBasename(slug);
 }
 
 /**
@@ -75,8 +111,8 @@ export function entryToNoteViewModel(
   const fm = entry.data.frontmatter;
   const title =
     entry.data.title ?? asString(fm['title']) ?? lastSegment(entry.id);
-  const date = asString(fm['date']);
-  const updated = asString(fm['updated']);
+  const date = coerceDate(fm['date']);
+  const updated = coerceDate(fm['updated']);
   const description = asString(fm['description']);
 
   const vm: NoteViewModel = {
@@ -96,8 +132,8 @@ export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {
     const bf = b.data.frontmatter['featured'] === true ? 1 : 0;
     if (af !== bf) return bf - af;
 
-    const ad = asString(a.data.frontmatter['date']) ?? '';
-    const bd = asString(b.data.frontmatter['date']) ?? '';
+    const ad = coerceDate(a.data.frontmatter['date']) ?? '';
+    const bd = coerceDate(b.data.frontmatter['date']) ?? '';
     if (ad !== bd) return bd.localeCompare(ad);
 
     return a.id.localeCompare(b.id);

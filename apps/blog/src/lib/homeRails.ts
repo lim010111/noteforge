@@ -1,4 +1,4 @@
-import type { NoteEntry } from './viewModels.ts';
+import { coerceDate, type NoteEntry } from './viewModels.ts';
 
 /**
  * Caps for the home rails. Named constants (not magic numbers) so fork users
@@ -6,10 +6,6 @@ import type { NoteEntry } from './viewModels.ts';
  */
 export const RECENT_RAIL_CAP = 10;
 export const FEATURED_RAIL_CAP = 6;
-
-function asString(v: unknown): string | undefined {
-  return typeof v === 'string' ? v : undefined;
-}
 
 /**
  * Recent rail selection — pure function over publishable notes.
@@ -25,8 +21,8 @@ function asString(v: unknown): string | undefined {
  */
 export function selectRecent(entries: readonly NoteEntry[]): NoteEntry[] {
   const sorted = [...entries].sort((a, b) => {
-    const ad = asString(a.data.frontmatter['date']);
-    const bd = asString(b.data.frontmatter['date']);
+    const ad = coerceDate(a.data.frontmatter['date']);
+    const bd = coerceDate(b.data.frontmatter['date']);
     if (ad !== undefined && bd !== undefined) {
       if (ad !== bd) return bd.localeCompare(ad);
       return a.id.localeCompare(b.id);
@@ -53,8 +49,8 @@ export function selectFeatured(entries: readonly NoteEntry[]): NoteEntry[] {
     (e) => e.data.frontmatter['featured'] === true,
   );
   const sorted = featured.sort((a, b) => {
-    const ad = asString(a.data.frontmatter['date']) ?? '';
-    const bd = asString(b.data.frontmatter['date']) ?? '';
+    const ad = coerceDate(a.data.frontmatter['date']) ?? '';
+    const bd = coerceDate(b.data.frontmatter['date']) ?? '';
     if (ad !== bd) return bd.localeCompare(ad);
     return a.id.localeCompare(b.id);
   });
