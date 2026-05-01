@@ -224,6 +224,68 @@
 }
 
 /*
+ * Hero header (v0.5).
+ *
+ * When the note exposes a `heroImage`, the title block becomes the canvas:
+ * a low-opacity background image bleeds in behind the <h1> and fades into
+ * the body via a vertical mask. The container is `position: relative` and
+ * the hero overlay is absolutely positioned so it does not displace the
+ * meta row's natural baseline.
+ *
+ * Privacy: `heroImage` is only set by the pipeline after the URL passed
+ * the public `attachmentClosure` check (or is an absolute http(s)://). The
+ * theme renders verbatim — no privacy decisions in CSS.
+ *
+ * Contrast: the `<h1>` lives on z-index 1 and the hero is opacity-capped at
+ * 0.18 (light) / 0.28 (dark) to keep WCAG AA against the page surface
+ * tokens. Reducing further would defeat the hero; increasing risks the
+ * title becoming unreadable in low-contrast environments.
+ */
+.note-header--with-hero {
+  position: relative;
+  isolation: isolate;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  margin-inline: calc(-1 * var(--space-5));
+  margin-bottom: var(--space-7);
+  border-bottom: 1px solid var(--color-border);
+}
+.note-header--with-hero > h1,
+.note-header--with-hero > .note-meta {
+  position: relative;
+  z-index: 1;
+}
+.note-header__hero {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.18;
+  z-index: 0;
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.7) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.7) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+:root[data-theme='dark'] .note-header__hero {
+  opacity: 0.28;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .note-header__hero {
+    opacity: 0.28;
+  }
+}
+
+/*
  * Shiki dual-theme overlay. Astro's built-in Shiki emits inline CSS variables
  * (--shiki-light / --shiki-dark) on every span when `markdown.shikiConfig.themes`
  * is set. The light values paint by default; this rule swaps them when the user

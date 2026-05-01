@@ -22,6 +22,13 @@ export interface NoteViewModel {
   description?: string;
   /** Pre-rendered, sanitized HTML. Injected via `set:html` — see Note.astro. */
   body: string;
+  /**
+   * Hero background image URL — painted under the title at low opacity.
+   * The pipeline only writes this when the source URL passed the public
+   * attachment closure check (or is an absolute http(s)://), so the theme
+   * can render it verbatim without re-deriving privacy.
+   */
+  heroImage?: string;
 }
 
 export interface NoteProps {

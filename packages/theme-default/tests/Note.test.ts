@@ -160,6 +160,39 @@ describe('Note', () => {
     ).toMatch(/<a\s[^>]*\bclass="heading-anchor"/);
   });
 
+  it('(10) heroImage renders an aria-hidden overlay div with background-image; absent heroImage emits no overlay', async () => {
+    // The hero is decorative — `aria-hidden="true"` is part of the contract
+    // because screen readers should pass over it and head straight to the
+    // <h1>. Without that attribute, AT users would hear an empty announcement
+    // for a presentational div.
+    const withHero = await render({
+      title: 'T',
+      tags: [],
+      body: '',
+      heroImage: '/attachments/hero.png',
+    });
+    expect(
+      withHero,
+      'note-header gets the v0.5 with-hero modifier so the styles can swap on; without this class the overlay would lay over white space',
+    ).toMatch(/<header\s[^>]*\bclass="[^"]*\bnote-header--with-hero\b/);
+    expect(
+      withHero,
+      'overlay element must carry `note-header__hero` + `aria-hidden="true"` + the background-image inline style — three bits, all required for the visual contract',
+    ).toMatch(
+      /<div\s[^>]*\bclass="note-header__hero"[^>]*\baria-hidden="true"[^>]*\bstyle="[^"]*background-image:\s*url\('\/attachments\/hero\.png'\)/,
+    );
+
+    const withoutHero = await render({ title: 'T', tags: [], body: '' });
+    expect(
+      withoutHero,
+      'absent heroImage must not emit `note-header__hero` markup — leaving the wrapper in dead would invite a future style regression to "wake the dot back up"',
+    ).not.toMatch(/note-header__hero/);
+    expect(
+      withoutHero,
+      'absent heroImage must not flip the with-hero modifier — that would activate hero CSS over an empty layer',
+    ).not.toMatch(/note-header--with-hero/);
+  });
+
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
     const raw = await fs.readFile(`${FIXTURE_DIR}public-with-comment.md`, 'utf8');
     const bodyOnly = raw.replace(/^---[\s\S]*?---\s*/, '');

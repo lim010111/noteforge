@@ -114,6 +114,12 @@ export function entryToNoteViewModel(
   const date = coerceDate(fm['date']);
   const updated = coerceDate(fm['updated']);
   const description = asString(fm['description']);
+  // `heroImage` is filled upstream (loader): cover-frontmatter or the
+  // pipeline's first-image, both already privacy-checked. We pass it through
+  // verbatim — re-deriving here would split the hero rule across two paths.
+  const heroImage = asString(
+    (entry.data as { heroImage?: unknown }).heroImage,
+  );
 
   const vm: NoteViewModel = {
     title,
@@ -123,6 +129,7 @@ export function entryToNoteViewModel(
   if (date !== undefined) vm.date = date;
   if (updated !== undefined) vm.updated = updated;
   if (description !== undefined) vm.description = description;
+  if (heroImage !== undefined) vm.heroImage = heroImage;
   return vm;
 }
 

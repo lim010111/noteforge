@@ -20,7 +20,16 @@ import type { NoteProps } from "./Note.types";
 const { note } = Astro.props as NoteProps;
 ---
 <article class="prose w-full mx-auto max-w-[var(--measure-prose)]">
-  <header class="note-header not-prose">
+  <header
+    class={`note-header not-prose${note.heroImage ? " note-header--with-hero" : ""}`}
+  >
+    {note.heroImage && (
+      <div
+        class="note-header__hero"
+        aria-hidden="true"
+        style={`background-image: url('${note.heroImage}')`}
+      />
+    )}
     <h1>{note.title}</h1>
     {(note.date || note.updated || note.tags.length > 0) && (
       <div class="note-meta">

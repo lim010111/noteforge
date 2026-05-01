@@ -33,6 +33,12 @@ interface NoteEntryData extends Record<string, unknown> {
   frontmatter: Record<string, unknown>;
   tags: string[];
   backlinks: string[];
+  /**
+   * First image URL for the public note, suitable for a hero background.
+   * Sourced from `result.firstImage`, which the pipeline already filtered
+   * through `attachmentClosure`. The theme renders verbatim.
+   */
+  heroImage?: string;
 }
 
 interface AliasRedirectEntryData extends Record<string, unknown> {
@@ -98,6 +104,22 @@ export function obpubLoader(config: ObpubConfig): Loader {
         if (typeof titleRaw === 'string') {
           data.title = titleRaw;
         }
+
+        // heroImage resolution — frontmatter `cover` wins (author-curated),
+        // otherwise the pipeline's first-image fallback. The pipeline already
+        // gated `firstImage` through `attachmentClosure`, but `cover` is a
+        // raw frontmatter string under the allowlist; we accept absolute or
+        // root-anchored values verbatim and ignore anything else (a bare
+        // filename like `cover: image.png` would not resolve in dist without
+        // a resolver we have not built yet).
+        const coverRaw = frontmatter['cover'];
+        const heroFromCover =
+          typeof coverRaw === 'string' &&
+          (/^https?:\/\//i.test(coverRaw) || coverRaw.startsWith('/'))
+            ? coverRaw
+            : undefined;
+        const hero = heroFromCover ?? result.firstImage.get(slug);
+        if (hero !== undefined) data.heroImage = hero;
 
         usedIds.add(slug);
         context.store.set({
