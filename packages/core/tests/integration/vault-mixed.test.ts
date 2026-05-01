@@ -241,11 +241,33 @@ describe('vault-mixed integration — privacy invariants', () => {
     expect(lower.includes('anxious')).toBe(false);
   });
 
-  it('[10] public-with-secret-tag strips client/acme-secret from tags and HTML (public/internal untouched)', () => {
+  it('[10] public-with-secret-tag strips client/acme-secret from tags and HTML (gate tag also dropped)', () => {
     const tags = result.publicTags.get('public-with-secret-tag');
     expect(tags).toBeDefined();
     expect(tags).not.toContain('client/acme-secret');
     expect(concatPublicHtml.includes('client/acme-secret')).toBe(false);
+  });
+
+  it('[10b] publicTags drops the publish-gate tag (#public and #public/* subtags) on every public note', () => {
+    // The publish-gate tag is what opts a note INTO publication, so its
+    // presence on every public note is a structural tautology. Surfacing it
+    // in tag chips / tag pages would imply meaningful authorship intent,
+    // when actually it is just the on/off switch.
+    //
+    // `another-public.md` has `tags: [public]` only — after gate-stripping
+    // its publicTags must be empty.
+    expect(result.publicTags.get('another-public')).toEqual([]);
+    // `public-with-secret-tag.md` has `[public, client/acme-secret,
+    // public/internal]`. tagBlocklist drops the `client/**` entry, the gate
+    // strip drops both `public` and `public/internal` — leaving an empty
+    // tag list.
+    expect(result.publicTags.get('public-with-secret-tag')).toEqual([]);
+    // No public note's surfaced tag list may contain a gate-shaped entry.
+    for (const tags of result.publicTags.values()) {
+      for (const t of tags) {
+        expect(t === 'public' || t.startsWith('public/')).toBe(false);
+      }
+    }
   });
 
   it('[11] [[구이름]] resolves to another-public via the frontmatter alias', async () => {

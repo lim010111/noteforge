@@ -297,6 +297,15 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     config.publishing.tagBlocklist.length > 0
       ? picomatch(config.publishing.tagBlocklist as string[])
       : (): boolean => false;
+  // The publish-gate tag (and its `/...` subtags) is the marker that opts a
+  // note INTO publication — its presence on every public note is a structural
+  // tautology, so surfacing it in tag chips / tag pages / tag indexes adds
+  // zero reader value and would make every note look like it shares a tag
+  // with every other note. Strip it here, alongside the user-configured
+  // tagBlocklist, so all adapters/themes/audits see the same cleaned set.
+  const gateTag = classifyRule.publicTag;
+  const isGateTag = (t: string): boolean =>
+    t === gateTag || t.startsWith(`${gateTag}/`);
 
   for (const slug of publicSlugs) {
     const note = notesBySlug.get(slug);
@@ -307,7 +316,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     );
     publicTags.set(
       slug,
-      note.tags.filter((t) => !isBlockedTag(t)),
+      note.tags.filter((t) => !isBlockedTag(t) && !isGateTag(t)),
     );
   }
 
