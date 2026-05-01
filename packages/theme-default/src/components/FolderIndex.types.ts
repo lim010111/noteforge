@@ -27,10 +27,16 @@ export interface FolderIndexChildFolder {
 export interface FolderIndexChildNote {
   /** Note title — fed by `entry.data.title` upstream. */
   title: string;
+  /** Public intro text from allowlisted frontmatter.description. */
+  description?: string;
+  /** Public tags, already blocklist-filtered upstream. */
+  tags?: string[];
   /** Absolute href ending in `/`. */
   href: string;
   /** Optional ISO 8601 date string. */
   date?: string;
+  /** Decorative thumbnail URL, already privacy-gated upstream. */
+  thumbnail?: string;
 }
 
 export interface FolderIndexViewModel {

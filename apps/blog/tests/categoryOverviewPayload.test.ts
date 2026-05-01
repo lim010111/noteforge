@@ -31,7 +31,7 @@ describe('buildCategoryOverviewSections', () => {
         folder('AI', 'AI', {
           notes: [
             { slug: 'AI/foo', title: 'Foo' },
-            { slug: 'AI/bar', title: 'Bar' },
+            { slug: 'AI/bar', title: 'Bar', thumbnail: '/attachments/bar.png' },
           ],
         }),
       ],
@@ -44,6 +44,7 @@ describe('buildCategoryOverviewSections', () => {
       '/AI/bar/',
       '/AI/foo/',
     ]);
+    expect(sections[0]?.notes[0]?.thumbnail).toBe('/attachments/bar.png');
   });
 
   it('flattens nested descendants under the top-level section', () => {
@@ -139,5 +140,33 @@ describe('buildCategoryOverviewSections', () => {
     ]);
     expect(sections[0]?.notes[0]?.date).toBe('2026-01-01');
     expect(sections[0]?.notes[4]?.date).toBeUndefined();
+  });
+
+  it('carries preview metadata from folder notes into overview notes', () => {
+    const root = folder('', '', {
+      children: [
+        folder('AI', 'AI', {
+          notes: [
+            {
+              slug: 'AI/preview',
+              title: 'Preview',
+              description: 'Short intro',
+              tags: ['astro', 'obsidian'],
+              date: '2026-02-03',
+              thumbnail: '/attachments/preview.png',
+            },
+          ],
+        }),
+      ],
+    });
+    const [section] = buildCategoryOverviewSections(root, new Map());
+    expect(section?.notes[0]).toEqual({
+      href: '/AI/preview/',
+      title: 'Preview',
+      description: 'Short intro',
+      tags: ['astro', 'obsidian'],
+      date: '2026-02-03',
+      thumbnail: '/attachments/preview.png',
+    });
   });
 });

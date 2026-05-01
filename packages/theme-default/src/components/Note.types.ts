@@ -13,6 +13,8 @@
  *               `%%comment%%` strip have already run in `@noteforge/core/privacy`.
  */
 export interface NoteViewModel {
+  /** Public slug, used by dev-only authoring tools. */
+  slug?: string;
   title: string;
   /** ISO 8601 date string (e.g. "2026-01-10"). */
   date?: string;
@@ -22,6 +24,22 @@ export interface NoteViewModel {
   description?: string;
   /** Pre-rendered, sanitized HTML. Injected via `set:html` — see Note.astro. */
   body: string;
+  /**
+   * Hero background image URL — painted under the title at low opacity.
+   * The pipeline only writes this when the source URL passed the public
+   * attachment closure check (or is an absolute http(s)://), so the theme
+   * can render it verbatim without re-deriving privacy.
+   */
+  heroImage?: string;
+  /**
+   * List thumbnail candidate. The Note page itself does not paint this; dev
+   * picker UI receives it so authors can edit hero/thumbnail slots together.
+   */
+  thumbnailImage?: string;
+  /** Public image candidates from the rendered note body for dev-only picker UI. */
+  embeddedImages?: readonly string[];
+  /** Vault-relative source markdown path, used only by dev-only picker UI. */
+  sourcePath?: string;
 }
 
 export interface NoteProps {

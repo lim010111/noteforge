@@ -106,12 +106,13 @@ describe('vault-mixed integration — privacy invariants', () => {
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
 
-  it('[1] publicSlugs matches the exact expected set of 13 public notes', () => {
+  it('[1] publicSlugs matches the exact expected set of 14 public notes', () => {
     // The set spans the v0.1/v0.2 baseline (8 notes) plus the v0.3 fixture
     // additions: case (a) deep-public branch, case (c) draft+visible mix, and
     // case (d) folder-vs-note slug collision (`apps` note + `apps/colliding/index`
     // sibling). Case (b) `private/secrets/diary` is intentionally absent — the
-    // tripwire guard fires below in [12].
+    // tripwire guard fires below in [12]. v0.5 adds `public-with-math` to
+    // exercise the KaTeX SSR path.
     const expected = new Set([
       'public-note',
       'another-public',
@@ -120,6 +121,7 @@ describe('vault-mixed integration — privacy invariants', () => {
       'public-with-comment',
       'public-with-extra-fm',
       'public-with-secret-tag',
+      'public-with-math',
       'note-with-alias',
       'posts/ai/claude/agents',
       'posts/mix/visible',
@@ -153,6 +155,56 @@ describe('vault-mixed integration — privacy invariants', () => {
   it('[4] attachmentClosure includes only-public.png and excludes only-private.png', () => {
     expect(result.attachmentClosure.has('only-public.png')).toBe(true);
     expect(result.attachmentClosure.has('only-private.png')).toBe(false);
+  });
+
+  it('[4b] firstImage exposes /attachments/only-public.png for public-with-image and is empty for image-less notes', () => {
+    // public-with-image embeds `![[only-public.png]]` which the pipeline
+    // rewrites into an mdast image with `/attachments/only-public.png` —
+    // exactly the URL the theme will paint as the hero background.
+    expect(result.firstImage.get('public-with-image')).toBe(
+      '/attachments/only-public.png',
+    );
+    // public-note has no image, so firstImage should not register an entry.
+    expect(result.firstImage.has('public-note')).toBe(false);
+    // Privacy gate: a note pulling only-private.png (none of the public
+    // fixtures do, but the closure check is the contract) would never appear
+    // here because the URL is filtered through `attachmentClosure`.
+    for (const url of result.firstImage.values()) {
+      if (url.startsWith('/attachments/')) {
+        const id = url.slice('/attachments/'.length);
+        expect(result.attachmentClosure.has(id)).toBe(true);
+      }
+    }
+  });
+
+  it('[4c] embeddedImages exposes public candidates only, and sourcePathBySlug maps slugs to vault-relative source files', () => {
+    expect(result.embeddedImages.get('public-with-image')).toEqual([
+      '/attachments/only-public.png',
+      'https://example.com/remote.png',
+    ]);
+    for (const urls of result.embeddedImages.values()) {
+      for (const url of urls) {
+        expect(
+          url,
+          'private-only attachment paths must not enter the image candidate side channel',
+        ).not.toBe('/attachments/only-private.png');
+        if (url.startsWith('/attachments/')) {
+          const id = url.slice('/attachments/'.length);
+          expect(result.attachmentClosure.has(id)).toBe(true);
+        }
+      }
+    }
+    expect(result.sourcePathBySlug.get('public-with-image')).toBe(
+      'public-with-image.md',
+    );
+  });
+
+  it('[4d] publicFrontmatter does not expose private-only cover/thumbnail attachment paths', () => {
+    const fm = result.publicFrontmatter.get('public-with-image');
+    expect(fm).toBeDefined();
+    expect(fm).not.toHaveProperty('cover');
+    expect(fm).not.toHaveProperty('thumbnail');
+    expect(JSON.stringify(fm)).not.toContain('/attachments/only-private.png');
   });
 
   it('[5] publicGraph contains only public nodes and edges whose endpoints are public', () => {
@@ -219,11 +271,33 @@ describe('vault-mixed integration — privacy invariants', () => {
     expect(lower.includes('anxious')).toBe(false);
   });
 
-  it('[10] public-with-secret-tag strips client/acme-secret from tags and HTML (public/internal untouched)', () => {
+  it('[10] public-with-secret-tag strips client/acme-secret from tags and HTML (gate tag also dropped)', () => {
     const tags = result.publicTags.get('public-with-secret-tag');
     expect(tags).toBeDefined();
     expect(tags).not.toContain('client/acme-secret');
     expect(concatPublicHtml.includes('client/acme-secret')).toBe(false);
+  });
+
+  it('[10b] publicTags drops the publish-gate tag (#public and #public/* subtags) on every public note', () => {
+    // The publish-gate tag is what opts a note INTO publication, so its
+    // presence on every public note is a structural tautology. Surfacing it
+    // in tag chips / tag pages would imply meaningful authorship intent,
+    // when actually it is just the on/off switch.
+    //
+    // `another-public.md` has `tags: [public]` only — after gate-stripping
+    // its publicTags must be empty.
+    expect(result.publicTags.get('another-public')).toEqual([]);
+    // `public-with-secret-tag.md` has `[public, client/acme-secret,
+    // public/internal]`. tagBlocklist drops the `client/**` entry, the gate
+    // strip drops both `public` and `public/internal` — leaving an empty
+    // tag list.
+    expect(result.publicTags.get('public-with-secret-tag')).toEqual([]);
+    // No public note's surfaced tag list may contain a gate-shaped entry.
+    for (const tags of result.publicTags.values()) {
+      for (const t of tags) {
+        expect(t === 'public' || t.startsWith('public/')).toBe(false);
+      }
+    }
   });
 
   it('[11] [[구이름]] resolves to another-public via the frontmatter alias', async () => {
@@ -244,5 +318,23 @@ describe('vault-mixed integration — privacy invariants', () => {
     expect(res.resolved).toBe(true);
     expect(res.note?.id).toBe('another-public');
     expect(res.matchedBy).toBe('alias');
+  });
+
+  it('[12] public-with-math renders KaTeX HTML for $...$ and $$...$$ — raw dollars do not survive', () => {
+    const html = result.renderedHtml.get('public-with-math');
+    expect(html).toBeDefined();
+    // KaTeX SSR wraps every formula in a `.katex` span; display formulas add
+    // an outer `.katex-display`. The fixture has both an inline (`$a^2 + b^2
+    // = c^2$`), a single-line display (`$$W \leftarrow W + \Delta W$$`,
+    // promoted by the pipeline), and a fenced display block — so we expect
+    // `katex-display` at least twice.
+    expect(html).toMatch(/class="katex"/);
+    const displayMatches = html!.match(/class="katex-display"/g);
+    expect(displayMatches).not.toBeNull();
+    expect(displayMatches!.length).toBeGreaterThanOrEqual(2);
+    // Raw delimiters must not survive the render — if they do, the math
+    // pipeline silently fell back to text and KaTeX never ran.
+    expect(html).not.toContain('$$');
+    expect(html).not.toContain('$a^2 + b^2 = c^2$');
   });
 });

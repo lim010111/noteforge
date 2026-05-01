@@ -1,10 +1,14 @@
 ---
 import { getCollection } from 'astro:content';
-import { BaseLayout, NoteList, type NoteListEntry } from '@noteforge/theme-default';
+import { BaseLayout } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
+  coerceDate,
+  descriptionForEntry,
   ensureTrailingSlash,
   filterPublishable,
+  slugBasename,
+  tagsForEntry,
   type NoteEntry,
 } from '../lib/viewModels.ts';
 import { selectFeatured, selectRecent } from '../lib/homeRails.ts';
@@ -17,14 +21,32 @@ const recent = selectRecent(publishable);
 const featured = selectFeatured(publishable);
 const sidebar = buildSidebarPayload(all);
 
-function toItems(entries: readonly NoteEntry[]): NoteListEntry[] {
+interface HomeRailItem {
+  href: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  date?: string;
+  thumbnail?: string;
+}
+
+function toItems(entries: readonly NoteEntry[]): HomeRailItem[] {
   return entries.map((entry) => {
-    const dateRaw = entry.data.frontmatter['date'];
-    const item: NoteListEntry = {
+    const date = coerceDate(entry.data.frontmatter['date']);
+    const item: HomeRailItem = {
       href: `/${entry.id}/`,
-      title: entry.data.title ?? entry.id,
+      // v0.5 — when a note has no frontmatter title, surface the slug's last
+      // segment ("lora") rather than its full path ("ai/gen-ai/공부-일지/lora").
+      // The latter was the user-visible "/" rail that read as URL noise.
+      title: entry.data.title ?? slugBasename(entry.id),
     };
-    if (typeof dateRaw === 'string') item.date = dateRaw;
+    const description = descriptionForEntry(entry);
+    const tags = tagsForEntry(entry);
+    if (description !== undefined) item.description = description;
+    if (tags.length > 0) item.tags = tags;
+    if (date !== undefined) item.date = date;
+    const thumbnail = entry.data.thumbnailImage ?? entry.data.heroImage;
+    if (thumbnail !== undefined) item.thumbnail = thumbnail;
     return item;
   });
 }
@@ -34,17 +56,122 @@ const featuredItems = toItems(featured);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
----
-<BaseLayout title="홈" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
-  <section aria-labelledby="recent-heading">
-    <h2 id="recent-heading">Recent</h2>
-    <NoteList entries={recentItems} emptyMessage="아직 공개된 글이 없습니다." />
-  </section>
 
-  {featured.length > 0 && (
-    <section aria-labelledby="featured-heading">
-      <h2 id="featured-heading">Featured</h2>
-      <NoteList entries={featuredItems} emptyMessage="" />
-    </section>
-  )}
+interface HomeSection {
+  id: string;
+  name: string;
+  items: HomeRailItem[];
+}
+
+const sections: HomeSection[] = [
+  { id: 'recent', name: 'Recent', items: recentItems },
+];
+if (featuredItems.length > 0) {
+  sections.push({ id: 'featured', name: 'Featured', items: featuredItems });
+}
+---
+<BaseLayout
+  title="홈"
+  canonicalUrl={canonicalUrl}
+  ogType="website"
+  siteName={obpubConfig.site.title}
+  sidebar={sidebar}
+  social={obpubConfig.site.social}
+>
+  {/*
+    v0.5 — the home page reuses the editorial-technical section opener
+    visuals from CategoryOverview so /, /categories/, and /tags/<t>/ feel
+    like one document family. Class names retain the `category-overview__*`
+    namespace because that is where the styling SSOT lives — duplicating
+    them under a new prefix would split the CSS rules across two grep
+    targets and invite drift.
+  */}
+  <div class="category-overview">
+    {sections.length === 0 ? (
+      <p class="category-overview__empty">아직 공개된 글이 없습니다.</p>
+    ) : (
+      <div class="category-overview__sections">
+        {sections.map((section) => {
+          const count = section.items.length;
+          return (
+            <section
+              class="category-overview__section"
+              aria-labelledby={`home-${section.id}`}
+            >
+              <div class="category-overview__section-head">
+                <h2
+                  id={`home-${section.id}`}
+                  class="category-overview__name"
+                >
+                  {section.name}
+                </h2>
+                <span class="category-overview__count">
+                  {count}{' '}
+                  <span class="category-overview__count-label">
+                    {count === 1 ? 'note' : 'notes'}
+                  </span>
+                </span>
+              </div>
+              {count === 0 ? (
+                <p class="category-overview__section-empty">비어 있음</p>
+              ) : (
+                <ul class="category-overview__list" role="list">
+                  {section.items.map((item) => (
+                    <li class="category-overview__item">
+                      <a class="post-preview category-overview__row" href={item.href}>
+                        {item.thumbnail ? (
+                          <img
+                            class="post-preview__thumb category-overview__thumb not-prose"
+                            src={item.thumbnail}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span
+                            class="post-preview__thumb category-overview__thumb category-overview__thumb--placeholder not-prose"
+                            aria-hidden="true"
+                          >
+                            ▢
+                          </span>
+                        )}
+                        <span class="post-preview__content category-overview__row-content">
+                          <span class="post-preview__title category-overview__row-title">
+                            {item.title}
+                          </span>
+                          {item.description !== undefined && (
+                            <span class="post-preview__description">{item.description}</span>
+                          )}
+                          {((item.tags?.length ?? 0) > 0 || item.date !== undefined) && (
+                            <span class="post-preview__meta">
+                              {(item.tags?.length ?? 0) > 0 && (
+                                <span class="post-preview__tags">
+                                  {item.tags!.map((tag) => `#${tag}`).join(' ')}
+                                </span>
+                              )}
+                              {(item.tags?.length ?? 0) > 0 && item.date !== undefined && (
+                                <span class="post-preview__sep" aria-hidden="true">|</span>
+                              )}
+                              {item.date !== undefined && (
+                                <time
+                                  datetime={item.date}
+                                  class="post-preview__date category-overview__date"
+                                >
+                                  {item.date}
+                                </time>
+                              )}
+                            </span>
+                          )}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    )}
+  </div>
 </BaseLayout>

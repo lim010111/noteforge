@@ -17,6 +17,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import picomatch from 'picomatch';
 import { fromMarkdown } from 'mdast-util-from-markdown';
+import { mathFromMarkdown } from 'mdast-util-math';
+import { math as mathSyntax } from 'micromark-extension-math';
 import type { Root } from 'mdast';
 
 import { renderMdastToHtml } from './render/htmlFromMdast.ts';
@@ -49,6 +51,32 @@ import {
 import { computeSlug } from './slug.ts';
 import type { ParsedNote } from './types.ts';
 
+/**
+ * Lift a `$$expr$$` that occupies its own line into the fenced-block form
+ * that micromark-extension-math recognises as display math.
+ *
+ * Why: Obsidian users routinely write display formulas as a single line —
+ *   `$$W \leftarrow W + \Delta W$$`
+ * — but the math micromark grammar only treats the fenced form (the `$$`
+ * pair on its own line, with the expression between them) as block math.
+ * Without this normalisation those single-line formulas end up parsed as
+ * inline math and render without the centred display layout the author
+ * intended. We only rewrite lines whose entire content (after optional
+ * indentation) is a single `$$…$$` group, so multi-formula paragraphs and
+ * inline `$$x$$` mid-sentence are untouched.
+ */
+function promoteSingleLineDisplayMath(body: string): string {
+  // JS regex replacement strings interpret `$$` as a literal `$`, so the
+  // fenced delimiters need to be written as `$$$$` to emit `$$` in the
+  // output. This was the bug that quietly downgraded promoted lines to a
+  // single dollar — never let it back in without round-tripping through
+  // the test fixture below.
+  return body.replace(
+    /^([ \t]*)\$\$([^$\n]+?)\$\$[ \t]*$/gm,
+    '$1$$$$\n$2\n$$$$',
+  );
+}
+
 export interface PipelineWarning {
   readonly code: string;
   readonly file?: string;
@@ -72,7 +100,11 @@ export interface PipelineResult {
   publicSlugs: Set<string>;
   /** Rendered HTML per public slug, after linkRewriter + transclude + serialization. */
   renderedHtml: Map<string, string>;
-  /** Allowlist-filtered frontmatter per public slug. */
+  /**
+   * Allowlist-filtered frontmatter per public slug. `cover`/`thumbnail` values
+   * are additionally gated against the public attachment closure before they
+   * enter this adapter-facing side channel.
+   */
   publicFrontmatter: Map<string, Record<string, unknown>>;
   /** Blocklist-filtered tag list per public slug. */
   publicTags: Map<string, string[]>;
@@ -80,6 +112,27 @@ export interface PipelineResult {
   publicGraph: PublicGraph;
   /** Vault-relative paths of attachments included in the public closure. */
   attachmentClosure: Set<string>;
+  /**
+   * First image URL per public slug, used by the theme to render a hero
+   * background on the note header.
+   *
+   * privacy contract: `/attachments/<id>` URLs are validated against
+   * `attachmentClosure` before they enter this map — an image whose source is
+   * referenced only by a private note never reaches downstream consumers.
+   * Absolute http(s):// URLs pass through verbatim (the network leak risk is
+   * the author's choice and matches the `<img src>` they wrote). Other relative
+   * URLs (paths the wikilink/attachment matcher could not normalise) are
+   * intentionally dropped — surfacing a broken hero is worse than no hero.
+   */
+  firstImage: Map<string, string>;
+  /**
+   * Document-order image candidates per public slug, after the same privacy
+   * gate as `firstImage`. Used by dev-only picker UI; private-only attachments
+   * must never enter this side channel.
+   */
+  embeddedImages: Map<string, readonly string[]>;
+  /** Slug → vault-relative source markdown path. Dev tooling uses this to edit frontmatter. */
+  sourcePathBySlug: Map<string, string>;
   /**
    * Title-shaped strings of every private note (frontmatter `title` and the bare
    * filename, both included). Audit consumers scan rendered HTML for these to detect
@@ -164,12 +217,24 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   // mdasts are unused in practice — but keeping the data shape symmetric is cheap.)
   const rewrittenMdastBySlug = new Map<string, Root>();
   const notesBySlug = new Map<string, ParsedNote>();
+  const sourcePathBySlug = new Map<string, string>();
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined) continue;
     notesBySlug.set(slug, n);
+    sourcePathBySlug.set(slug, n.relativePath);
     if (publicSlugs.has(slug)) {
-      rewrittenMdastBySlug.set(slug, fromMarkdown(n.body) as unknown as Root);
+      // micromark-extension-math + mdast-util-math turn `$x$` into `inlineMath`
+      // and `$$x$$` into `math` mdast nodes; without them the dollar-sign
+      // syntax flowed through as plain text and reached the rendered HTML
+      // unchanged. KaTeX SSR is applied later in renderMdastToHtml.
+      rewrittenMdastBySlug.set(
+        slug,
+        fromMarkdown(promoteSingleLineDisplayMath(n.body), {
+          extensions: [mathSyntax()],
+          mdastExtensions: [mathFromMarkdown()],
+        }) as unknown as Root,
+      );
     }
   }
 
@@ -246,6 +311,15 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     config.publishing.tagBlocklist.length > 0
       ? picomatch(config.publishing.tagBlocklist as string[])
       : (): boolean => false;
+  // The publish-gate tag (and its `/...` subtags) is the marker that opts a
+  // note INTO publication — its presence on every public note is a structural
+  // tautology, so surfacing it in tag chips / tag pages / tag indexes adds
+  // zero reader value and would make every note look like it shares a tag
+  // with every other note. Strip it here, alongside the user-configured
+  // tagBlocklist, so all adapters/themes/audits see the same cleaned set.
+  const gateTag = classifyRule.publicTag;
+  const isGateTag = (t: string): boolean =>
+    t === gateTag || t.startsWith(`${gateTag}/`);
 
   for (const slug of publicSlugs) {
     const note = notesBySlug.get(slug);
@@ -256,7 +330,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     );
     publicTags.set(
       slug,
-      note.tags.filter((t) => !isBlockedTag(t)),
+      note.tags.filter((t) => !isBlockedTag(t) && !isGateTag(t)),
     );
   }
 
@@ -297,6 +371,28 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allReferences: attachmentRefs,
     allowedExtensions: config.attachments.allowedExtensions,
   });
+  for (const frontmatter of publicFrontmatter.values()) {
+    sanitizePublicImageFrontmatter(frontmatter, closure.included);
+  }
+
+  // First-image extraction per public slug. Walked AFTER linkRewriter +
+  // expandTransclusions so wikilink-embedded `![[image.png]]` references have
+  // already been normalised into mdast `image` nodes with `/attachments/<id>`
+  // urls. The closure check below ensures a private-only attachment cannot ride
+  // the hero channel out to dist (privacy first: same gate as the image's own
+  // <img src>; the hero just consumes a side-channel from the same closure).
+  const firstImage = new Map<string, string>();
+  const embeddedImages = new Map<string, readonly string[]>();
+  for (const slug of publicSlugs) {
+    const tree = rewrittenMdastBySlug.get(slug);
+    if (tree === undefined) continue;
+    const urls = findAllImageUrls(tree).filter((url) =>
+      isPublicImageUrl(url, closure.included),
+    );
+    if (urls.length === 0) continue;
+    embeddedImages.set(slug, urls);
+    firstImage.set(slug, urls[0]!);
+  }
 
   // Alias redirects from frontmatter `aliases`. Built only from the publishable
   // subset — private notes' aliases must never reach an adapter (single privacy
@@ -337,6 +433,9 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
       edges: pubGraph.edges.map((e) => ({ from: e.from, to: e.to })),
     },
     attachmentClosure: new Set(closure.included),
+    firstImage,
+    embeddedImages,
+    sourcePathBySlug,
     privateNoteTitles,
     allAttachments: new Set(attachments),
     aliasRedirects: aliasResult.redirects,
@@ -511,6 +610,70 @@ function extractEdges(
     }
   }
   return out;
+}
+
+/**
+ * Document-order `image` node URLs in an mdast tree. Walks pre-order
+ * depth-first so the candidate picker matches the order a reader sees.
+ */
+function findAllImageUrls(tree: Root): string[] {
+  interface ImageLike {
+    type: string;
+    url?: string;
+    children?: ImageLike[];
+  }
+  const out: string[] = [];
+  function walk(node: ImageLike): void {
+    if (node.type === 'image' && typeof node.url === 'string') {
+      out.push(node.url);
+    }
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        walk(child);
+      }
+    }
+  }
+  walk(tree as unknown as ImageLike);
+  return out;
+}
+
+function isPublicImageUrl(url: string, attachmentClosure: ReadonlySet<string>): boolean {
+  if (/^https?:\/\//i.test(url)) return true;
+  if (url.startsWith('/attachments/')) {
+    const id = url.slice('/attachments/'.length);
+    return attachmentClosure.has(id);
+  }
+  return false;
+}
+
+function sanitizePublicImageFrontmatter(
+  frontmatter: Record<string, unknown>,
+  attachmentClosure: ReadonlySet<string>,
+): void {
+  for (const key of ['cover', 'thumbnail'] as const) {
+    const value = resolvePublicImageFrontmatterValue(
+      frontmatter[key],
+      attachmentClosure,
+    );
+    if (value === undefined) {
+      delete frontmatter[key];
+    } else {
+      frontmatter[key] = value;
+    }
+  }
+}
+
+function resolvePublicImageFrontmatterValue(
+  value: unknown,
+  attachmentClosure: ReadonlySet<string>,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cleaned = value.trim();
+  if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  if (!cleaned.startsWith('/')) return undefined;
+  if (!cleaned.startsWith('/attachments/')) return cleaned;
+  const id = cleaned.slice('/attachments/'.length);
+  return attachmentClosure.has(id) ? cleaned : undefined;
 }
 
 function cloneTree(tree: Root | undefined): Root {

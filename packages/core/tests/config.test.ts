@@ -14,6 +14,7 @@ const DEFAULT_ALLOWLIST = [
   'tags',
   'aliases',
   'cover',
+  'thumbnail',
   'author',
   'draft',
   'public',
@@ -104,7 +105,7 @@ describe('defineConfig', () => {
     ).toThrow(ObpubConfigError);
   });
 
-  it('defaults frontmatterAllowlist to the canonical 14 fields', () => {
+  it('defaults frontmatterAllowlist to the canonical 15 fields', () => {
     const cfg = defineConfig(baseInput());
     expect(cfg.publishing.frontmatterAllowlist).toEqual(DEFAULT_ALLOWLIST);
   });

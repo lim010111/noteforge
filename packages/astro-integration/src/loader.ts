@@ -33,6 +33,15 @@ interface NoteEntryData extends Record<string, unknown> {
   frontmatter: Record<string, unknown>;
   tags: string[];
   backlinks: string[];
+  /**
+   * First image URL for the public note, suitable for a hero background.
+   * Sourced from `result.firstImage`, which the pipeline already filtered
+   * through `attachmentClosure`. The theme renders verbatim.
+   */
+  heroImage?: string;
+  thumbnailImage?: string;
+  embeddedImages?: readonly string[];
+  sourcePath?: string;
 }
 
 interface AliasRedirectEntryData extends Record<string, unknown> {
@@ -83,10 +92,24 @@ export function obpubLoader(config: ObpubConfig): Loader {
         // source set fails loud instead of silently leaking ids into the store.
         if (!result.publicSlugs.has(slug)) continue;
 
-        const frontmatter = result.publicFrontmatter.get(slug) ?? {};
+        const frontmatter = { ...(result.publicFrontmatter.get(slug) ?? {}) };
         const tags = result.publicTags.get(slug) ?? [];
         const backlinks = backlinksByTarget.get(slug) ?? [];
         const html = result.renderedHtml.get(slug) ?? '';
+        const coverRaw = frontmatter['cover'];
+        const thumbnailRaw = frontmatter['thumbnail'];
+        const cover = resolvePublicImageFrontmatter(
+          coverRaw,
+          result.attachmentClosure,
+        );
+        const thumbnail = resolvePublicImageFrontmatter(
+          thumbnailRaw,
+          result.attachmentClosure,
+        );
+        if (coverRaw !== undefined && cover === undefined) delete frontmatter['cover'];
+        if (thumbnailRaw !== undefined && thumbnail === undefined) {
+          delete frontmatter['thumbnail'];
+        }
         const titleRaw = frontmatter['title'];
 
         const data: NoteEntryData = {
@@ -98,6 +121,27 @@ export function obpubLoader(config: ObpubConfig): Loader {
         if (typeof titleRaw === 'string') {
           data.title = titleRaw;
         }
+
+        // heroImage resolution — frontmatter `cover` wins (author-curated),
+        // otherwise the pipeline's first-image fallback. `/attachments/<id>`
+        // values are gated against the public attachment closure here because
+        // frontmatter is an author-controlled side channel separate from the
+        // mdast image pass.
+        const hero = cover ?? result.firstImage.get(slug);
+        if (hero !== undefined) data.heroImage = hero;
+        const resolvedThumbnail = thumbnail ?? hero;
+        if (
+          resolvedThumbnail !== undefined &&
+          resolvedThumbnail !== hero
+        ) {
+          data.thumbnailImage = resolvedThumbnail;
+        }
+        const embeddedImages = result.embeddedImages.get(slug);
+        if (embeddedImages !== undefined) {
+          data.embeddedImages = embeddedImages;
+        }
+        const sourcePath = result.sourcePathBySlug.get(slug);
+        if (sourcePath !== undefined) data.sourcePath = sourcePath;
 
         usedIds.add(slug);
         context.store.set({
@@ -130,4 +174,18 @@ export function obpubLoader(config: ObpubConfig): Loader {
       }
     },
   };
+}
+
+function resolvePublicImageFrontmatter(
+  value: unknown,
+  attachmentClosure: ReadonlySet<string>,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cleaned = value.trim();
+  if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  if (!cleaned.startsWith('/')) return undefined;
+  if (!cleaned.startsWith('/attachments/')) return cleaned;
+  const id = cleaned.slice('/attachments/'.length);
+  if (attachmentClosure.has(id)) return cleaned;
+  return undefined;
 }

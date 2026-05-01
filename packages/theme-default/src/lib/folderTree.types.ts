@@ -13,5 +13,12 @@ export interface FolderNode {
   /** 자식 폴더(이름 alphabetical, 안정적). */
   children: FolderNode[];
   /** 이 폴더에 직접 속한 publishable 노트(슬러그 alphabetical, 안정적). */
-  notes: { slug: string; title: string }[];
+  notes: {
+    slug: string;
+    title: string;
+    description?: string;
+    tags?: string[];
+    date?: string;
+    thumbnail?: string;
+  }[];
 }

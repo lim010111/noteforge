@@ -131,9 +131,10 @@ async function runLoad(
 }
 
 describe('obpubLoader (Astro Content Layer adapter)', () => {
-  // 8 v0.1/v0.2 notes + 5 v0.3 fixture additions: case (a) deep-public branch,
-  // case (c) draft+visible mix, and case (d) folder-vs-note slug collision.
-  // Case (b) `private/secrets/diary` stays excluded by the tripwire.
+  // 8 v0.1/v0.2 notes + 5 v0.3 fixture additions (case (a) deep-public branch,
+  // case (c) draft+visible mix, case (d) folder-vs-note slug collision) +
+  // v0.5's `public-with-math`. Case (b) `private/secrets/diary` stays excluded
+  // by the tripwire.
   const EXPECTED_PUBLIC = new Set([
     'public-note',
     'another-public',
@@ -142,6 +143,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-comment',
     'public-with-extra-fm',
     'public-with-secret-tag',
+    'public-with-math',
     'note-with-alias',
     'posts/ai/claude/agents',
     'posts/mix/visible',
@@ -161,7 +163,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     await runLoad(loader, store, logger);
   });
 
-  it('(1) emits exactly the 13 public slugs as note-kind store keys', () => {
+  it('(1) emits exactly the 14 public slugs as note-kind store keys', () => {
     const noteKeys = store
       .values()
       .filter((e) => (e.data as Record<string, unknown>)['kind'] === 'note')
@@ -264,6 +266,26 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
         `backlink source '${src}' is not in the public set — private→public edges must be filtered`,
       ).toBe(true);
     }
+  });
+
+  it('(5b) gates cover/thumbnail attachment frontmatter and exposes safe picker metadata', () => {
+    const imageEntry = store.get('public-with-image');
+    expect(imageEntry).toBeDefined();
+    const data = imageEntry!.data as Record<string, unknown>;
+
+    expect(data['heroImage']).toBe('/attachments/only-public.png');
+    expect(data['thumbnailImage']).toBeUndefined();
+    expect(data['embeddedImages']).toEqual([
+      '/attachments/only-public.png',
+      'https://example.com/remote.png',
+    ]);
+    expect(data['sourcePath']).toBe('public-with-image.md');
+
+    const serialized = JSON.stringify(imageEntry);
+    expect(
+      serialized,
+      'loader must not surface a private-only attachment path via hero/thumbnail/frontmatter side channels',
+    ).not.toContain('/attachments/only-private.png');
   });
 
   it('(6a) every note entry carries kind:"note" and alias entries are kind:"alias-redirect" with only `to`', () => {

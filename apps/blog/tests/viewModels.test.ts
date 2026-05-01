@@ -83,6 +83,7 @@ describe('entryToNoteViewModel', () => {
     });
     const vm = entryToNoteViewModel(entry, '');
     const allowedKeys = new Set([
+      'slug',
       'title',
       'date',
       'updated',

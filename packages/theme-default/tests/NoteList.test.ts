@@ -41,8 +41,14 @@ describe('NoteList', () => {
     ];
     const html = await render({ entries, emptyMessage: 'unused' });
     expect(countMatches(html, /<li\b/g)).toBe(2);
-    expect(countMatches(html, /<a\s[^>]*\bhref="\/a"[^>]*>A<\/a>/g)).toBe(1);
-    expect(countMatches(html, /<a\s[^>]*\bhref="\/posts\/b"[^>]*>B<\/a>/g)).toBe(1);
+    expect(countMatches(html, /<a\s[^>]*\bhref="\/a"/g)).toBe(1);
+    expect(countMatches(html, /<a\s[^>]*\bhref="\/posts\/b"/g)).toBe(1);
+    expect(html).toMatch(
+      /<span\s[^>]*\bclass="post-preview__title note-list__link"[^>]*>A<\/span>/,
+    );
+    expect(html).toMatch(
+      /<span\s[^>]*\bclass="post-preview__title note-list__link"[^>]*>B<\/span>/,
+    );
   });
 
   it('emits <time> only when entry.date is present (no empty <time> leak)', async () => {
@@ -55,6 +61,46 @@ describe('NoteList', () => {
     expect(html).toMatch(
       /<time\s[^>]*\bdatetime="2026-01-10"[^>]*>2026-01-10<\/time>/,
     );
+  });
+
+  it('renders decorative thumbnails and fixed placeholders without using title as alt text', async () => {
+    const html = await render({
+      entries: [
+        { href: '/a', title: 'A', thumbnail: '/attachments/a.png' },
+        { href: '/b', title: 'B' },
+      ],
+      emptyMessage: 'unused',
+    });
+    expect(html).toMatch(
+      /<img\s[^>]*\bclass="post-preview__thumb note-list__thumb not-prose"[^>]*\bsrc="\/attachments\/a\.png"[^>]*\balt=""/,
+    );
+    expect(html).toContain('note-list__thumb--placeholder');
+    expect(html).not.toMatch(/\balt="A"/);
+  });
+
+  it('orders preview text as title, intro, then tags | date', async () => {
+    const html = await render({
+      entries: [
+        {
+          href: '/a',
+          title: 'A title',
+          description: 'A short intro',
+          tags: ['rust', 'astro'],
+          date: '2026-01-10',
+        },
+      ],
+      emptyMessage: 'unused',
+    });
+    const titleIdx = html.indexOf('A title');
+    const introIdx = html.indexOf('A short intro');
+    const tagsIdx = html.indexOf('#rust #astro');
+    const sepIdx = html.indexOf('post-preview__sep');
+    const dateIdx = html.indexOf('2026-01-10');
+    expect(titleIdx).toBeGreaterThanOrEqual(0);
+    expect(introIdx).toBeGreaterThan(titleIdx);
+    expect(tagsIdx).toBeGreaterThan(introIdx);
+    expect(sepIdx).toBeGreaterThan(tagsIdx);
+    expect(dateIdx).toBeGreaterThan(sepIdx);
   });
 
   it('drops extra fields cast onto NoteListEntry — allowlist enforcement', async () => {
@@ -101,8 +147,8 @@ describe('NoteList', () => {
     });
     expect(html).toMatch(/<ul\s[^>]*\bclass="note-list"/);
     expect(html).toContain('note-list__item');
+    expect(html).toContain('post-preview');
     expect(html).toContain('note-list__date');
-    expect(html).toContain('note-list__arrow');
     expect(html).toContain('note-list__link');
     // Anti-regression: a future home page must not borrow tag-page__ scoped names.
     expect(html).not.toContain('tag-page__list');

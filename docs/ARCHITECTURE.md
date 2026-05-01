@@ -72,7 +72,7 @@ isPublic = frontmatter.public === true
 2. public→public 엣지만 유지.
 3. `[[...]]` 위키링크: public 타겟 → 정상 `<a>`, private/미존재 → `strip-to-text`.
 4. `![[...]]` transclusion: public 타겟 → 본문 재귀 확장(동일 파이프라인), private/미존재 → 노드 제거.
-5. frontmatter는 allowlist 필드만 노출.
+5. frontmatter는 allowlist 필드만 노출(`cover`/`thumbnail`은 `/attachments/<rel>`일 때 public attachment closure로 추가 검증).
 6. 태그 blocklist 적용.
 7. 백링크는 필터된 그래프만 사용.
 8. 첨부파일은 public 노트 참조 closure만 `dist/`로.
@@ -155,10 +155,20 @@ buildFolderTree(entries) → FolderNode
 Sidebar(props: { tree, currentPath, avatar, nickname, ... })
     │  ── 시각만 — 자체 필터링 없음
     ▼
-FolderTree / FolderIndex / RecentRail / FeaturedRail
+FolderTree / FolderIndex / post-preview rows
 ```
 
 private 노트는 `filterPublishable` 단계에서 이미 빠지므로 트리에는 자연히 부재한다 — 컴포넌트가 빈 폴더를 "비공개 가능성 있음" 같은 신호로 표시할 책임이 없다(`docs/UI_GUIDE.md` §14 참조). `FolderTree` 컴포넌트는 빈 children `<ul>` 자체를 렌더하지 않아 누설 표면이 0이다.
+
+### 목록 미리보기 데이터
+
+홈, 카테고리, 폴더 인덱스, 태그 페이지의 게시물 미리보기는 같은 view-model 규칙을 따른다.
+
+- 썸네일: `entry.data.thumbnailImage ?? entry.data.heroImage`. `cover`/`thumbnail`의 `/attachments/<rel>` 값은 core `publicFrontmatter` 단계에서 public attachment closure로 먼저 검증되고, loader도 동일 규칙을 방어적으로 재확인한다.
+- 서문: `frontmatter.description`이 non-empty string이면 우선 사용. 없으면 `entry.rendered.html`에서 HTML 태그를 제거한 앞부분을 excerpt로 사용한다.
+- 본문 fallback은 raw vault body를 다시 읽지 않는다. `entry.rendered.html`은 Phase C의 link/transclude/comment/frontmatter privacy 처리를 지난 산출물이므로, listing 레이어가 별도 privacy 판정을 재구현하지 않아도 된다.
+- leading body tag marker(`#public`, `#essay` 등)는 excerpt 앞에서 제거한다. 공개 opt-in 표식이 사용자-facing 서문을 밀어내지 않게 하기 위한 표시 규칙이며, 공개/비공개 판정에는 관여하지 않는다.
+- 렌더 순서: 썸네일 왼쪽, 오른쪽에 `title → description/excerpt → tags | date`.
 
 ### 폴더 라우팅
 

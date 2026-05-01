@@ -7,6 +7,10 @@ import type {
 interface FolderNote {
   slug: string;
   title: string;
+  description?: string;
+  tags?: string[];
+  date?: string;
+  thumbnail?: string;
 }
 
 function collectDescendantNotes(node: FolderNode): readonly FolderNote[] {
@@ -45,12 +49,15 @@ function toCategoryNote(
   note: FolderNote,
   dateBySlug: ReadonlyMap<string, string>,
 ): CategoryOverviewNote {
-  const date = dateBySlug.get(note.slug);
+  const date = note.date ?? dateBySlug.get(note.slug);
   const item: CategoryOverviewNote = {
     href: `/${note.slug}/`,
     title: note.title,
   };
+  if (note.description !== undefined) item.description = note.description;
+  if (note.tags !== undefined) item.tags = note.tags;
   if (date !== undefined) item.date = date;
+  if (note.thumbnail !== undefined) item.thumbnail = note.thumbnail;
   return item;
 }
 

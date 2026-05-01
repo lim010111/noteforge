@@ -9,8 +9,8 @@
  * by the caller to be safe to render. This component does no filtering and
  * never reads from frontmatter directly.
  *
- * Allowlist contract: only the three declared `NoteListEntry` fields reach
- * the DOM. Extra keys cast onto the type are dropped at the destructure.
+ * Allowlist contract: only the declared `NoteListEntry` fields reach the DOM.
+ * Extra keys cast onto the type are dropped because they are never read.
  */
 import type { NoteListProps } from "./NoteList.types";
 const { entries, emptyMessage } = Astro.props as NoteListProps;
@@ -21,9 +21,42 @@ const { entries, emptyMessage } = Astro.props as NoteListProps;
   <ul class="note-list">
     {entries.map((e) => (
       <li class="note-list__item">
-        {e.date && <time datetime={e.date} class="note-list__date">{e.date}</time>}
-        <span class="note-list__arrow" aria-hidden="true">→</span>
-        <a href={e.href} class="note-list__link">{e.title}</a>
+        <a class="post-preview note-list__preview" href={e.href}>
+          {e.thumbnail ? (
+            <img
+              class="post-preview__thumb note-list__thumb not-prose"
+              src={e.thumbnail}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span class="post-preview__thumb note-list__thumb note-list__thumb--placeholder not-prose" aria-hidden="true">
+              ▢
+            </span>
+          )}
+          <span class="post-preview__content note-list__content">
+            <span class="post-preview__title note-list__link">{e.title}</span>
+            {e.description !== undefined && (
+              <span class="post-preview__description">{e.description}</span>
+            )}
+            {((e.tags?.length ?? 0) > 0 || e.date !== undefined) && (
+              <span class="post-preview__meta">
+                {(e.tags?.length ?? 0) > 0 && (
+                  <span class="post-preview__tags">
+                    {e.tags!.map((tag) => `#${tag}`).join(' ')}
+                  </span>
+                )}
+                {(e.tags?.length ?? 0) > 0 && e.date !== undefined && (
+                  <span class="post-preview__sep" aria-hidden="true">|</span>
+                )}
+                {e.date !== undefined && (
+                  <time datetime={e.date} class="post-preview__date note-list__date">{e.date}</time>
+                )}
+              </span>
+            )}
+          </span>
+        </a>
       </li>
     ))}
   </ul>

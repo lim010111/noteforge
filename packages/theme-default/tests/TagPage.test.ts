@@ -19,8 +19,8 @@
  *                                          frontmatter shape (signals the field
  *                                          exists). Skip the <span> entirely
  *                                          when date is absent.
- *   - allowlist enforcement (5)          : the privacy CRITICAL — only `slug`,
- *                                          `title`, `date` may reach DOM. Extra
+ *   - allowlist enforcement (5)          : the privacy CRITICAL — only declared
+ *                                          TagPageEntry fields may reach DOM. Extra
  *                                          keys (body, frontmatter, …) cast onto
  *                                          TagPageViewModel must NEVER leak.
  *   - title is escaped, not raw (6)      : guards the no-`set:html` invariant.
@@ -78,13 +78,19 @@ describe('TagPage', () => {
       ],
     });
     expect(
-      countMatches(html, /<a\s[^>]*\bhref="\/a"[^>]*>A<\/a>/g),
-      'slug "a" must produce exactly one <a href="/a">A</a>',
+      countMatches(html, /<a\s[^>]*\bhref="\/a"[^>]*>/g),
+      'slug "a" must produce exactly one <a href="/a"> preview row',
     ).toBe(1);
     expect(
-      countMatches(html, /<a\s[^>]*\bhref="\/b"[^>]*>B<\/a>/g),
-      'slug "b" must produce exactly one <a href="/b">B</a>',
+      countMatches(html, /<a\s[^>]*\bhref="\/b"[^>]*>/g),
+      'slug "b" must produce exactly one <a href="/b"> preview row',
     ).toBe(1);
+    expect(html).toMatch(
+      /<span\s[^>]*\bclass="post-preview__title note-list__link"[^>]*>A<\/span>/,
+    );
+    expect(html).toMatch(
+      /<span\s[^>]*\bclass="post-preview__title note-list__link"[^>]*>B<\/span>/,
+    );
     expect(
       countMatches(html, /href="\/a\//g),
       'href must NOT have a trailing slash — theme uses no-trailing-slash convention',

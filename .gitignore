@@ -37,3 +37,8 @@ private
 # only on disk, never in git, until this exception was added).
 !packages/core/tests/fixtures/vault-mixed/private/
 !packages/core/tests/fixtures/vault-mixed/private/**
+
+# vendored font source archive — too large for GitHub's 50 MB recommendation
+# (~63 MB). The woff2 outputs under apps/blog/public/fonts/ are committed;
+# scripts/vendor-fonts.mjs only needs the zip to regenerate them.
+apps/blog/public/fonts/Noto_Sans_KR.zip

@@ -380,7 +380,7 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 - `site.handle`은 선택. 누락 시 두 번째 라인 미렌더.
 - 둘 다 누락 시 `Sidebar`는 `AvatarBlock` 없이 `FolderTree`만 렌더.
 
-`Note` 본문의 `cover` frontmatter는 별개(allowlist 14개 중 하나). AvatarBlock과 cover는 다른 컴포넌트.
+`Note` 본문의 `cover` frontmatter는 별개(allowlist 필드 중 하나). AvatarBlock, cover, thumbnail은 다른 컴포넌트.
 
 **카테고리 액센트 적용**: 없음. AvatarBlock은 트리 *위*에 있고 카테고리 컨텍스트가 없다. 닉네임 색은 `--color-text-heading`이며 `--color-accent-2`가 아니다(아이덴티티는 조용해야 한다).
 
@@ -706,7 +706,7 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 
 **목적**: 홈 페이지 두 번째 레일 — 저자가 큐레이션한 featured 노트.
 
-**입력 정의**: `frontmatter.featured: true`인 공개 노트만 포함. `selectFeatured(n)`(step 7, `packages/core`)이 이미 필터+정렬한 결과를 받는다. `featured`는 v0.2 frontmatter allowlist에 이미 포함되어 있으며, v0.3는 추가 필드를 도입하지 않는다(allowlist 확장 금지).
+**입력 정의**: `frontmatter.featured: true`인 공개 노트만 포함. `selectFeatured(n)`(step 7, `packages/core`)이 이미 필터+정렬한 결과를 받는다. `featured`는 v0.2 frontmatter allowlist에 이미 포함되어 있으며, 시각용 이미지는 privacy-gated `cover`/`thumbnail`만 사용한다.
 
 **Props**:
 
@@ -750,6 +750,44 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 
 - 섹션 헤딩 `▸ featured`만 `--color-accent-2`(forest-moss) — 홈 페이지에서 보조 액센트가 등장하는 *유일한* 위치이며, 이것이 강한 surface 처리 없이 "featured"를 신호한다.
 - per-row 카테고리 점은 `RecentRail`과 동일 슬롯 매핑 사용 — 동일 폴더가 모든 표면에서 동일 색으로 읽힌다.
+
+### 7-15. `PostPreview` row *(v0.5)*
+
+**목적**: 홈, 카테고리, 폴더 인덱스, 태그 페이지에서 같은 게시물 미리보기 구조를 사용한다. 뉴스 리스트처럼 왼쪽에 썸네일을 두고, 오른쪽에는 정보가 위에서 아래로 읽히게 한다.
+
+![PostPreview row reference](assets/post-preview-reference.png)
+
+**입력 정의**:
+
+- `title` — 공개 표시 제목.
+- `description?` — allowlisted `description`; 없으면 privacy-processed `rendered.html` 앞부분 excerpt.
+- `tags?` — blocklist 통과 후 정규화된 공개 태그. `#tag` 텍스트로만 표시한다.
+- `date?` — `<time datetime>`으로 표시.
+- `thumbnail?` — privacy-gated `thumbnailImage`, 없으면 privacy-gated hero image.
+
+**레이아웃**:
+
+```html
+<a class="post-preview" href="/note/">
+  <img class="post-preview__thumb" alt="" loading="lazy" decoding="async" />
+  <span class="post-preview__content">
+    <span class="post-preview__title">제목</span>
+    <span class="post-preview__description">서문 또는 본문 앞부분</span>
+    <span class="post-preview__meta">
+      <span class="post-preview__tags">#tag #tag2</span>
+      <span aria-hidden="true">|</span>
+      <time datetime="2026-05-01">2026-05-01</time>
+    </span>
+  </span>
+</a>
+```
+
+- 썸네일은 장식 이미지이므로 `alt=""`.
+- 썸네일이 없으면 같은 aspect-ratio의 hairline placeholder를 렌더한다.
+- 오른쪽 순서는 반드시 `title → description/excerpt → tags | date`.
+- `description`과 excerpt가 모두 없으면 description 줄을 렌더하지 않는다.
+- `tags`와 `date` 둘 중 하나만 있으면 구분자 `|`는 렌더하지 않는다.
+- excerpt fallback은 이미 privacy 처리된 `rendered.html`에서 만들며, raw vault body를 새로 읽지 않는다.
 
 ### Cross-component 불변식 (요약)
 
@@ -841,11 +879,12 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 
 1. **Private wikilink는 `<a>` 없는 strip-to-text** — public 노트에서 private을 가리키는 `[[Private]]`는 plain text로만 남는다. 시각 레이어에서 placeholder("[비공개 링크]"), 회색 박스, hover tooltip, badge 같은 *어떤 표시도* 금지. private이 거기 있다는 신호 자체를 만들지 않는다.
 2. **Private embed(`![[Private]]`)는 AST에서 제거 — 빈 자리도 표시 금지** — embed가 사라진 자리에 "[비공개 임베드]" 박스, 점선 테두리, "재방문 시 공개될 수 있음" 같은 카피 모두 금지. 그냥 흐름이 자연스럽게 이어져야 한다.
-3. **Allowlist 외 frontmatter는 meta/og에 노출 금지** — 본 가이드의 어떤 `<meta>`/`<og:*>` 슬롯에도 allowlist(`title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`) 외 필드를 채우지 않는다. "보기 좋게" 추가 메타를 노출하는 디자인 수정 금지.
+3. **Allowlist 외 frontmatter는 meta/og에 노출 금지** — 본 가이드의 어떤 `<meta>`/`<og:*>` 슬롯에도 allowlist(`title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `thumbnail`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`) 외 필드를 채우지 않는다. "보기 좋게" 추가 메타를 노출하는 디자인 수정 금지.
 4. **그래프/백링크는 filtered 데이터만 받는다** — `Graph`/`Backlinks` 컴포넌트는 입력으로 받은 노드/엣지 셋을 그대로 그릴 뿐, 스스로 필터링하거나 추가 데이터(예: total count, "n more" 따위)로 보완하지 않는다. 빈 상태는 7-9의 정책대로 — 비어 있을 땐 *섹션 자체가 없다*.
 5. **검색/리스팅에서 private 슬러그·제목 0회** — 향후 v0.2+에서 검색 UI/sitemap을 도입하더라도, UI가 받는 데이터는 public-only filtered 셋이어야 하며, "private이 있긴 하다"는 시각 신호(잠긴 자물쇠 아이콘 등)를 도입하지 않는다.
 6. **시각 누출 회귀는 audit이 잡는다** — `pnpm obpub audit`가 dist에서 private 제목/첨부/`%%comment%%`/allowlist 외 필드를 0회 검증. 시각 변경 시 audit이 통과해야 머지 가능.
 7. **폴더 트리·breadcrumb·rail은 데이터 레이어 필터링 결과만 그린다** *(v0.3 새 항목)* — `FolderTree`는 `packages/core/src/privacy/`에서 이미 걸러진 트리만 받는다. private 노트만 담은 폴더는 입력 트리에 부재하므로 시각이 자연 부재로 표현한다(빈 children `<ul>` 자체가 미렌더). 카테고리 슬롯은 *공개 구조*에만 사용되며 "private 슬롯"은 토큰에도 컴포넌트에도 존재하지 않는다(§3 v0.3 chromatic 한계선의 "private 상태 색-코딩 금지"). 자물쇠 아이콘·회색 tint·"이 폴더에 더 있음" 같은 신호 모두 금지. `FeaturedRail`은 빈 상태에서 섹션 자체를 미렌더(7-14) — 비어 있는 "Featured" 헤딩이 누설 신호가 되기 때문.
+8. **미리보기 excerpt는 privacy-processed HTML만 사용** *(v0.5)* — `description`이 없을 때 목록 서문은 `entry.rendered.html`에서만 만든다. raw markdown, private graph, allowlist 밖 frontmatter를 조회해 "더 좋은 요약"을 만드는 시각 레이어 변경은 금지.
 
 ---
 

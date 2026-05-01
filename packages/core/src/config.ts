@@ -10,6 +10,7 @@ const DEFAULT_FRONTMATTER_ALLOWLIST = [
   'tags',
   'aliases',
   'cover',
+  'thumbnail',
   'author',
   'draft',
   'public',

@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { AstroIntegration } from 'astro';
 import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
+import type { PipelineResult } from '@noteforge/core/pipeline';
 import { obpub } from '../src/integration.ts';
 import { remarkWikilink } from '../src/remarkWikilink.ts';
 import {
@@ -106,7 +107,20 @@ vi.mock('node:fs/promises', () => {
   }> {
     return { isDirectory: () => false, isFile: () => true };
   }
-  return { readdir, readFile, stat, default: { readdir, readFile, stat } };
+  // mkdir/copyFile are not exercised by the watcher path; the build-done
+  // attachment copy injects its own `fs` shim via ObpubIntegrationOptions, so
+  // these stubs only exist to make `import * as fs from 'node:fs/promises'`
+  // resolve without exploding when other consumers eagerly destructure.
+  async function mkdir(_p: string, _opts?: unknown): Promise<void> {}
+  async function copyFile(_src: string, _dest: string): Promise<void> {}
+  return {
+    readdir,
+    readFile,
+    stat,
+    mkdir,
+    copyFile,
+    default: { readdir, readFile, stat, mkdir, copyFile },
+  };
 });
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -223,19 +237,94 @@ function makeConfigSetupArgs(overrides: {
   } as ConfigSetupArgs;
 }
 
-function makeBuildDoneArgs(logger: LoggerSpy): BuildDoneArgs {
+function makeBuildDoneArgs(logger: LoggerSpy, distUrl?: URL): BuildDoneArgs {
   return {
     pages: [],
-    dir: new URL('file:///tmp/dist/'),
+    dir: distUrl ?? new URL('file:///tmp/obpub-test-dist/'),
     routes: [],
     assets: new Map(),
     logger: logger as unknown as BuildDoneArgs['logger'],
   } as BuildDoneArgs;
 }
 
+interface FakeMiddlewares {
+  use: ReturnType<typeof vi.fn>;
+  /** Captured handlers keyed by mount path, populated by `use()` calls. */
+  handlers: Map<string, MiddlewareHandler>;
+}
+
+type MiddlewareReq = { url?: string; method?: string };
+type MiddlewareRes = {
+  statusCode: number;
+  headersSent?: boolean;
+  setHeader: (name: string, value: string) => void;
+  end: (chunk?: unknown) => void;
+  write?: (chunk: unknown) => void;
+};
+type MiddlewareHandler = (
+  req: MiddlewareReq,
+  res: MiddlewareRes,
+  next: () => void,
+) => void;
+
 interface FakeServer {
   ws?: { send: ReturnType<typeof vi.fn> };
   hot?: { send: ReturnType<typeof vi.fn> };
+  middlewares?: FakeMiddlewares;
+}
+
+function makePipelineStub(
+  closure: readonly string[],
+): (config: ObpubConfig) => Promise<PipelineResult> {
+  return async () => {
+    // The integration only reads `attachmentClosure` from the result, so a
+    // narrow stub is enough — synthesising the full PipelineResult shape
+    // would lock us into upstream changes.
+    return { attachmentClosure: new Set(closure) } as unknown as PipelineResult;
+  };
+}
+
+function makeFakeMiddlewares(): FakeMiddlewares {
+  const handlers = new Map<string, MiddlewareHandler>();
+  const use = vi.fn((mount: string, handler: MiddlewareHandler) => {
+    handlers.set(mount, handler);
+  });
+  return { use, handlers };
+}
+
+interface FakeRes extends MiddlewareRes {
+  statusCode: number;
+  headers: Map<string, string>;
+  body: Uint8Array[];
+  ended: boolean;
+  endedWith?: Uint8Array | string;
+}
+
+function makeFakeRes(): FakeRes {
+  const res: FakeRes = {
+    statusCode: 200,
+    headers: new Map(),
+    body: [],
+    ended: false,
+    setHeader(name, value) {
+      res.headers.set(name.toLowerCase(), value);
+    },
+    write(chunk) {
+      if (chunk instanceof Uint8Array) res.body.push(chunk);
+      else if (typeof chunk === 'string')
+        res.body.push(new TextEncoder().encode(chunk));
+    },
+    end(chunk) {
+      if (chunk !== undefined) {
+        if (chunk instanceof Uint8Array) res.body.push(chunk);
+        else if (typeof chunk === 'string')
+          res.body.push(new TextEncoder().encode(chunk));
+        res.endedWith = chunk as Uint8Array | string;
+      }
+      res.ended = true;
+    },
+  };
+  return res;
 }
 
 function makeServerSetupArgs(
@@ -376,27 +465,98 @@ describe('obpub integration factory', () => {
     ).toBe(false);
   });
 
-  it('(4) astro:build:done is a placeholder — it logs once and performs no I/O', async () => {
-    const integration = obpub(makeConfig());
+  it('(4) astro:build:done copies the attachment closure into dist/attachments via the injected fs seam', async () => {
+    // We seed the closure with two ids — a flat one (`only-public.png`) and
+    // a nested one (`attachments/AI/photo.jpg`) — so the test exercises both
+    // the leaf-only case AND the recursive-mkdir case. A future regression
+    // that, say, drops the `mkdir` step would still pass with a flat id;
+    // the nested id is what makes the contract actionable.
+    const copyCalls: { src: string; dest: string }[] = [];
+    const mkdirCalls: { dir: string; opts: unknown }[] = [];
+    const fakeFsImpl = {
+      mkdir: vi.fn(async (dir: string, opts: { recursive: true }) => {
+        mkdirCalls.push({ dir, opts });
+      }),
+      copyFile: vi.fn(async (src: string, dest: string) => {
+        copyCalls.push({ src, dest });
+      }),
+      readFile: vi.fn(async (_p: string) => new Uint8Array(0)),
+    };
+
+    const closure = ['only-public.png', 'attachments/AI/photo.jpg'];
+    const integration = obpub(makeConfig(), {
+      fs: fakeFsImpl,
+      runPipelineImpl: makePipelineStub(closure),
+    });
     const buildDone = integration.hooks['astro:build:done'];
     expect(buildDone).toBeDefined();
 
+    const distUrl = new URL('file:///tmp/obpub-test-dist/');
     const logger = makeLogger();
-    await expect(
-      Promise.resolve(buildDone!(makeBuildDoneArgs(logger))),
-      'placeholder hook must never throw — audit failures belong to a later phase',
-    ).resolves.not.toThrow();
+    await buildDone!(makeBuildDoneArgs(logger, distUrl));
+
+    const distRoot = fileURLToPath(distUrl);
+    const expected = closure.map((id) => ({
+      src: path.resolve(VAULT_ROOT, id),
+      dest: path.resolve(distRoot, 'attachments', id),
+    }));
+
+    // Order is not contractual (closure is a Set), so compare as sorted arrays.
+    const sortedCopy = [...copyCalls].sort((a, b) => a.dest.localeCompare(b.dest));
+    const sortedExpected = [...expected].sort((a, b) =>
+      a.dest.localeCompare(b.dest),
+    );
+    expect(
+      sortedCopy,
+      'build-done must copy exactly the public attachment closure — not the union of all attachments, and not nothing',
+    ).toEqual(sortedExpected);
+
+    const sortedMkdir = [...mkdirCalls].sort((a, b) => a.dir.localeCompare(b.dir));
+    expect(
+      sortedMkdir,
+      'each copy must be preceded by a recursive mkdir so deep attachment paths (attachments/AI/foo.png) land cleanly',
+    ).toEqual(
+      sortedExpected
+        .map((e) => ({ dir: path.dirname(e.dest), opts: { recursive: true } }))
+        .sort((a, b) => a.dir.localeCompare(b.dir)),
+    );
 
     expect(
       logger.info,
-      'placeholder must announce itself exactly once via logger.info — silent placeholders rot unnoticed',
+      'build-done must summarise the copy count exactly once — silent success is how regressions hide',
     ).toHaveBeenCalledTimes(1);
-    const msg = logger.info.mock.calls[0]?.[0] as string | undefined;
-    expect(typeof msg).toBe('string');
+    const summary = logger.info.mock.calls[0]?.[0] as string | undefined;
+    expect(summary).toContain('copied 2/2 attachment(s)');
+  });
+
+  it('(4b) astro:build:done throws when any closure entry fails to copy and surfaces every failure via logger.warn', async () => {
+    // When the OS / mocked fs rejects a copy, the integration must NOT
+    // silently drop the failed attachment from dist. Throwing surfaces the
+    // problem to `astro build`, which exits non-zero and prevents shipping
+    // a half-broken site. The per-failure warn line keeps the post-mortem
+    // single-grep-able.
+    const integration = obpub(makeConfig(), {
+      fs: {
+        mkdir: async () => {
+          throw new Error('synthetic mkdir failure');
+        },
+        copyFile: async () => {},
+        readFile: async () => new Uint8Array(0),
+      },
+      runPipelineImpl: makePipelineStub(['only-public.png']),
+    });
+    const buildDone = integration.hooks['astro:build:done']!;
+    const logger = makeLogger();
+    await expect(
+      buildDone(
+        makeBuildDoneArgs(logger, new URL('file:///tmp/obpub-test-dist-fail/')),
+      ),
+      'when any attachment fails to copy, build-done must throw so the surrounding `astro build` exits non-zero — silently dropping a public attachment from dist would ship a broken site',
+    ).rejects.toThrow(/attachment\(s\) failed to copy/);
     expect(
-      msg,
-      'log message must contain the literal "audit placeholder" so future audit work has a single grep target',
-    ).toContain('audit placeholder');
+      logger.warn.mock.calls.length,
+      'each failure must be reported once via logger.warn before the throw — quiet failures rot in CI logs',
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('(5) export surface: obpub, obpubLoader, remarkWikilink are all functions on the package index', async () => {
@@ -434,11 +594,12 @@ describe('obpub integration — dev server wiring', () => {
 
     const integration = obpub(makeConfig(), {
       createWatcherImpl: factorySpy as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub([]),
     });
     const serverSetup = integration.hooks['astro:server:setup'];
     expect(serverSetup, 'astro:server:setup must be registered').toBeDefined();
 
-    const server: FakeServer = { ws: { send: vi.fn() } };
+    const server: FakeServer = { ws: { send: vi.fn() }, middlewares: makeFakeMiddlewares() };
     const logger = makeLogger();
 
     await serverSetup!(makeServerSetupArgs(server, logger));
@@ -468,6 +629,7 @@ describe('obpub integration — dev server wiring', () => {
 
     const integration = obpub(makeConfig(), {
       createWatcherImpl: factorySpy as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub([]),
     });
     const serverSetup = integration.hooks['astro:server:setup']!;
 
@@ -498,6 +660,7 @@ describe('obpub integration — dev server wiring', () => {
 
     const integration = obpub(makeConfig(), {
       createWatcherImpl: factory as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub([]),
     });
     const serverSetup = integration.hooks['astro:server:setup']!;
 
@@ -536,6 +699,7 @@ describe('obpub integration — dev server wiring', () => {
 
     const integration = obpub(makeConfig(), {
       createWatcherImpl: factory as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub([]),
     });
     const serverSetup = integration.hooks['astro:server:setup']!;
 
@@ -580,6 +744,7 @@ describe('obpub integration — dev server wiring', () => {
 
     const integration = obpub(makeConfig(), {
       createWatcherImpl: factory as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub([]),
     });
     const serverSetup = integration.hooks['astro:server:setup']!;
     const serverDone = integration.hooks['astro:server:done']!;
@@ -646,6 +811,7 @@ describe('obpub integration — dev server wiring', () => {
     const forwardedEvents: { kind: string; slug: string }[][] = [];
     const integration = obpub(makeFakeVaultConfig(), {
       createWatcherImpl: wrappedFactory,
+      runPipelineImpl: makePipelineStub([]),
       onDevInvalidate: (events) => {
         forwardedEvents.push(events);
       },
@@ -674,5 +840,109 @@ describe('obpub integration — dev server wiring', () => {
       makeServerDoneArgs(makeLogger()),
     );
     expect(chokidar.closed).toBe(true);
+  });
+
+  it('(11) /attachments/* middleware streams a closure member and 404s every other request', async () => {
+    // The middleware is the dev-time mirror of the build-done copier — both
+    // gate on `attachmentClosure`, so a regression that lets the middleware
+    // leak something the copier would never have shipped is the worst kind
+    // (live-only leak that audit on dist cannot catch). This test pins the
+    // four states — closure hit (200), miss (404), traversal attempt (404),
+    // wrong method (next).
+    const fakeWatcher: Watcher = {
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+    const factory = vi.fn((_opts: WatcherOptions) => fakeWatcher);
+
+    const fileBytes = new TextEncoder().encode('PNG-fake-bytes');
+    const fakeFsImpl: NonNullable<Parameters<typeof obpub>[1]>['fs'] = {
+      mkdir: async () => {},
+      copyFile: async () => {},
+      readFile: vi.fn(async (_abs: string) => fileBytes),
+    };
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factory as unknown as typeof createWatcher,
+      runPipelineImpl: makePipelineStub(['only-public.png']),
+      fs: fakeFsImpl,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+
+    const middlewares = makeFakeMiddlewares();
+    const server: FakeServer = { ws: { send: vi.fn() }, middlewares };
+    await serverSetup(makeServerSetupArgs(server, makeLogger()));
+
+    // Astro's connect-style mount strips the `/attachments` prefix before
+    // handing the request off, so handler-side `req.url` is just the suffix.
+    const handler = middlewares.handlers.get('/attachments');
+    expect(handler, 'middleware must register on /attachments mount').toBeDefined();
+
+    // (a) closure HIT — public attachment in the closure
+    {
+      const res = makeFakeRes();
+      const next = vi.fn();
+      handler!({ url: '/only-public.png', method: 'GET' }, res, next);
+      // Wait for async readFile to settle (fake fs is async).
+      await new Promise((r) => setTimeout(r, 0));
+      expect(
+        next,
+        'a closure HIT must stream the asset, not delegate downstream — delegation would let other middleware (e.g. SSR) try to render and 500',
+      ).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(200);
+      expect(res.headers.get('content-type')).toBe('image/png');
+      expect(res.ended).toBe(true);
+      expect(res.body.map((b) => Array.from(b)).flat()).toEqual(
+        Array.from(fileBytes),
+      );
+    }
+
+    // (b) closure MISS — looks like a real attachment but is not in the set
+    {
+      const res = makeFakeRes();
+      const next = vi.fn();
+      handler!({ url: '/only-private.png', method: 'GET' }, res, next);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(
+        next,
+        'closure miss must terminate with 404 — calling next() would expose private attachments to whatever fallback handler runs after',
+      ).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(404);
+      expect(res.ended).toBe(true);
+    }
+
+    // (c) path traversal attempt — `..` segments must 404, never read disk
+    {
+      const callsBefore = (
+        fakeFsImpl.readFile as unknown as { mock: { calls: unknown[] } }
+      ).mock.calls.length;
+      const res = makeFakeRes();
+      const next = vi.fn();
+      handler!(
+        { url: '/../../etc/passwd', method: 'GET' },
+        res,
+        next,
+      );
+      expect(res.statusCode).toBe(404);
+      expect(res.ended).toBe(true);
+      const callsAfter = (
+        fakeFsImpl.readFile as unknown as { mock: { calls: unknown[] } }
+      ).mock.calls.length;
+      expect(
+        callsAfter - callsBefore,
+        'traversal attempts must short-circuit before any fs read — even an attempted read would write the path into logs',
+      ).toBe(0);
+    }
+
+    // (d) non-GET/HEAD — POST should fall through to the next middleware
+    {
+      const res = makeFakeRes();
+      const next = vi.fn();
+      handler!({ url: '/only-public.png', method: 'POST' }, res, next);
+      expect(
+        next,
+        'non-GET/HEAD methods are not the middleware\'s responsibility — passing through preserves CORS/preflight handling that real apps may install on the same path',
+      ).toHaveBeenCalledTimes(1);
+    }
   });
 });

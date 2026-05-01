@@ -1,6 +1,7 @@
 export { default as BaseLayout } from './layouts/BaseLayout.astro';
 export type { BaseLayoutProps } from './layouts/BaseLayout.types.ts';
 export { default as Note } from './components/Note.astro';
+export { default as DevImagePicker } from './components/DevImagePicker.astro';
 export { default as NotFound } from './components/NotFound.astro';
 export { default as Backlinks } from './components/Backlinks.astro';
 export { default as TagList } from './components/TagList.astro';
@@ -21,6 +22,7 @@ export type {
 } from './components/Graph.layout.ts';
 export { computeCircularLayout } from './components/Graph.layout.ts';
 export type { NoteProps, NoteViewModel } from './components/Note.types.ts';
+export type { DevImagePickerProps } from './components/DevImagePicker.types.ts';
 export type {
   BacklinksProps,
   BacklinksViewModel,

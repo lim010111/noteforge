@@ -54,7 +54,7 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 ---
 
 ### ADR-006: Frontmatter allowlist (blocklist가 아닌)
-**결정**: `title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`만 공개. 그 외 모든 필드는 공개 렌더에서 제거.
+**결정**: `title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `thumbnail`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`만 공개. 그 외 모든 필드는 공개 렌더에서 제거.
 **이유**: blocklist는 "잊은 필드가 누출"되지만 allowlist는 "잊은 필드가 감춰짐". privacy-first 원칙에 맞음.
 **대안**: blocklist — 호환성 높지만 새 필드 추가 시 누출 위험.
 **트레이드오프**: 사용자가 커스텀 필드(`reading-time`, `mood`)를 공개하려면 `publishing.frontmatterAllowlist`에 추가해야 함. 명시적 선언이 문서화 효과.
@@ -120,3 +120,14 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 **트레이드오프**:
 - 기존 step8 canonical / og:url / alias meta-refresh / `_headers` 매처가 모두 새 슬래시 정책으로 한꺼번에 갱신되어야 함(step 6 작업). step 8 audit이 dist에서 모든 내부 URL이 trailing slash를 갖는지 검증.
 - Cloudflare Pages는 `trailingSlash: 'always'`를 자연스럽게 지원하지만, fork 사용자가 다른 호스팅(Netlify/Vercel)을 쓸 경우 매처 동작 차이를 `docs/DEPLOY.md`(미래 갱신)에 명시 필요. 현재는 v0.2 release 채택 호스팅이 Cloudflare 단일이라 즉시 영향 없음.
+
+---
+
+### ADR-013: 게시물 미리보기 서문은 `description` 우선, rendered HTML excerpt fallback
+**결정**: 목록 미리보기의 서문은 allowlisted `frontmatter.description`을 우선 사용한다. 값이 없거나 공백이면 Content Layer의 `entry.rendered.html`에서 텍스트를 추출해 160자 excerpt로 표시한다.
+**이유**:
+- 모든 공개 노트가 `description`을 작성하지는 않는다. 빈 행을 만들면 썸네일형 목록에서 정보 밀도가 급격히 낮아진다.
+- raw markdown body를 다시 읽거나 새로 파싱하면 privacy pipeline을 우회할 위험이 있다. `rendered.html`은 이미 comment strip, private link rewrite, private transclusion 제거, attachment closure 처리를 거친 산출물이므로 listing fallback의 입력으로 적합하다.
+- 본문 맨 앞의 `#public` 같은 공개 opt-in 태그는 독자용 서문이 아니므로 excerpt 앞에서만 제거한다.
+**대안**: description이 없으면 서문을 생략 — 구현은 단순하지만 실제 vault에서 대부분의 목록 행이 제목+메타만 남는다. raw markdown에서 excerpt 생성 — privacy 단계 중복/우회 위험 때문에 거부.
+**트레이드오프**: HTML-to-text 변환은 완전한 브라우저 DOM 파서가 아니라 보수적인 문자열 정규화다. 현재는 파이프라인 산출 HTML의 제한된 형태를 대상으로 충분하며, excerpt는 표시 보조 정보일 뿐 canonical content가 아니다.

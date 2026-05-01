@@ -1,0 +1,331 @@
+---
+import type { DevImagePickerProps } from "./DevImagePicker.types";
+
+const {
+  slug,
+  heroImage,
+  thumbnailImage,
+  embeddedImages = [],
+  sourcePath,
+} = Astro.props as DevImagePickerProps;
+
+const candidates = [...new Set(embeddedImages)];
+const currentThumbnail = thumbnailImage ?? heroImage;
+
+function labelFor(url: string): string {
+  try {
+    const parsed = /^https?:\/\//i.test(url)
+      ? new URL(url).pathname
+      : url;
+    const leaf = parsed.split('/').filter(Boolean).at(-1) ?? url;
+    return decodeURIComponent(leaf);
+  } catch {
+    return url;
+  }
+}
+---
+<div
+  class="dev-image-picker not-prose"
+  data-dev-image-picker
+  data-slug={slug}
+>
+  <button class="dev-image-picker__trigger" type="button" data-picker-open>
+    이미지 설정
+  </button>
+  <dialog class="dev-image-picker__dialog" data-picker-dialog>
+    <div class="dev-image-picker__panel">
+      <div class="dev-image-picker__head">
+        <div>
+          <h2 class="dev-image-picker__title">이미지 설정</h2>
+          <p class="dev-image-picker__source">{sourcePath}</p>
+        </div>
+        <button class="dev-image-picker__icon-button" type="button" data-picker-close aria-label="닫기">
+          ×
+        </button>
+      </div>
+
+      {(['cover', 'thumbnail'] as const).map((field) => {
+        const current = field === 'cover' ? heroImage : currentThumbnail;
+        const title = field === 'cover' ? '배경' : '썸네일';
+        return (
+          <section class="dev-image-picker__slot" data-picker-slot={field}>
+            <div class="dev-image-picker__slot-head">
+              <h3 class="dev-image-picker__slot-title">{title}</h3>
+              {current !== undefined && (
+                <span class="dev-image-picker__current">{labelFor(current)}</span>
+              )}
+            </div>
+            {candidates.length > 0 && (
+              <div class="dev-image-picker__grid">
+                {candidates.map((url) => (
+                  <button
+                    class="dev-image-picker__candidate"
+                    type="button"
+                    data-picker-field={field}
+                    data-picker-value={url}
+                  >
+                    <img src={url} alt="" loading="lazy" decoding="async" />
+                    <span>{labelFor(url)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div class="dev-image-picker__manual">
+              <input
+                class="dev-image-picker__input"
+                type="url"
+                inputmode="url"
+                placeholder="https://example.com/image.png"
+                data-picker-url={field}
+              />
+              <button class="dev-image-picker__button" type="button" data-picker-url-submit={field}>
+                적용
+              </button>
+              <button class="dev-image-picker__button" type="button" data-picker-clear={field}>
+                초기화
+              </button>
+            </div>
+          </section>
+        );
+      })}
+      <p class="dev-image-picker__status" data-picker-status aria-live="polite"></p>
+    </div>
+  </dialog>
+</div>
+
+<script>
+  const roots = document.querySelectorAll('[data-dev-image-picker]');
+  for (const root of roots) {
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') continue;
+    root.dataset.bound = 'true';
+    const slug = root.dataset.slug;
+    const dialog = root.querySelector('[data-picker-dialog]');
+    const status = root.querySelector('[data-picker-status]');
+    if (!(dialog instanceof HTMLDialogElement) || slug === undefined) continue;
+    const setStatus = (message) => {
+      if (status instanceof HTMLElement) status.textContent = message;
+    };
+    const close = () => {
+      if (dialog.open) dialog.close();
+    };
+    root.querySelector('[data-picker-open]')?.addEventListener('click', () => {
+      setStatus('');
+      dialog.showModal();
+    });
+    root.querySelector('[data-picker-close]')?.addEventListener('click', close);
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) close();
+    });
+
+    const postUpdate = async (field, value) => {
+      setStatus('저장 중');
+      const body = { slug, [field]: value };
+      const response = await fetch('/__obpub/cover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+      setStatus('저장됨');
+      window.setTimeout(close, 250);
+    };
+
+    root.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const candidate = target.closest('[data-picker-field][data-picker-value]');
+      const clear = target.closest('[data-picker-clear]');
+      const submit = target.closest('[data-picker-url-submit]');
+      void (async () => {
+        try {
+          if (candidate instanceof HTMLElement) {
+            await postUpdate(
+              candidate.dataset.pickerField,
+              candidate.dataset.pickerValue,
+            );
+          } else if (clear instanceof HTMLElement) {
+            await postUpdate(clear.dataset.pickerClear, null);
+          } else if (submit instanceof HTMLElement) {
+            const field = submit.dataset.pickerUrlSubmit;
+            const input = root.querySelector(`[data-picker-url="${field}"]`);
+            if (!(input instanceof HTMLInputElement)) return;
+            await postUpdate(field, input.value);
+          }
+        } catch (err) {
+          setStatus(err instanceof Error ? err.message : String(err));
+        }
+      })();
+    });
+  }
+</script>
+
+<style>
+  .dev-image-picker {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--space-3);
+    position: relative;
+    z-index: 2;
+  }
+  .dev-image-picker__trigger,
+  .dev-image-picker__button,
+  .dev-image-picker__icon-button {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    color: var(--color-text-body);
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    font-weight: var(--weight-meta);
+    letter-spacing: var(--ls-meta);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+  }
+  .dev-image-picker__trigger,
+  .dev-image-picker__button {
+    padding: var(--space-1) var(--space-2);
+  }
+  .dev-image-picker__trigger:hover,
+  .dev-image-picker__button:hover,
+  .dev-image-picker__icon-button:hover {
+    background: var(--color-bg-surface-strong);
+    color: var(--color-text-heading);
+  }
+  .dev-image-picker__dialog {
+    width: min(44rem, calc(100vw - 2rem));
+    max-height: min(44rem, calc(100vh - 2rem));
+    padding: 0;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-page);
+    color: var(--color-text-body);
+  }
+  .dev-image-picker__dialog::backdrop {
+    background: rgb(0 0 0 / 0.35);
+  }
+  .dev-image-picker__panel {
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+  .dev-image-picker__head,
+  .dev-image-picker__slot-head,
+  .dev-image-picker__manual {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .dev-image-picker__head {
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-3);
+  }
+  .dev-image-picker__title,
+  .dev-image-picker__slot-title {
+    margin: 0;
+    color: var(--color-text-heading);
+  }
+  .dev-image-picker__title {
+    font-family: var(--font-serif);
+    font-size: var(--text-h3);
+    font-weight: var(--weight-h3);
+    line-height: var(--lh-h3);
+    letter-spacing: var(--ls-h3);
+  }
+  .dev-image-picker__source,
+  .dev-image-picker__current,
+  .dev-image-picker__status {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    color: var(--color-text-muted);
+  }
+  .dev-image-picker__source,
+  .dev-image-picker__status {
+    margin: var(--space-1) 0 0;
+  }
+  .dev-image-picker__icon-button {
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  .dev-image-picker__slot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .dev-image-picker__slot-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    font-weight: var(--weight-meta);
+    letter-spacing: var(--ls-meta);
+    text-transform: uppercase;
+  }
+  .dev-image-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    gap: var(--space-2);
+  }
+  .dev-image-picker__candidate {
+    min-width: 0;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    color: var(--color-text-body);
+    text-align: left;
+    cursor: pointer;
+  }
+  .dev-image-picker__candidate:hover {
+    background: var(--color-bg-surface-strong);
+  }
+  .dev-image-picker__candidate img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+  }
+  .dev-image-picker__candidate span {
+    display: block;
+    margin-top: var(--space-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    color: var(--color-text-muted);
+  }
+  .dev-image-picker__input {
+    min-width: 0;
+    flex: 1;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    color: var(--color-text-body);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    padding: var(--space-2);
+  }
+
+  @media (max-width: 36rem) {
+    .dev-image-picker__manual,
+    .dev-image-picker__head,
+    .dev-image-picker__slot-head {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .dev-image-picker__icon-button {
+      align-self: flex-end;
+    }
+  }
+</style>

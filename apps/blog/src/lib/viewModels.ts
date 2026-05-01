@@ -28,9 +28,55 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
-function lastSegment(slug: string): string {
+const PREVIEW_EXCERPT_MAX_CHARS = 160;
+const HTML_ENTITY_TEXT: Readonly<Record<string, string>> = {
+  amp: '&',
+  apos: "'",
+  gt: '>',
+  lt: '<',
+  nbsp: ' ',
+  quot: '"',
+};
+
+/**
+ * Normalize a frontmatter `date`-shaped value to a `YYYY-MM-DD` string.
+ *
+ * gray-matter (used in `parseNote`) runs js-yaml with its default schema,
+ * which interprets unquoted YAML 1.1 timestamp scalars like `date: 2026-05-01`
+ * as JS `Date` objects rather than strings. The home rails, category overview
+ * and tag pages all gate display on `typeof === 'string'`, so a Date object
+ * silently falls through to the `——` placeholder. Centralising the coercion
+ * here keeps every listing on one fallback path.
+ *
+ * Date objects are formatted via `toISOString().slice(0, 10)` (UTC). Dates
+ * authored as bare `YYYY-MM-DD` are normalised to UTC midnight by js-yaml so
+ * the slice round-trips without timezone drift; values with explicit local
+ * times can shift by ±1 day, which we accept — quote the value
+ * (`date: "2026-05-01T09:00:00+09:00"`) to opt out and pass it through verbatim.
+ */
+export function coerceDate(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) {
+    const t = value.getTime();
+    if (Number.isNaN(t)) return undefined;
+    return value.toISOString().slice(0, 10);
+  }
+  return undefined;
+}
+
+/**
+ * Trailing path segment of a slug (`a/b/c` → `c`). Exported so listing
+ * pages share a single fallback when a note's frontmatter `title` is
+ * missing — without it, callers default to `entry.id` and surface the
+ * full slug path (e.g. `ai/gen-ai/공부-일지/lora`) as user-visible text.
+ */
+export function slugBasename(slug: string): string {
   const i = slug.lastIndexOf('/');
   return i === -1 ? slug : slug.slice(i + 1);
+}
+
+function lastSegment(slug: string): string {
+  return slugBasename(slug);
 }
 
 /**
@@ -75,11 +121,31 @@ export function entryToNoteViewModel(
   const fm = entry.data.frontmatter;
   const title =
     entry.data.title ?? asString(fm['title']) ?? lastSegment(entry.id);
-  const date = asString(fm['date']);
-  const updated = asString(fm['updated']);
+  const date = coerceDate(fm['date']);
+  const updated = coerceDate(fm['updated']);
   const description = asString(fm['description']);
+  // `heroImage` is filled upstream (loader): cover-frontmatter or the
+  // pipeline's first-image, both already privacy-checked. We pass it through
+  // verbatim — re-deriving here would split the hero rule across two paths.
+  const heroImage = asString(
+    (entry.data as { heroImage?: unknown }).heroImage,
+  );
+  const thumbnailImage = asString(
+    (entry.data as { thumbnailImage?: unknown }).thumbnailImage,
+  );
+  const embeddedImagesRaw = (entry.data as { embeddedImages?: unknown })
+    .embeddedImages;
+  const embeddedImages =
+    Array.isArray(embeddedImagesRaw) &&
+    embeddedImagesRaw.every((v) => typeof v === 'string')
+      ? (embeddedImagesRaw as string[])
+      : undefined;
+  const sourcePath = asString(
+    (entry.data as { sourcePath?: unknown }).sourcePath,
+  );
 
   const vm: NoteViewModel = {
+    slug: entry.id,
     title,
     tags: entry.data.tags,
     body,
@@ -87,7 +153,106 @@ export function entryToNoteViewModel(
   if (date !== undefined) vm.date = date;
   if (updated !== undefined) vm.updated = updated;
   if (description !== undefined) vm.description = description;
+  if (heroImage !== undefined) vm.heroImage = heroImage;
+  if (thumbnailImage !== undefined) vm.thumbnailImage = thumbnailImage;
+  if (embeddedImages !== undefined) vm.embeddedImages = embeddedImages;
+  if (sourcePath !== undefined) vm.sourcePath = sourcePath;
   return vm;
+}
+
+export function thumbnailForEntry(entry: NoteEntry): string | undefined {
+  return (
+    asString((entry.data as { thumbnailImage?: unknown }).thumbnailImage) ??
+    asString((entry.data as { heroImage?: unknown }).heroImage)
+  );
+}
+
+export function descriptionForEntry(entry: NoteEntry): string | undefined {
+  const description = asString(entry.data.frontmatter['description'])?.trim();
+  if (description !== undefined && description.length > 0) {
+    return description;
+  }
+
+  const html = asString(
+    (entry as { rendered?: { html?: unknown } }).rendered?.html,
+  );
+  return html === undefined ? undefined : excerptFromRenderedHtml(html);
+}
+
+export function tagsForEntry(entry: NoteEntry): string[] {
+  return entry.data.tags.map((t) => t.trim()).filter((t) => t.length > 0);
+}
+
+function excerptFromRenderedHtml(html: string): string | undefined {
+  const text = renderedHtmlToText(html);
+  if (text.length === 0) return undefined;
+  return truncatePreviewText(text);
+}
+
+function renderedHtmlToText(html: string): string {
+  const text = decodeHtmlEntities(
+    html
+      .replace(
+        /<a\b(?=[^>]*\bclass=(?:"[^"]*\bheading-anchor\b[^"]*"|'[^']*\bheading-anchor\b[^']*'))[^>]*>[\s\S]*?<\/a>/gi,
+        ' ',
+      )
+      .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|div|li|blockquote|pre|h[1-6]|tr|section|article)>/gi, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  );
+  return stripLeadingBodyTags(text)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripLeadingBodyTags(text: string): string {
+  return text.replace(/^(?:\s*#[A-Za-z][\w/-]*)+\s*/u, '');
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text.replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi,
+    (match, raw: string) => {
+      const key = raw.toLowerCase();
+      if (key.startsWith('#x')) {
+        return decodeNumericEntity(match, key.slice(2), 16);
+      }
+      if (key.startsWith('#')) {
+        return decodeNumericEntity(match, key.slice(1), 10);
+      }
+      return HTML_ENTITY_TEXT[key] ?? match;
+    },
+  );
+}
+
+function decodeNumericEntity(
+  fallback: string,
+  value: string,
+  radix: number,
+): string {
+  const codePoint = Number.parseInt(value, radix);
+  if (
+    Number.isNaN(codePoint) ||
+    codePoint < 0 ||
+    codePoint > 0x10ffff
+  ) {
+    return fallback;
+  }
+  try {
+    return String.fromCodePoint(codePoint);
+  } catch {
+    return fallback;
+  }
+}
+
+function truncatePreviewText(text: string): string {
+  const chars = Array.from(text);
+  if (chars.length <= PREVIEW_EXCERPT_MAX_CHARS) return text;
+  return `${chars
+    .slice(0, PREVIEW_EXCERPT_MAX_CHARS - 3)
+    .join('')
+    .trimEnd()}...`;
 }
 
 export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {
@@ -96,8 +261,8 @@ export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {
     const bf = b.data.frontmatter['featured'] === true ? 1 : 0;
     if (af !== bf) return bf - af;
 
-    const ad = asString(a.data.frontmatter['date']) ?? '';
-    const bd = asString(b.data.frontmatter['date']) ?? '';
+    const ad = coerceDate(a.data.frontmatter['date']) ?? '';
+    const bd = coerceDate(b.data.frontmatter['date']) ?? '';
     if (ad !== bd) return bd.localeCompare(ad);
 
     return a.id.localeCompare(b.id);

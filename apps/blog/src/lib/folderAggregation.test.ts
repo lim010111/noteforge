@@ -20,6 +20,8 @@ interface NoteEntryDataInput {
   frontmatter?: Record<string, unknown>;
   tags?: string[];
   backlinks?: string[];
+  heroImage?: string;
+  thumbnailImage?: string;
 }
 
 function makeEntry(id: string, data: NoteEntryDataInput = {}): NoteEntry {
@@ -32,6 +34,10 @@ function makeEntry(id: string, data: NoteEntryDataInput = {}): NoteEntry {
       tags: data.tags ?? [],
       backlinks: data.backlinks ?? [],
       ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.heroImage !== undefined ? { heroImage: data.heroImage } : {}),
+      ...(data.thumbnailImage !== undefined
+        ? { thumbnailImage: data.thumbnailImage }
+        : {}),
     },
     rendered: { html: '', metadata: {} },
   } as unknown as NoteEntry;
@@ -234,6 +240,34 @@ describe('buildFolderTree — title fallback', () => {
     // but at minimum it must be a non-empty string and stable.
     expect(typeof note.title).toBe('string');
     expect(note.title.length).toBeGreaterThan(0);
+  });
+});
+
+describe('buildFolderTree — thumbnail fallback', () => {
+  it('stores thumbnailImage when present, otherwise falls back to heroImage', () => {
+    const tree = buildFolderTree([
+      makeEntry('posts/hero-only', {
+        title: 'Hero',
+        heroImage: '/attachments/hero.png',
+      }),
+      makeEntry('posts/thumb', {
+        title: 'Thumb',
+        heroImage: '/attachments/hero.png',
+        thumbnailImage: '/attachments/thumb.png',
+      }),
+    ]);
+    expect(tree.children[0]!.notes).toEqual([
+      {
+        slug: 'posts/hero-only',
+        title: 'Hero',
+        thumbnail: '/attachments/hero.png',
+      },
+      {
+        slug: 'posts/thumb',
+        title: 'Thumb',
+        thumbnail: '/attachments/thumb.png',
+      },
+    ]);
   });
 });
 

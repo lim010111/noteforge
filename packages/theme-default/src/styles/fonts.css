@@ -1,100 +1,33 @@
 /*
- * Self-hosted web fonts. All families are OFL-licensed and shipped from
- * `apps/blog/public/fonts/` so the browser never reaches a third-party CDN.
+ * Self-hosted web fonts. v0.5 collapses the v0.2 editorial-technical triad
+ * (Inter / Pretendard / Source Serif 4 / Noto Serif KR / JetBrains Mono /
+ * D2Coding / RIDIBatang) into a single Korean+Latin family — Noto Sans KR.
+ * Code blocks fall through to the system monospace stack via tokens.css; no
+ * mono asset ships. KaTeX self-hosts its own families under /fonts/katex/.
+ *
  * Why no CDN: every CDN request leaks the visitor's IP and Referer header to
  * a third party and conditions privacy on the CDN's policy. The whole point
  * of obsidian-publish-oss is opt-in privacy; CDN-loaded fonts would silently
- * undermine that.
+ * undermine that. Sources / licenses are tracked in `apps/blog/public/fonts/
+ * LICENSES/`. `font-display: swap` lets text render in the system fallback
+ * during the font fetch and then upgrades — no FOIT on slow networks.
  *
- * Sources / licenses are tracked in `apps/blog/public/fonts/LICENSES/`.
- *
- * `font-display: swap` lets text render in the system fallback during the
- * font fetch and then upgrades — no FOIT (invisible text) on slow networks.
- *
- * Variable fonts collapse weight/style into a single file via
- * `font-weight: 100 900` plus `format('woff2-variations')`. Korean families
- * (D2Coding, Noto Serif KR) are not yet shipped as variable, so weight is
- * declared per-file.
+ * The woff2 files are produced from the bundled `Noto_Sans_KR.zip` by
+ * `scripts/vendor-fonts.mjs` (run automatically as part of the build's
+ * prebuild hook).
  */
 
-/* English sans — Inter Variable. Covers Latin/Cyrillic/Greek/Vietnamese. */
 @font-face {
-  font-family: 'Inter';
-  src: url('/fonts/InterVariable.woff2') format('woff2-variations');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Korean sans — Pretendard Variable. Covers Latin + Hangul. */
-@font-face {
-  font-family: 'Pretendard Variable';
-  src: url('/fonts/PretendardVariable.woff2') format('woff2-variations');
-  font-weight: 45 920;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* English serif — Source Serif 4 Variable (Roman + Italic). */
-@font-face {
-  font-family: 'Source Serif 4';
-  src: url('/fonts/SourceSerif4Variable-Roman.woff2') format('woff2-variations');
-  font-weight: 200 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Source Serif 4';
-  src: url('/fonts/SourceSerif4Variable-Italic.woff2') format('woff2-variations');
-  font-weight: 200 900;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* Korean serif — Noto Serif KR (subset by beomjungil/NotoSerifKR-Web; Hangul +
-   essential punctuation). Not variable — Regular + Bold are separate files. */
-@font-face {
-  font-family: 'Noto Serif KR';
-  src: url('/fonts/NotoSerifKR-Regular.woff2') format('woff2');
+  font-family: 'Noto Sans KR';
+  src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-@font-face {
-  font-family: 'Noto Serif KR';
-  src: url('/fonts/NotoSerifKR-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
 
-/* English mono — JetBrains Mono Variable (Roman + Italic). */
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2-variations');
-  font-weight: 100 800;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/JetBrainsMono-Italic-Variable.woff2') format('woff2-variations');
-  font-weight: 100 800;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* Korean mono — D2Coding (Naver, OFL). Not variable — Regular + Bold split. */
-@font-face {
-  font-family: 'D2Coding';
-  src: url('/fonts/D2Coding.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'D2Coding';
-  src: url('/fonts/D2CodingBold.woff2') format('woff2');
+  font-family: 'Noto Sans KR';
+  src: url('/fonts/NotoSansKR-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;

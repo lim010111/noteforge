@@ -11,8 +11,14 @@ export interface TagPageEntry {
   slug: string;
   /** Public display title (allowlist-respecting). */
   title: string;
+  /** Public intro text from allowlisted frontmatter.description. */
+  description?: string;
+  /** Public tags, already blocklist-filtered upstream. */
+  tags?: string[];
   /** ISO 8601 date string (e.g. "2026-01-10"). */
   date?: string;
+  /** Decorative thumbnail URL, already privacy-gated upstream. */
+  thumbnail?: string;
 }
 
 export interface TagPageViewModel {
