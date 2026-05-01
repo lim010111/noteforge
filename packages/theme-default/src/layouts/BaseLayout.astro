@@ -34,10 +34,12 @@ const hasSidebar = sidebar !== undefined;
         {siteName && <meta property="og:site_name" content={siteName} />}
       </>
     )}
-    {/* Preload the two fonts visible above-the-fold (sans body + serif headings).
-        Mono / Korean fonts load lazily via swap to keep the critical path lean. */}
-    <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/SourceSerif4Variable-Roman.woff2" as="font" type="font/woff2" crossorigin />
+    {/* v0.5: a single Korean+Latin family covers everything above-the-fold,
+        so only NotoSansKR-Regular needs preloading. Bold (used by headings)
+        stays lazy — the visible-on-load text is body copy, and FOUT on
+        headings is a one-paint flash that's preferable to two preload
+        round-trips on every page. */}
+    <link rel="preload" href="/fonts/NotoSansKR-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <script is:inline set:html={themeInitScript}></script>
     <slot name="head" />
   </head>

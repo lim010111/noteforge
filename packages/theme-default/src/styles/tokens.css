@@ -74,17 +74,23 @@
      separation. */
   --color-bg-sidebar: #f4efe5;
 
-  /* Typography — font stacks. All web families self-hosted under
-     apps/blog/public/fonts/ — never CDN (referrer/IP leak). */
+  /* Typography — font stacks. v0.5 collapses the triad to a single self-
+     hosted Korean+Latin family (Noto Sans KR). `--font-sans` and
+     `--font-serif` resolve to the same family on purpose: headings and
+     body share one face, hierarchy is carried by weight/size only. Code
+     blocks fall through to the system monospace stack — no mono webfont
+     ships. The variable names are kept (rather than being renamed to
+     `--font-body`/`--font-code`) so the ~50 callsites in components.css /
+     prose.css don't have to be touched in this PR. */
   --font-sans:
-    Inter, "Pretendard Variable", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Apple SD Gothic Neo", sans-serif;
   --font-serif:
-    "Source Serif 4", "Noto Serif KR", ui-serif, Georgia,
-    "Apple SD Gothic Neo", serif;
+    "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Apple SD Gothic Neo", sans-serif;
   --font-mono:
-    "JetBrains Mono", "D2Coding", ui-monospace, SFMono-Regular, Menlo,
-    monospace;
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 
   /* Type scale — sizes (modular ≈ 1.25 ratio anchored at 17px body) */
   --text-h1: 2rem;
