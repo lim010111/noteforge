@@ -39,13 +39,27 @@ function isUpToDate() {
 }
 
 async function main() {
-  if (!existsSync(ZIP)) {
-    console.error(`[vendor-fonts] missing source: ${ZIP}`);
-    process.exit(1);
-  }
   if (isUpToDate()) {
     console.log('[vendor-fonts] up-to-date, skipping');
     return;
+  }
+  // The zip is gitignored (63 MB exceeds GitHub's recommended size). When a
+  // fresh checkout is missing it but the woff2 outputs already exist, treat
+  // that as a no-op rather than failing the build — the only path that
+  // actually needs the zip is regenerating the woff2.
+  if (!existsSync(ZIP)) {
+    const haveOutputs =
+      existsSync(OUT_REGULAR) && existsSync(OUT_BOLD) && existsSync(OUT_LICENSE);
+    if (haveOutputs) {
+      console.log('[vendor-fonts] zip absent, woff2 present, skipping');
+      return;
+    }
+    console.error(
+      `[vendor-fonts] missing source: ${ZIP}\n` +
+        '  download Noto Sans KR from https://fonts.google.com/noto/specimen/Noto+Sans+KR\n' +
+        '  and drop the zip at the path above to regenerate the woff2 assets.',
+    );
+    process.exit(1);
   }
 
   mkdirSync(LICENSES_DIR, { recursive: true });
