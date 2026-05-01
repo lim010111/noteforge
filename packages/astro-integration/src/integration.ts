@@ -1,22 +1,38 @@
 /**
  * AstroIntegration factory for Obsidian-Publish-OSS.
  *
- * Two responsibilities, deliberately small:
+ * Three responsibilities, kept deliberately small:
  *   1. astro:config:setup — append `remarkWikilink` to `markdown.remarkPlugins`
  *      via `updateConfig`. We rely on Astro's deep-merge to *append* (never
  *      replace) the user's plugin array, so we pass our plugin only — passing
  *      existing plugins back would duplicate them after the merge.
- *   2. astro:build:done — placeholder hook that records intent. The real audit
- *      lives in `@noteforge/cli` + Phase D; doing it here would couple the integration
- *      to filesystem layout it has no business owning.
+ *   2. astro:server:setup — start the dev watcher AND register an
+ *      `/attachments/*` Vite middleware that streams files from the vault for
+ *      slugs in the public attachment closure. Without the middleware, every
+ *      `<img src="/attachments/…">` in dev would 404 because the static dir
+ *      lives outside Astro's `public/`.
+ *   3. astro:build:done — copy each attachment in the public closure from the
+ *      vault into `<dist>/attachments/<vault-rel-path>`. Build-time `<img>`
+ *      tags reference `/attachments/…` and the static-export pipeline does
+ *      not know the vault exists, so this hook is the only thing that gets
+ *      attachment files into dist.
  *
- * Things this file deliberately does NOT do:
- *   - Walk the vault or call `runCorePipeline` at config:setup. Doing so would
- *     turn `astro dev` startup into an O(vault) operation. Vault I/O is the
- *     loader's job (lazy, on-demand).
- *   - Re-implement loader / plugin logic. Those modules are the source of truth.
- *   - Read `dist/` in build:done. Audit gating is its own phase; we only reserve
- *     the hook position here.
+ * privacy contract:
+ *   - Both copy paths consult ONLY `result.attachmentClosure`. Attachments
+ *     referenced exclusively from private notes never enter the closure
+ *     upstream (`packages/core/src/privacy/attachmentFilter.ts`), so neither
+ *     the dev middleware nor the build copier can ever surface them.
+ *   - The dev middleware re-checks closure membership for every request and
+ *     refuses anything not in the set, so a user typing a known private
+ *     attachment URL into the address bar gets a 404, not a 200 leak.
+ *   - Path traversal is blocked at the middleware boundary (no `..`, no
+ *     absolute paths, post-resolve must stay under `vault.path`).
+ *
+ * Why re-run `runCorePipeline` here:
+ *   The pipeline is pure and idempotent. Calling it again at `server:setup`
+ *   and `build:done` costs an extra vault scan but keeps the integration's
+ *   privacy decisions in lockstep with the loader's — there is no shared
+ *   module-scope state for tests / parallel builds to corrupt.
  *
  * MVP stub resolver (config:setup path only):
  *   The remark plugin we register here is invoked by Astro on author-written
@@ -25,12 +41,16 @@
  *   don't have a vault index in scope at integration time, so the resolver is
  *   a conservative noop: every wikilink gets `resolved: false`, which the plugin
  *   safely degrades to strip-to-text. This preserves the privacy contract by
- *   default. A shared-state registry (or pipeline preload) can replace this stub
- *   in a later step (step3b watcher / future phase).
+ *   default.
  */
 
+import * as nodeFs from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import * as nodePath from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import type { ObpubConfig } from '@noteforge/core/config';
+import { runCorePipeline } from '@noteforge/core/pipeline';
 import { remarkWikilink, type RemarkWikilinkOptions } from './remarkWikilink.ts';
 import { createWatcher, type Watcher, type WatcherEvent } from './watcher.ts';
 
@@ -46,6 +66,20 @@ export interface ObpubIntegrationOptions {
   /** Test seam: replace the watcher factory so tests can inject fakes. */
   createWatcherImpl?: typeof createWatcher;
   /**
+   * Test seam: override the pipeline runner used by `astro:server:setup` /
+   * `astro:build:done` to compute the attachment closure. Real callers use
+   * `runCorePipeline`; tests inject a stub so they can assert copy/serve
+   * behaviour without booting the full vault scan.
+   */
+  runPipelineImpl?: typeof runCorePipeline;
+  /**
+   * Test seam: override the filesystem layer used by `astro:build:done` to
+   * copy attachments and by the dev `/attachments/*` middleware to stream
+   * them. Real builds use `node:fs/promises`; tests inject in-memory shims so
+   * the integration suite never touches real disk.
+   */
+  fs?: AttachmentFs;
+  /**
    * Thin pass-through for the dev watcher's chokidar polling knobs.
    * `usePolling` is required on WSL `/mnt/c` mounts where inotify is
    * unreliable. Production builds never boot the watcher, so this option
@@ -55,6 +89,51 @@ export interface ObpubIntegrationOptions {
     usePolling?: boolean;
     pollInterval?: number;
   };
+}
+
+/**
+ * Minimal filesystem surface the integration needs for attachment copy/serve.
+ * Kept narrower than `node:fs/promises` so test seams stay tight.
+ */
+export interface AttachmentFs {
+  mkdir(dir: string, opts: { recursive: true }): Promise<unknown>;
+  copyFile(src: string, dest: string): Promise<unknown>;
+  readFile(absPath: string): Promise<Uint8Array>;
+}
+
+const DEFAULT_ATTACHMENT_FS: AttachmentFs = {
+  mkdir: (dir, opts) => nodeFs.mkdir(dir, opts),
+  copyFile: (src, dest) => nodeFs.copyFile(src, dest),
+  readFile: (absPath) => nodeFs.readFile(absPath),
+};
+
+/**
+ * Conservative MIME map for attachment streaming. The closure already gates
+ * `attachments.allowedExtensions`, so only types the user explicitly opted
+ * in to ever reach this map. Anything we have no mapping for falls back to
+ * `application/octet-stream` (browsers will not auto-execute that).
+ */
+const ATTACHMENT_MIME: ReadonlyMap<string, string> = new Map([
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.gif', 'image/gif'],
+  ['.webp', 'image/webp'],
+  ['.avif', 'image/avif'],
+  ['.svg', 'image/svg+xml'],
+  ['.bmp', 'image/bmp'],
+  ['.ico', 'image/x-icon'],
+  ['.mp4', 'video/mp4'],
+  ['.webm', 'video/webm'],
+  ['.mp3', 'audio/mpeg'],
+  ['.ogg', 'audio/ogg'],
+  ['.wav', 'audio/wav'],
+  ['.pdf', 'application/pdf'],
+]);
+
+function mimeFor(id: string): string {
+  const ext = nodePath.posix.extname(id).toLowerCase();
+  return ATTACHMENT_MIME.get(ext) ?? 'application/octet-stream';
 }
 
 export function obpub(
@@ -67,7 +146,16 @@ export function obpub(
   const isPublicStub: RemarkWikilinkOptions['isPublic'] = () => false;
   const hrefForStub: RemarkWikilinkOptions['hrefFor'] = (id) => `/${id}`;
 
+  const fs = opts.fs ?? DEFAULT_ATTACHMENT_FS;
+  const runPipeline = opts.runPipelineImpl ?? runCorePipeline;
+
   let watcher: Watcher | undefined;
+  // Attachment closure cache for the dev middleware. The pipeline is the
+  // SSOT — this cache is just a memoised view, refreshed at server:setup
+  // and on every coalesced watcher invalidation. Lookups must always go
+  // through `getAttachmentClosure()` so the latest snapshot is honoured.
+  let attachmentClosureCache: ReadonlySet<string> = new Set();
+  const getAttachmentClosure = (): ReadonlySet<string> => attachmentClosureCache;
 
   return {
     name: '@noteforge/astro',
@@ -98,6 +186,19 @@ export function obpub(
           return;
         }
 
+        const refreshAttachmentClosure = async (): Promise<void> => {
+          try {
+            const result = await runPipeline(config);
+            attachmentClosureCache = new Set(result.attachmentClosure);
+          } catch (err) {
+            logger.warn(
+              `obpub: attachment closure refresh failed — ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            );
+          }
+        };
+
         watcher = factory({
           vaultPath: vault.path,
           vaultId: vault.id,
@@ -105,6 +206,11 @@ export function obpub(
           config,
           ...(opts.watcher !== undefined ? { chokidarOptions: opts.watcher } : {}),
           onInvalidate: (events: readonly WatcherEvent[]): void => {
+            // Refresh closure asynchronously so a renamed/added attachment
+            // becomes streamable on the next request without blocking the
+            // HMR signal. Errors surface via logger.warn — they should not
+            // poison the reload path.
+            void refreshAttachmentClosure();
             if (opts.onDevInvalidate !== undefined) {
               opts.onDevInvalidate(
                 events.map((e) => ({ kind: e.kind, slug: e.slug })),
@@ -133,6 +239,18 @@ export function obpub(
         });
         await watcher.start();
         logger.info(`obpub: watching vault at ${vault.path}`);
+
+        // Closure must be primed before the first request reaches the
+        // middleware; otherwise the dev server would 404 every attachment
+        // until the user happened to save a file.
+        await refreshAttachmentClosure();
+        registerAttachmentMiddleware({
+          server,
+          vaultPath: vault.path,
+          getClosure: getAttachmentClosure,
+          fs,
+          logger,
+        });
       },
       'astro:server:done': async () => {
         if (watcher === undefined) return;
@@ -140,11 +258,179 @@ export function obpub(
         watcher = undefined;
         await w.stop();
       },
-      'astro:build:done': ({ logger }) => {
+      'astro:build:done': async ({ dir, logger }) => {
+        const vault = config.vaults[0];
+        if (vault === undefined) {
+          logger.warn(
+            'obpub: build:done — no vault configured; skipping attachment copy',
+          );
+          return;
+        }
+
+        let result;
+        try {
+          result = await runPipeline(config);
+        } catch (err) {
+          logger.error(
+            `obpub: build:done — pipeline failed, attachments NOT copied: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+          throw err;
+        }
+
+        const distDir = fileURLToPath(dir);
+        const distAttachments = nodePath.resolve(distDir, 'attachments');
+        let copied = 0;
+        const failures: { id: string; reason: string }[] = [];
+        for (const id of result.attachmentClosure) {
+          const srcAbs = nodePath.resolve(vault.path, id);
+          const destAbs = nodePath.resolve(distAttachments, id);
+          // Defense-in-depth: closure ids are derived from `walkVault` so they
+          // are already relative + posix, but a future regression that admits
+          // an absolute or `..`-laden id should not let us copy out of the
+          // dist tree. Re-anchoring under `distAttachments` and re-checking
+          // makes that class of bug a noisy failure rather than a silent
+          // arbitrary-write.
+          if (!destAbs.startsWith(distAttachments + nodePath.sep)) {
+            failures.push({ id, reason: 'destination outside dist/attachments' });
+            continue;
+          }
+          try {
+            await fs.mkdir(nodePath.dirname(destAbs), { recursive: true });
+            await fs.copyFile(srcAbs, destAbs);
+            copied++;
+          } catch (err) {
+            failures.push({
+              id,
+              reason: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
         logger.info(
-          'obpub: build done — audit placeholder (audit arrives in @noteforge/cli phase)',
+          `obpub: copied ${copied}/${result.attachmentClosure.size} attachment(s) → ${distAttachments}`,
         );
+        for (const f of failures) {
+          logger.warn(`obpub: attachment copy failed for ${f.id} — ${f.reason}`);
+        }
+        if (failures.length > 0) {
+          throw new Error(
+            `obpub: ${failures.length} attachment(s) failed to copy — see warnings above`,
+          );
+        }
       },
     },
   };
+}
+
+interface AttachmentMiddlewareDeps {
+  server: unknown;
+  vaultPath: string;
+  getClosure: () => ReadonlySet<string>;
+  fs: AttachmentFs;
+  logger: { warn: (message: string) => void };
+}
+
+/**
+ * Wire `/attachments/*` into the dev server's Vite middleware stack. Every
+ * request is closure-checked, path-traversal-guarded, and streamed from the
+ * vault. Closure misses + traversal attempts both return 404 (avoiding any
+ * existence oracle that distinguishes "private" from "absent"). Outside dev
+ * (no `server.middlewares`), this is a noop.
+ */
+function registerAttachmentMiddleware(deps: AttachmentMiddlewareDeps): void {
+  const { server, vaultPath, getClosure, fs, logger } = deps;
+  const middlewares = (
+    server as { middlewares?: { use?: (path: string, handler: unknown) => unknown } }
+  ).middlewares;
+  if (typeof middlewares?.use !== 'function') return;
+
+  const vaultRoot = nodePath.resolve(vaultPath);
+
+  middlewares.use(
+    '/attachments',
+    (
+      req: { url?: string; method?: string },
+      res: {
+        statusCode: number;
+        headersSent?: boolean;
+        setHeader: (name: string, value: string) => void;
+        end: (chunk?: unknown) => void;
+        write?: (chunk: unknown) => void;
+      },
+      next: () => void,
+    ) => {
+      const method = req.method ?? 'GET';
+      if (method !== 'GET' && method !== 'HEAD') {
+        next();
+        return;
+      }
+
+      const url = req.url ?? '/';
+      const queryIdx = url.indexOf('?');
+      const pathOnly = queryIdx === -1 ? url : url.slice(0, queryIdx);
+      let id: string;
+      try {
+        id = decodeURIComponent(pathOnly).replace(/^\/+/, '');
+      } catch {
+        res.statusCode = 400;
+        res.end();
+        return;
+      }
+      if (id.length === 0 || id.includes('..') || nodePath.isAbsolute(id)) {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+      if (!getClosure().has(id)) {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+      const abs = nodePath.resolve(vaultRoot, id);
+      if (abs !== vaultRoot && !abs.startsWith(vaultRoot + nodePath.sep)) {
+        res.statusCode = 404;
+        res.end();
+        return;
+      }
+
+      res.setHeader('Content-Type', mimeFor(id));
+      // Dev server only — no caching so changes to the underlying file show
+      // up immediately on reload. Production assets are served as static
+      // files by the host (Cloudflare Pages, etc.) and get their own headers.
+      res.setHeader('Cache-Control', 'no-store');
+
+      if (method === 'HEAD') {
+        res.end();
+        return;
+      }
+
+      // Try the streaming path first (real fs); fall back to the injected
+      // readFile so test seams that lack a real disk backing still work.
+      if (fs === DEFAULT_ATTACHMENT_FS) {
+        const stream = createReadStream(abs);
+        stream.on('error', () => {
+          if (res.headersSent !== true) res.statusCode = 404;
+          res.end();
+        });
+        (stream as unknown as { pipe: (dest: unknown) => void }).pipe(res);
+        return;
+      }
+      void fs
+        .readFile(abs)
+        .then((buf) => {
+          res.write?.(buf);
+          res.end();
+        })
+        .catch((err) => {
+          logger.warn(
+            `obpub: attachment stream failed for ${id} — ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+          if (res.headersSent !== true) res.statusCode = 404;
+          res.end();
+        });
+    },
+  );
 }
