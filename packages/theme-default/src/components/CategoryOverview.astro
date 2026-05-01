@@ -4,10 +4,12 @@
  *
  * Each section is a top-level vault folder; its `notes[]` is the flattened
  * descendants list, pre-sorted by the caller (date desc → href asc, mirroring
- * `entriesForTag`). Top-level segments map deterministically to one of the
- * `--color-accent-cat-1..N` token slots via the shared FNV-1a helper, so the
- * dot before each heading matches the colour the same folder gets in the
- * sidebar's `<FolderTree />`.
+ * `entriesForTag`).
+ *
+ * The v0.5 design refresh removed the per-folder colour dot — the editorial
+ * masthead + section opener layout now carries the visual identity instead.
+ * `slotCount` stays on the props contract for API stability and parity with
+ * surfaces that still use the accent (FolderIndex breadcrumb).
  *
  * Privacy contract: this component renders verbatim. The caller has already
  * passed `filterPublishable` output through `buildFolderTree` and
@@ -20,9 +22,10 @@
  * "비어 있음" line for symmetry with the rest of the UI.
  */
 import type { CategoryOverviewProps } from "./CategoryOverview.types";
-import { pickCategoryAccentSlot } from "../lib/categoryAccent";
 
-const { sections, emptyMessage, slotCount } = Astro.props as CategoryOverviewProps;
+const { sections, emptyMessage, slotCount } =
+  Astro.props as CategoryOverviewProps;
+void slotCount;
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -32,24 +35,8 @@ function pad2(n: number): string {
   <p class="category-overview__empty">{emptyMessage}</p>
 ) : (
   <div class="category-overview">
-    <header class="category-overview__masthead">
-      <p class="category-overview__kicker">Index</p>
-      <h1 class="category-overview__title">Categories</h1>
-      <p class="category-overview__lede">
-        Top-level folders from the vault. Each section flattens its descendants
-        chronologically — newest first.
-      </p>
-    </header>
     <div class="category-overview__sections">
       {sections.map((section, idx) => {
-        const slot =
-          section.name === 'Uncategorized'
-            ? null
-            : pickCategoryAccentSlot(section.name, slotCount);
-        const dotStyle =
-          slot === null
-            ? 'background-color: var(--color-text-faded)'
-            : `background-color: var(--color-accent-cat-${slot})`;
         const count = section.notes.length;
         return (
           <section
@@ -60,11 +47,6 @@ function pad2(n: number): string {
               <span class="category-overview__index" aria-hidden="true">
                 {pad2(idx + 1)}
               </span>
-              <span
-                class="category-overview__dot"
-                style={dotStyle}
-                aria-hidden="true"
-              />
               <h2 id={`cat-${idx}`} class="category-overview__name">
                 {section.href !== undefined ? (
                   <a class="category-overview__name-link" href={section.href}>
