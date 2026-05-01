@@ -69,11 +69,41 @@ const lastIdx = view.breadcrumb.length - 1;
       <ul class="folder-index__list">
         {view.childNotes.map((n) => (
           <li class="folder-index__item">
-            <a class="folder-index__row folder-index__row--note" href={n.href}>
-              {n.date && (
-                <time class="folder-index__row-date" datetime={n.date}>{n.date}</time>
+            <a class="post-preview folder-index__row folder-index__row--note" href={n.href}>
+              {n.thumbnail ? (
+                <img
+                  class="post-preview__thumb folder-index__thumb not-prose"
+                  src={n.thumbnail}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span class="post-preview__thumb folder-index__thumb folder-index__thumb--placeholder not-prose" aria-hidden="true">
+                  ▢
+                </span>
               )}
-              <span class="folder-index__row-title">{n.title}</span>
+              <span class="post-preview__content folder-index__row-content">
+                <span class="post-preview__title folder-index__row-title">{n.title}</span>
+                {n.description !== undefined && (
+                  <span class="post-preview__description">{n.description}</span>
+                )}
+                {((n.tags?.length ?? 0) > 0 || n.date !== undefined) && (
+                  <span class="post-preview__meta">
+                    {(n.tags?.length ?? 0) > 0 && (
+                      <span class="post-preview__tags">
+                        {n.tags!.map((tag) => `#${tag}`).join(' ')}
+                      </span>
+                    )}
+                    {(n.tags?.length ?? 0) > 0 && n.date !== undefined && (
+                      <span class="post-preview__sep" aria-hidden="true">|</span>
+                    )}
+                    {n.date !== undefined && (
+                      <time class="post-preview__date folder-index__row-date" datetime={n.date}>{n.date}</time>
+                    )}
+                  </span>
+                )}
+              </span>
             </a>
           </li>
         ))}

@@ -28,6 +28,16 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
+const PREVIEW_EXCERPT_MAX_CHARS = 160;
+const HTML_ENTITY_TEXT: Readonly<Record<string, string>> = {
+  amp: '&',
+  apos: "'",
+  gt: '>',
+  lt: '<',
+  nbsp: ' ',
+  quot: '"',
+};
+
 /**
  * Normalize a frontmatter `date`-shaped value to a `YYYY-MM-DD` string.
  *
@@ -120,8 +130,22 @@ export function entryToNoteViewModel(
   const heroImage = asString(
     (entry.data as { heroImage?: unknown }).heroImage,
   );
+  const thumbnailImage = asString(
+    (entry.data as { thumbnailImage?: unknown }).thumbnailImage,
+  );
+  const embeddedImagesRaw = (entry.data as { embeddedImages?: unknown })
+    .embeddedImages;
+  const embeddedImages =
+    Array.isArray(embeddedImagesRaw) &&
+    embeddedImagesRaw.every((v) => typeof v === 'string')
+      ? (embeddedImagesRaw as string[])
+      : undefined;
+  const sourcePath = asString(
+    (entry.data as { sourcePath?: unknown }).sourcePath,
+  );
 
   const vm: NoteViewModel = {
+    slug: entry.id,
     title,
     tags: entry.data.tags,
     body,
@@ -130,7 +154,105 @@ export function entryToNoteViewModel(
   if (updated !== undefined) vm.updated = updated;
   if (description !== undefined) vm.description = description;
   if (heroImage !== undefined) vm.heroImage = heroImage;
+  if (thumbnailImage !== undefined) vm.thumbnailImage = thumbnailImage;
+  if (embeddedImages !== undefined) vm.embeddedImages = embeddedImages;
+  if (sourcePath !== undefined) vm.sourcePath = sourcePath;
   return vm;
+}
+
+export function thumbnailForEntry(entry: NoteEntry): string | undefined {
+  return (
+    asString((entry.data as { thumbnailImage?: unknown }).thumbnailImage) ??
+    asString((entry.data as { heroImage?: unknown }).heroImage)
+  );
+}
+
+export function descriptionForEntry(entry: NoteEntry): string | undefined {
+  const description = asString(entry.data.frontmatter['description'])?.trim();
+  if (description !== undefined && description.length > 0) {
+    return description;
+  }
+
+  const html = asString(
+    (entry as { rendered?: { html?: unknown } }).rendered?.html,
+  );
+  return html === undefined ? undefined : excerptFromRenderedHtml(html);
+}
+
+export function tagsForEntry(entry: NoteEntry): string[] {
+  return entry.data.tags.map((t) => t.trim()).filter((t) => t.length > 0);
+}
+
+function excerptFromRenderedHtml(html: string): string | undefined {
+  const text = renderedHtmlToText(html);
+  if (text.length === 0) return undefined;
+  return truncatePreviewText(text);
+}
+
+function renderedHtmlToText(html: string): string {
+  const text = decodeHtmlEntities(
+    html
+      .replace(
+        /<a\b(?=[^>]*\bclass=(?:"[^"]*\bheading-anchor\b[^"]*"|'[^']*\bheading-anchor\b[^']*'))[^>]*>[\s\S]*?<\/a>/gi,
+        ' ',
+      )
+      .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|div|li|blockquote|pre|h[1-6]|tr|section|article)>/gi, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  );
+  return stripLeadingBodyTags(text)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripLeadingBodyTags(text: string): string {
+  return text.replace(/^(?:\s*#[A-Za-z][\w/-]*)+\s*/u, '');
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text.replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi,
+    (match, raw: string) => {
+      const key = raw.toLowerCase();
+      if (key.startsWith('#x')) {
+        return decodeNumericEntity(match, key.slice(2), 16);
+      }
+      if (key.startsWith('#')) {
+        return decodeNumericEntity(match, key.slice(1), 10);
+      }
+      return HTML_ENTITY_TEXT[key] ?? match;
+    },
+  );
+}
+
+function decodeNumericEntity(
+  fallback: string,
+  value: string,
+  radix: number,
+): string {
+  const codePoint = Number.parseInt(value, radix);
+  if (
+    Number.isNaN(codePoint) ||
+    codePoint < 0 ||
+    codePoint > 0x10ffff
+  ) {
+    return fallback;
+  }
+  try {
+    return String.fromCodePoint(codePoint);
+  } catch {
+    return fallback;
+  }
+}
+
+function truncatePreviewText(text: string): string {
+  const chars = Array.from(text);
+  if (chars.length <= PREVIEW_EXCERPT_MAX_CHARS) return text;
+  return `${chars
+    .slice(0, PREVIEW_EXCERPT_MAX_CHARS - 3)
+    .join('')
+    .trimEnd()}...`;
 }
 
 export function sortForHome(entries: readonly NoteEntry[]): NoteEntry[] {

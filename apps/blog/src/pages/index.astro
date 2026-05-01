@@ -4,9 +4,11 @@ import { BaseLayout } from '@noteforge/theme-default';
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   coerceDate,
+  descriptionForEntry,
   ensureTrailingSlash,
   filterPublishable,
   slugBasename,
+  tagsForEntry,
   type NoteEntry,
 } from '../lib/viewModels.ts';
 import { selectFeatured, selectRecent } from '../lib/homeRails.ts';
@@ -22,7 +24,10 @@ const sidebar = buildSidebarPayload(all);
 interface HomeRailItem {
   href: string;
   title: string;
+  description?: string;
+  tags?: string[];
   date?: string;
+  thumbnail?: string;
 }
 
 function toItems(entries: readonly NoteEntry[]): HomeRailItem[] {
@@ -35,7 +40,13 @@ function toItems(entries: readonly NoteEntry[]): HomeRailItem[] {
       // The latter was the user-visible "/" rail that read as URL noise.
       title: entry.data.title ?? slugBasename(entry.id),
     };
+    const description = descriptionForEntry(entry);
+    const tags = tagsForEntry(entry);
+    if (description !== undefined) item.description = description;
+    if (tags.length > 0) item.tags = tags;
     if (date !== undefined) item.date = date;
+    const thumbnail = entry.data.thumbnailImage ?? entry.data.heroImage;
+    if (thumbnail !== undefined) item.thumbnail = thumbnail;
     return item;
   });
 }
@@ -107,24 +118,50 @@ if (featuredItems.length > 0) {
                 <ul class="category-overview__list" role="list">
                   {section.items.map((item) => (
                     <li class="category-overview__item">
-                      <a class="category-overview__row" href={item.href}>
-                        {item.date !== undefined ? (
-                          <time
-                            datetime={item.date}
-                            class="category-overview__date"
-                          >
-                            {item.date}
-                          </time>
+                      <a class="post-preview category-overview__row" href={item.href}>
+                        {item.thumbnail ? (
+                          <img
+                            class="post-preview__thumb category-overview__thumb not-prose"
+                            src={item.thumbnail}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
                         ) : (
                           <span
-                            class="category-overview__date category-overview__date--missing"
+                            class="post-preview__thumb category-overview__thumb category-overview__thumb--placeholder not-prose"
                             aria-hidden="true"
                           >
-                            ——
+                            ▢
                           </span>
                         )}
-                        <span class="category-overview__row-title">
-                          {item.title}
+                        <span class="post-preview__content category-overview__row-content">
+                          <span class="post-preview__title category-overview__row-title">
+                            {item.title}
+                          </span>
+                          {item.description !== undefined && (
+                            <span class="post-preview__description">{item.description}</span>
+                          )}
+                          {((item.tags?.length ?? 0) > 0 || item.date !== undefined) && (
+                            <span class="post-preview__meta">
+                              {(item.tags?.length ?? 0) > 0 && (
+                                <span class="post-preview__tags">
+                                  {item.tags!.map((tag) => `#${tag}`).join(' ')}
+                                </span>
+                              )}
+                              {(item.tags?.length ?? 0) > 0 && item.date !== undefined && (
+                                <span class="post-preview__sep" aria-hidden="true">|</span>
+                              )}
+                              {item.date !== undefined && (
+                                <time
+                                  datetime={item.date}
+                                  class="post-preview__date category-overview__date"
+                                >
+                                  {item.date}
+                                </time>
+                              )}
+                            </span>
+                          )}
                         </span>
                       </a>
                     </li>

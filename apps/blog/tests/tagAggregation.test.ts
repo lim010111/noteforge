@@ -10,6 +10,9 @@ interface NoteEntryDataInput {
   frontmatter?: Record<string, unknown>;
   tags?: string[];
   backlinks?: string[];
+  heroImage?: string;
+  thumbnailImage?: string;
+  renderedHtml?: string;
 }
 
 function makeEntry(id: string, data: NoteEntryDataInput): NoteEntry {
@@ -22,8 +25,12 @@ function makeEntry(id: string, data: NoteEntryDataInput): NoteEntry {
       tags: data.tags ?? [],
       backlinks: data.backlinks ?? [],
       ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.heroImage !== undefined ? { heroImage: data.heroImage } : {}),
+      ...(data.thumbnailImage !== undefined
+        ? { thumbnailImage: data.thumbnailImage }
+        : {}),
     },
-    rendered: { html: '', metadata: {} },
+    rendered: { html: data.renderedHtml ?? '', metadata: {} },
   } as unknown as NoteEntry;
 }
 
@@ -102,5 +109,47 @@ describe('entriesForTag', () => {
     });
     const [item] = entriesForTag('t', [a]);
     expect(item?.date).toBeUndefined();
+  });
+
+  it('carries thumbnailImage with heroImage fallback into tag page entries', () => {
+    const thumb = makeEntry('thumb', {
+      tags: ['t'],
+      title: 'Thumb',
+      heroImage: '/attachments/hero.png',
+      thumbnailImage: '/attachments/thumb.png',
+    });
+    const hero = makeEntry('hero', {
+      tags: ['t'],
+      title: 'Hero',
+      heroImage: '/attachments/hero-only.png',
+    });
+    const result = entriesForTag('t', [hero, thumb]);
+    expect(result.find((e) => e.slug === 'thumb')?.thumbnail).toBe(
+      '/attachments/thumb.png',
+    );
+    expect(result.find((e) => e.slug === 'hero')?.thumbnail).toBe(
+      '/attachments/hero-only.png',
+    );
+  });
+
+  it('carries public intro text and normalized tags into tag page entries', () => {
+    const entry = makeEntry('note', {
+      tags: [' t ', 'rust'],
+      title: 'Note',
+      frontmatter: { description: '  Short intro  ' },
+    });
+    const [item] = entriesForTag('rust', [entry]);
+    expect(item?.description).toBe('Short intro');
+    expect(item?.tags).toEqual(['t', 'rust']);
+  });
+
+  it('falls back to rendered body excerpt when frontmatter description is missing', () => {
+    const entry = makeEntry('note', {
+      tags: ['rust'],
+      title: 'Note',
+      renderedHtml: '<p>Rendered <em>body</em> opening.</p>',
+    });
+    const [item] = entriesForTag('rust', [entry]);
+    expect(item?.description).toBe('Rendered body opening.');
   });
 });

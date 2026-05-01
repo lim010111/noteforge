@@ -62,23 +62,49 @@ void slotCount;
               <ul class="category-overview__list" role="list">
                 {section.notes.map((note) => (
                   <li class="category-overview__item">
-                    <a class="category-overview__row" href={note.href}>
-                      {note.date !== undefined ? (
-                        <time
-                          datetime={note.date}
-                          class="category-overview__date"
-                        >
-                          {note.date}
-                        </time>
+                    <a class="post-preview category-overview__row" href={note.href}>
+                      {note.thumbnail ? (
+                        <img
+                          class="post-preview__thumb category-overview__thumb not-prose"
+                          src={note.thumbnail}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         <span
-                          class="category-overview__date category-overview__date--missing"
+                          class="post-preview__thumb category-overview__thumb category-overview__thumb--placeholder not-prose"
                           aria-hidden="true"
                         >
-                          ——
+                          ▢
                         </span>
                       )}
-                      <span class="category-overview__row-title">{note.title}</span>
+                      <span class="post-preview__content category-overview__row-content">
+                        <span class="post-preview__title category-overview__row-title">{note.title}</span>
+                        {note.description !== undefined && (
+                          <span class="post-preview__description">{note.description}</span>
+                        )}
+                        {((note.tags?.length ?? 0) > 0 || note.date !== undefined) && (
+                          <span class="post-preview__meta">
+                            {(note.tags?.length ?? 0) > 0 && (
+                              <span class="post-preview__tags">
+                                {note.tags!.map((tag) => `#${tag}`).join(' ')}
+                              </span>
+                            )}
+                            {(note.tags?.length ?? 0) > 0 && note.date !== undefined && (
+                              <span class="post-preview__sep" aria-hidden="true">|</span>
+                            )}
+                            {note.date !== undefined && (
+                              <time
+                                datetime={note.date}
+                                class="post-preview__date category-overview__date"
+                              >
+                                {note.date}
+                              </time>
+                            )}
+                          </span>
+                        )}
+                      </span>
                     </a>
                   </li>
                 ))}

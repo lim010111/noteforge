@@ -10,7 +10,13 @@ import {
   CATEGORY_ACCENT_SLOT_COUNT,
   pickCategoryAccentSlot,
 } from '@noteforge/theme-default/lib/categoryAccent.ts';
-import type { NoteEntry } from './viewModels.ts';
+import {
+  coerceDate,
+  descriptionForEntry,
+  tagsForEntry,
+  thumbnailForEntry,
+  type NoteEntry,
+} from './viewModels.ts';
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
@@ -86,7 +92,18 @@ export function buildFolderTree(
       cursor = child;
     }
 
-    cursor.notes.push({ slug: entry.id, title: noteTitle(entry) });
+    const thumbnail = thumbnailForEntry(entry);
+    const description = descriptionForEntry(entry);
+    const tags = tagsForEntry(entry);
+    const date = coerceDate(entry.data.frontmatter['date']);
+    cursor.notes.push({
+      slug: entry.id,
+      title: noteTitle(entry),
+      ...(description !== undefined ? { description } : {}),
+      ...(tags.length > 0 ? { tags } : {}),
+      ...(date !== undefined ? { date } : {}),
+      ...(thumbnail !== undefined ? { thumbnail } : {}),
+    });
   }
 
   sortTree(root);
@@ -161,6 +178,10 @@ export function buildFolderIndexViewModel(
   const childNotes = node.notes.map((n) => ({
     title: n.title,
     href: `/${n.slug}/`,
+    ...(n.description !== undefined ? { description: n.description } : {}),
+    ...(n.tags !== undefined ? { tags: n.tags } : {}),
+    ...(n.date !== undefined ? { date: n.date } : {}),
+    ...(n.thumbnail !== undefined ? { thumbnail: n.thumbnail } : {}),
   }));
 
   const vm: FolderIndexViewModel = {

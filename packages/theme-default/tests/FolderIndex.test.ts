@@ -47,7 +47,14 @@ const baseView: FolderIndexViewModel = {
     { name: 'opus-4.7', href: '/AI/Claude/opus-4.7/', noteCount: 2 },
   ],
   childNotes: [
-    { title: 'opus prompt guide', href: '/AI/Claude/opus-prompt-guide/', date: '2026-04-26' },
+    {
+      title: 'opus prompt guide',
+      href: '/AI/Claude/opus-prompt-guide/',
+      description: 'A practical introduction to opus prompts.',
+      tags: ['claude', 'prompting'],
+      date: '2026-04-26',
+      thumbnail: '/attachments/opus.png',
+    },
   ],
 };
 
@@ -124,5 +131,27 @@ describe('FolderIndex', () => {
     expect(countMatches(html, /<h1\b/g)).toBe(1);
     // Two sections: folders + notes
     expect(countMatches(html, /<section\b/g)).toBe(2);
+  });
+
+  it('(9) renders note thumbnails as decorative images', async () => {
+    const html = await render(baseView);
+    expect(html).toMatch(
+      /<img\s[^>]*\bclass="post-preview__thumb folder-index__thumb not-prose"[^>]*\bsrc="\/attachments\/opus\.png"[^>]*\balt=""/,
+    );
+    expect(html).not.toMatch(/\balt="opus prompt guide"/);
+  });
+
+  it('(10) orders note preview text as title, intro, then tags | date', async () => {
+    const html = await render(baseView);
+    const titleIdx = html.indexOf('opus prompt guide');
+    const introIdx = html.indexOf('A practical introduction to opus prompts.');
+    const tagsIdx = html.indexOf('#claude #prompting');
+    const sepIdx = html.indexOf('post-preview__sep');
+    const dateIdx = html.indexOf('2026-04-26');
+    expect(titleIdx).toBeGreaterThanOrEqual(0);
+    expect(introIdx).toBeGreaterThan(titleIdx);
+    expect(tagsIdx).toBeGreaterThan(introIdx);
+    expect(sepIdx).toBeGreaterThan(tagsIdx);
+    expect(dateIdx).toBeGreaterThan(sepIdx);
   });
 });

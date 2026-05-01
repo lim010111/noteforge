@@ -14,8 +14,14 @@ export interface CategoryOverviewNote {
   href: string;
   /** Display title from the allowlist-respecting view-model. */
   title: string;
+  /** Public intro text from allowlisted frontmatter.description. */
+  description?: string;
+  /** Public tags, already blocklist-filtered upstream. */
+  tags?: string[];
   /** Optional ISO 8601 date — when present, rendered as a `<time>` glyph. */
   date?: string;
+  /** Decorative thumbnail URL, already privacy-gated upstream. */
+  thumbnail?: string;
 }
 
 export interface CategoryOverviewSection {

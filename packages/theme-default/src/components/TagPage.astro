@@ -21,7 +21,10 @@ import type { NoteListEntry } from "./NoteList.types";
 const { tagpage } = Astro.props as TagPageProps;
 const items: NoteListEntry[] = tagpage.entries.map((e) => {
   const item: NoteListEntry = { href: `/${e.slug}`, title: e.title };
+  if (e.description !== undefined) item.description = e.description;
+  if (e.tags !== undefined) item.tags = e.tags;
   if (e.date !== undefined) item.date = e.date;
+  if (e.thumbnail !== undefined) item.thumbnail = e.thumbnail;
   return item;
 });
 ---
