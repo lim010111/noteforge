@@ -13,7 +13,7 @@
 | `another-public.md` | yes (`#public` 태그) | frontmatter `aliases: [구이름]` 포함. 짧은 public 산문 |
 | `Private Secret.md` | **no** (공개 마커 없음) | 본문에 canary A (아래 canary 섹션 참조). 제목 `Private Secret`도 누출 감지 대상 |
 | `private/family-photos.md` | **no** (tripwire) | frontmatter `public: true`지만 `private/` 하위라 강제 private. `unsafeAllowPrivateFolder` 없이 미발행 |
-| `public-with-image.md` | yes | `![[only-public.png]]` 한 첨부 임베드 (only-private.png는 어느 공개 노트도 참조하지 않아야 하므로 여기서 참조하지 않는다) |
+| `public-with-image.md` | yes | `![[only-public.png]]` 한 첨부 임베드 + 존재하지 않는 cover/thumbnail frontmatter sanitization 검증 |
 | `public-with-embed.md` | yes | `![[Another Public]]` (public 임베드 — 본문 확장), `![[Private Secret]]` (private 임베드 — 완전 제거) |
 | `public-with-comment.md` | yes | 인라인 `%%...%%` 1회 + 블록 `%%...%%` 1회, 둘 다 canary B (아래 canary 섹션 참조) 포함 |
 | `public-with-extra-fm.md` | yes | frontmatter에 allowlist 밖 필드 `review-date`, `personal-note`, `mood` |
@@ -26,10 +26,14 @@
 | `posts/mix/wip.md` | yes (`public: true`, `draft: true`) | v0.3 case (c) — `draft: true`라 `filterPublishable`이 거름. `runCorePipeline.publicSlugs`에는 포함되지만 apps/blog 라우팅에는 부재 |
 | `apps.md` | yes (`public: true`) | v0.3 case (d) — 루트 슬러그 `apps`. `apps/colliding/index.md`로 형성되는 폴더 `apps/`와 의도적 충돌. `runCorePipeline`은 throw하지 않음(라우팅 단계에서만 throw) |
 | `apps/colliding/index.md` | yes (`public: true`) | v0.3 case (d) — 폴더 `apps/` 안의 노트. `apps.md`와의 슬러그 충돌은 라우팅 build-time throw가 잡음 |
+| `public-with-frontmatter-cover.md` | yes (`public: true`) | v0.51 — 본문 임베드 없이 frontmatter `cover`만으로 attachment closure에 들어가는지 검증 |
+| `private/upload-hidden-image.md` | **no** (tripwire) | v0.51 — private 노트의 frontmatter `cover`가 attachment closure에 기여하지 않음을 검증 |
 | `only-public.png` | — | public 노트 첨부. 1×1 PNG (투명 RGBA) |
 | `only-private.png` | — | 어느 공개 노트도 참조하지 않음. attachment closure에 포함되면 안 됨. 1×1 PNG (빨강 RGBA) — 공개본과 바이너리가 다름 |
+| `frontmatter-only-cover.png` | — | v0.51 frontmatter-only cover fixture |
+| `private-frontmatter-cover.png` | — | v0.51 private frontmatter-only cover counter-fixture |
 
-총 **17개 Markdown + 2개 PNG = 19 파일** + 이 README.
+총 **19개 Markdown + 4개 이미지 파일 = 23 파일** + 이 README.
 
 ## canary 문자열
 

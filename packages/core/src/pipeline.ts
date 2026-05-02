@@ -184,6 +184,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   const indexedNotes = toIndexedNotes(notes, slugByRelPath);
   const wikilinkIndex = buildWikilinkIndex(indexedNotes);
   const attachmentByBasenameLower = indexAttachmentsByBasename(attachments);
+  const attachmentIds = new Set(attachments);
 
   // ── Phase B — Classification ───────────────────────────────────────────────
   const warnings: PipelineWarning[] = [];
@@ -283,6 +284,13 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     )) {
       attachmentRefs.push(ref);
     }
+    for (const ref of collectFrontmatterAttachmentRefs(
+      note.frontmatter,
+      slug,
+      attachmentIds,
+    )) {
+      attachmentRefs.push(ref);
+    }
   }
 
   // Also collect attachment refs from private notes so the closure correctly excludes
@@ -291,6 +299,13 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined || publicSlugs.has(slug)) continue;
     for (const ref of collectAttachmentRefs(n.body, slug, attachmentByBasenameLower)) {
+      attachmentRefs.push(ref);
+    }
+    for (const ref of collectFrontmatterAttachmentRefs(
+      n.frontmatter,
+      slug,
+      attachmentIds,
+    )) {
       attachmentRefs.push(ref);
     }
   }
@@ -574,6 +589,25 @@ function collectAttachmentRefs(
     const parsed = parseWikilinkTarget(m[1] ?? '');
     const id = attachmentByBasenameLower.get(parsed.target.toLowerCase());
     if (id !== undefined) {
+      out.push({ id, sourceNoteId: sourceSlug });
+    }
+  }
+  return out;
+}
+
+function collectFrontmatterAttachmentRefs(
+  frontmatter: Record<string, unknown>,
+  sourceSlug: string,
+  attachmentIds: ReadonlySet<string>,
+): AttachmentRef[] {
+  const out: AttachmentRef[] = [];
+  for (const key of ['cover', 'thumbnail'] as const) {
+    const value = frontmatter[key];
+    if (typeof value !== 'string') continue;
+    const cleaned = value.trim();
+    if (!cleaned.startsWith('/attachments/')) continue;
+    const id = cleaned.slice('/attachments/'.length);
+    if (attachmentIds.has(id)) {
       out.push({ id, sourceNoteId: sourceSlug });
     }
   }
