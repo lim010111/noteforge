@@ -28,6 +28,7 @@ function labelFor(url: string): string {
   class="dev-image-picker not-prose"
   data-dev-image-picker
   data-slug={slug}
+  data-upload-endpoint="/__obpub/upload-attachment"
 >
   <button class="dev-image-picker__trigger" type="button" data-picker-open>
     이미지 설정
@@ -70,6 +71,33 @@ function labelFor(url: string): string {
                 ))}
               </div>
             )}
+            <div
+              class="dev-image-picker__upload"
+              data-picker-upload-zone={field}
+              role="button"
+              tabindex="0"
+              aria-label="이미지 파일 끌어다 놓기 또는 클릭해서 선택"
+              aria-describedby={`dev-image-picker-${field}-upload-hint`}
+            >
+              <span>파일 끌어다 놓기 · 클릭해서 선택 · Ctrl+V</span>
+              <small id={`dev-image-picker-${field}-upload-hint`}>
+                PNG, JPG, GIF, WebP, SVG · 최대 10MB
+              </small>
+              <progress
+                class="dev-image-picker__progress"
+                data-picker-upload-progress={field}
+                max="100"
+                value="0"
+                hidden
+              ></progress>
+              <input
+                class="dev-image-picker__file"
+                type="file"
+                accept="image/*"
+                data-picker-file={field}
+                hidden
+              />
+            </div>
             <div class="dev-image-picker__manual">
               <input
                 class="dev-image-picker__input"
@@ -99,11 +127,24 @@ function labelFor(url: string): string {
     if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') continue;
     root.dataset.bound = 'true';
     const slug = root.dataset.slug;
+    const uploadEndpoint = root.dataset.uploadEndpoint ?? '/__obpub/upload-attachment';
     const dialog = root.querySelector('[data-picker-dialog]');
     const status = root.querySelector('[data-picker-status]');
     if (!(dialog instanceof HTMLDialogElement) || slug === undefined) continue;
+    let activeUploadField = 'cover';
     const setStatus = (message) => {
       if (status instanceof HTMLElement) status.textContent = message;
+    };
+    const setProgress = (field, percent) => {
+      const progress = root.querySelector(`[data-picker-upload-progress="${field}"]`);
+      if (!(progress instanceof HTMLProgressElement)) return;
+      if (percent === null) {
+        progress.hidden = true;
+        progress.value = 0;
+        return;
+      }
+      progress.hidden = false;
+      progress.value = Math.max(0, Math.min(100, percent));
     };
     const close = () => {
       if (dialog.open) dialog.close();
@@ -132,6 +173,134 @@ function labelFor(url: string): string {
       setStatus('저장됨');
       window.setTimeout(close, 250);
     };
+
+    const uploadFile = async (field, file) => {
+      if (field !== 'cover' && field !== 'thumbnail') return;
+      if (!(file instanceof File) || !file.type.startsWith('image/')) {
+        setStatus('이미지 파일만 업로드할 수 있습니다');
+        return;
+      }
+      setStatus('업로드 중');
+      setProgress(field, null);
+      const body = new FormData();
+      body.set('slug', slug);
+      body.set('field', field);
+      body.set('file', file, file.name);
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadEndpoint);
+        xhr.upload.addEventListener('progress', (event) => {
+          if (!event.lengthComputable) {
+            setStatus('업로드 중');
+            return;
+          }
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setStatus(`업로드 중 (${percent}%)`);
+          setProgress(field, percent);
+        });
+        xhr.addEventListener('load', () => {
+          setProgress(field, null);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(undefined);
+            return;
+          }
+          try {
+            const payload = JSON.parse(xhr.responseText);
+            reject(new Error(payload.error ?? `HTTP ${xhr.status}`));
+          } catch {
+            reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+          }
+        });
+        xhr.addEventListener('error', () => {
+          setProgress(field, null);
+          reject(new Error('업로드 실패'));
+        });
+        xhr.send(body);
+      });
+
+      setStatus('저장됨');
+      window.setTimeout(() => {
+        close();
+        window.location.reload();
+      }, 250);
+    };
+
+    const uploadFirstFile = async (field, files) => {
+      const file = files?.[0];
+      if (file === undefined) return;
+      await uploadFile(field, file);
+    };
+
+    for (const zone of root.querySelectorAll('[data-picker-upload-zone]')) {
+      if (!(zone instanceof HTMLElement)) continue;
+      const field = zone.dataset.pickerUploadZone;
+      const activate = () => {
+        if (field === 'cover' || field === 'thumbnail') activeUploadField = field;
+      };
+      zone.addEventListener('mouseenter', activate);
+      zone.addEventListener('focus', activate);
+      zone.addEventListener('click', () => {
+        activate();
+        const input = root.querySelector(`[data-picker-file="${field}"]`);
+        if (input instanceof HTMLInputElement) input.click();
+      });
+      zone.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        zone.click();
+      });
+      zone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        activate();
+        zone.dataset.dragOver = 'true';
+      });
+      zone.addEventListener('dragleave', () => {
+        delete zone.dataset.dragOver;
+      });
+      zone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        delete zone.dataset.dragOver;
+        activate();
+        void (async () => {
+          try {
+            await uploadFirstFile(field, event.dataTransfer?.files);
+          } catch (err) {
+            setStatus(err instanceof Error ? err.message : String(err));
+          }
+        })();
+      });
+    }
+
+    for (const input of root.querySelectorAll('[data-picker-file]')) {
+      if (!(input instanceof HTMLInputElement)) continue;
+      input.addEventListener('change', () => {
+        const field = input.dataset.pickerFile;
+        void (async () => {
+          try {
+            await uploadFirstFile(field, input.files);
+          } catch (err) {
+            setStatus(err instanceof Error ? err.message : String(err));
+          } finally {
+            input.value = '';
+          }
+        })();
+      });
+    }
+
+    dialog.addEventListener('paste', (event) => {
+      const files = event.clipboardData?.files;
+      if (files === undefined || files.length === 0) return;
+      event.preventDefault();
+      void (async () => {
+        try {
+          await uploadFirstFile(activeUploadField, files);
+        } catch (err) {
+          setStatus(err instanceof Error ? err.message : String(err));
+        }
+      })();
+    });
 
     root.addEventListener('click', (event) => {
       const target = event.target;
@@ -273,6 +442,37 @@ function labelFor(url: string): string {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
     gap: var(--space-2);
+  }
+  .dev-image-picker__upload {
+    display: grid;
+    gap: var(--space-1);
+    min-height: 4.5rem;
+    padding: var(--space-3);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    color: var(--color-text-body);
+    cursor: pointer;
+    transition: border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out);
+  }
+  .dev-image-picker__upload:hover,
+  .dev-image-picker__upload:focus-visible,
+  .dev-image-picker__upload[data-drag-over="true"] {
+    border-color: var(--color-text-heading);
+    background: var(--color-bg-surface-strong);
+    outline: none;
+  }
+  .dev-image-picker__upload span,
+  .dev-image-picker__upload small {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+  }
+  .dev-image-picker__upload small {
+    color: var(--color-text-muted);
+  }
+  .dev-image-picker__progress {
+    width: 100%;
   }
   .dev-image-picker__candidate {
     min-width: 0;

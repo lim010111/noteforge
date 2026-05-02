@@ -211,6 +211,12 @@ describe('Note', () => {
     expect(withPicker).toContain('/attachments/hero.png');
     expect(withPicker).toContain('https://example.com/a.png');
     expect(withPicker).toContain('post.md');
+    expect(withPicker).toContain('data-picker-upload-zone="cover"');
+    expect(withPicker).toContain('data-picker-upload-zone="thumbnail"');
+    expect(withPicker).toContain('type="file"');
+    expect(withPicker).toContain('accept="image/*"');
+    expect(withPicker).toContain('role="button"');
+    expect(withPicker).toContain('/__obpub/upload-attachment');
   });
 
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
