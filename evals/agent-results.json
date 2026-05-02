@@ -1,0 +1,13 @@
+{
+  "schema": "obsidian-blog-evals/v1",
+  "description": "Agent run history. PR 머지 시 한 항목 append. Pass = privacy canary 0회 + 단일 결정 지점 유지.",
+  "fields": {
+    "task": "evals/tasks/<name>.md 의 파일명",
+    "agent_id": "claude-code | codex-cli | other",
+    "commit": "sha 또는 branch+sha",
+    "pass": "true | false",
+    "duration_s": "agent 가 작업한 시간 (초)",
+    "notes": "fail 사유 / 메모"
+  },
+  "results": []
+}

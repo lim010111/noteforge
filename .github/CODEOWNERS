@@ -1,0 +1,19 @@
+# CODEOWNERS — independent critic infrastructure for sensitive areas.
+# Every PR touching these paths automatically requests review from the listed
+# owner. Privacy code (the "single decision point") and the rubric scorer
+# integration are gated here.
+
+# Default — all changes go to repo lead
+*                                               @lim010111
+
+# Privacy single decision point — additional eyes required.
+# CRITICAL: changes here have outsized blast radius. See docs/adr/0001-privacy-first-opt-in.md.
+/packages/core/src/privacy/                     @lim010111
+/packages/core/tests/fixtures/vault-mixed/      @lim010111
+/MEMORY.md                                      @lim010111
+/docs/adr/                                      @lim010111
+
+# AI-readiness gates and agent eval scaffolding
+/scripts/validate-context-paths.mjs             @lim010111
+/evals/                                         @lim010111
+/.github/workflows/                             @lim010111
