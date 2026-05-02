@@ -13,6 +13,15 @@ const noteSchema = z
     thumbnailImage: z.string().optional(),
     embeddedImages: z.array(z.string()).optional(),
     sourcePath: z.string().optional(),
+    headings: z
+      .array(
+        z.object({
+          id: z.string(),
+          depth: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+          text: z.string(),
+        }),
+      )
+      .optional(),
   })
   .strict();
 

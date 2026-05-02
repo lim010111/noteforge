@@ -24,7 +24,7 @@
  */
 
 import type { Loader } from 'astro/loaders';
-import { runCorePipeline } from '@noteforge/core/pipeline';
+import { runCorePipeline, type NoteHeading } from '@noteforge/core/pipeline';
 import type { ObpubConfig } from '@noteforge/core/config';
 
 interface NoteEntryData extends Record<string, unknown> {
@@ -42,6 +42,12 @@ interface NoteEntryData extends Record<string, unknown> {
   thumbnailImage?: string;
   embeddedImages?: readonly string[];
   sourcePath?: string;
+  /**
+   * Structured h2/h3/h4 list collected from the same hast pass as the rendered
+   * HTML — derived from the post-transclude, post-privacy-filter mdast. Theme
+   * renders this as a Table of Contents. Omitted when the note has no headings.
+   */
+  headings?: readonly NoteHeading[];
 }
 
 interface AliasRedirectEntryData extends Record<string, unknown> {
@@ -142,6 +148,10 @@ export function obpubLoader(config: ObpubConfig): Loader {
         }
         const sourcePath = result.sourcePathBySlug.get(slug);
         if (sourcePath !== undefined) data.sourcePath = sourcePath;
+        const headings = result.noteHeadings.get(slug);
+        if (headings !== undefined && headings.length > 0) {
+          data.headings = headings;
+        }
 
         usedIds.add(slug);
         context.store.set({
