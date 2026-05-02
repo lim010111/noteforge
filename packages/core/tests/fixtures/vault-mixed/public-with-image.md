@@ -1,8 +1,8 @@
 ---
 title: Public With Image
 public: true
-cover: /attachments/only-private.png
-thumbnail: /attachments/only-private.png
+cover: /attachments/missing-image.png
+thumbnail: /attachments/missing-image.png
 ---
 
 ![[only-public.png]]

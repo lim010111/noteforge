@@ -330,11 +330,13 @@ function makeFakeRes(): FakeRes {
 function makeServerSetupArgs(
   server: FakeServer,
   logger: LoggerSpy,
+  overrides: Partial<Pick<ServerSetupArgs, 'refreshContent'>> = {},
 ): ServerSetupArgs {
   return {
     server,
     logger,
     toolbar: { on: vi.fn(), onAppInitialized: vi.fn(), onAppToggled: vi.fn(), send: vi.fn() },
+    ...overrides,
   } as unknown as ServerSetupArgs;
 }
 
@@ -673,6 +675,7 @@ describe('obpub integration — dev server wiring', () => {
     capturedCallback!([
       { kind: 'update', slug: 'a', affectedSlugs: new Set(['a']) },
     ]);
+    await new Promise((r) => setTimeout(r, 0));
 
     expect(
       sendSpy,
@@ -710,12 +713,61 @@ describe('obpub integration — dev server wiring', () => {
     capturedCallback!([
       { kind: 'update', slug: 'a', affectedSlugs: new Set(['a']) },
     ]);
+    await new Promise((r) => setTimeout(r, 0));
 
     expect(
       hotSend,
       'duck-typed fallback to server.hot.send is what keeps this integration from breaking when Vite renames its HMR bridge between minors',
     ).toHaveBeenCalledTimes(1);
     expect(hotSend.mock.calls[0]?.[0]).toEqual({ type: 'full-reload' });
+  });
+
+  it('(8c) refreshes the Astro Content Layer before sending the dev full-reload', async () => {
+    let capturedCallback:
+      | ((events: readonly WatcherEvent[]) => void)
+      | undefined;
+    const fakeWatcher: Watcher = {
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
+    const factory = vi.fn((opts: WatcherOptions) => {
+      capturedCallback = opts.onInvalidate;
+      return fakeWatcher;
+    });
+    const order: string[] = [];
+    const runPipelineImpl = vi.fn(async () => {
+      order.push('pipeline');
+      return { attachmentClosure: new Set() } as unknown as PipelineResult;
+    });
+    const refreshContent = vi.fn(async () => {
+      order.push('content');
+    });
+
+    const integration = obpub(makeConfig(), {
+      createWatcherImpl: factory as unknown as typeof createWatcher,
+      runPipelineImpl,
+    });
+    const serverSetup = integration.hooks['astro:server:setup']!;
+
+    const sendSpy = vi.fn(() => {
+      order.push('reload');
+    });
+    const server: FakeServer = { ws: { send: sendSpy } };
+    await serverSetup(
+      makeServerSetupArgs(server, makeLogger(), { refreshContent }),
+    );
+    order.length = 0;
+    refreshContent.mockClear();
+
+    capturedCallback!([
+      { kind: 'update', slug: 'a', affectedSlugs: new Set(['a']) },
+    ]);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(refreshContent).toHaveBeenCalledWith({
+      loaders: ['@noteforge/astro/loader'],
+    });
+    expect(order).toEqual(['pipeline', 'content', 'reload']);
   });
 
   it('(9) astro:server:done awaits watcher.stop and permits re-setup afterwards', async () => {
@@ -823,6 +875,7 @@ describe('obpub integration — dev server wiring', () => {
 
     chokidar.emit('change', `${FAKE_VAULT}/a.md`);
     await vi.runAllTimersAsync();
+    await Promise.resolve();
 
     expect(
       forwardedEvents.length,
@@ -877,6 +930,14 @@ describe('obpub integration — dev server wiring', () => {
     // handing the request off, so handler-side `req.url` is just the suffix.
     const handler = middlewares.handlers.get('/attachments');
     expect(handler, 'middleware must register on /attachments mount').toBeDefined();
+    expect(
+      middlewares.handlers.get('/__obpub/upload-attachment'),
+      'dev image uploads need a dedicated endpoint so file save + frontmatter update can be one transaction',
+    ).toBeDefined();
+    expect(
+      middlewares.handlers.get('/__obpub/cover'),
+      'existing image URL / candidate updates still need the cover endpoint in dev',
+    ).toBeDefined();
 
     // (a) closure HIT — public attachment in the closure
     {

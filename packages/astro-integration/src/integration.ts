@@ -57,6 +57,7 @@ import {
   createDevCoverMiddleware,
   type DevCoverPipelineSnapshot,
 } from './devCoverMiddleware.ts';
+import { createDevUploadMiddleware } from './devUploadMiddleware.ts';
 
 export interface ObpubIntegrationOptions {
   /**
@@ -110,6 +111,8 @@ const DEFAULT_ATTACHMENT_FS: AttachmentFs = {
   copyFile: (src, dest) => nodeFs.copyFile(src, dest),
   readFile: (absPath) => nodeFs.readFile(absPath),
 };
+
+const CONTENT_LOADER_NAME = '@noteforge/astro/loader';
 
 /**
  * Conservative MIME map for attachment streaming. The closure already gates
@@ -186,7 +189,7 @@ export function obpub(
           },
         });
       },
-      'astro:server:setup': async ({ server, logger }) => {
+      'astro:server:setup': async ({ server, logger, refreshContent }) => {
         if (watcher !== undefined) return;
 
         const factory = opts.createWatcherImpl ?? createWatcher;
@@ -204,12 +207,14 @@ export function obpub(
               publicSlugs: new Set(result.publicSlugs ?? []),
               sourcePathBySlug: new Map(result.sourcePathBySlug ?? []),
             };
+            await refreshContent?.({ loaders: [CONTENT_LOADER_NAME] });
           } catch (err) {
             logger.warn(
-              `obpub: dev pipeline cache refresh failed — ${
+              `obpub: dev content refresh failed — ${
                 err instanceof Error ? err.message : String(err)
               }`,
             );
+            throw err;
           }
         };
 
@@ -220,32 +225,34 @@ export function obpub(
           config,
           ...(opts.watcher !== undefined ? { chokidarOptions: opts.watcher } : {}),
           onInvalidate: (events: readonly WatcherEvent[]): void => {
-            // Refresh closure asynchronously so a renamed/added attachment
-            // becomes streamable on the next request without blocking the
-            // HMR signal. Errors surface via logger.warn — they should not
-            // poison the reload path.
-            void refreshPipelineCache();
-            if (opts.onDevInvalidate !== undefined) {
-              opts.onDevInvalidate(
-                events.map((e) => ({ kind: e.kind, slug: e.slug })),
+            void (async () => {
+              try {
+                await refreshPipelineCache();
+              } catch {
+                return;
+              }
+              if (opts.onDevInvalidate !== undefined) {
+                opts.onDevInvalidate(
+                  events.map((e) => ({ kind: e.kind, slug: e.slug })),
+                );
+                return;
+              }
+              logger.info(
+                `obpub: vault changed (${events.length} event${events.length === 1 ? '' : 's'}) — full reload`,
               );
-              return;
-            }
-            logger.info(
-              `obpub: vault changed (${events.length} event${events.length === 1 ? '' : 's'}) — full reload`,
-            );
-            // Vite v5 uses `server.ws.send`; some environments expose only
-            // `server.hot.send`. Duck-type against both to survive either
-            // without importing Vite internals (whose API surface is not
-            // contractual across minor versions).
-            const viteHot = server as unknown as {
-              ws?: { send: (payload: unknown) => void };
-              hot?: { send: (payload: unknown) => void };
-            };
-            const sender =
-              viteHot.ws?.send?.bind(viteHot.ws) ??
-              viteHot.hot?.send?.bind(viteHot.hot);
-            sender?.({ type: 'full-reload' });
+              // Vite v5 uses `server.ws.send`; some environments expose only
+              // `server.hot.send`. Duck-type against both to survive either
+              // without importing Vite internals (whose API surface is not
+              // contractual across minor versions).
+              const viteHot = server as unknown as {
+                ws?: { send: (payload: unknown) => void };
+                hot?: { send: (payload: unknown) => void };
+              };
+              const sender =
+                viteHot.ws?.send?.bind(viteHot.ws) ??
+                viteHot.hot?.send?.bind(viteHot.hot);
+              sender?.({ type: 'full-reload' });
+            })();
           },
           onWarning: (msg: string): void => {
             logger.warn(`obpub watcher: ${msg}`);
@@ -269,6 +276,14 @@ export function obpub(
           server,
           vaultPath: vault.path,
           getPipelineResult: getPipelineSnapshot,
+          refreshPipelineCache,
+        });
+        registerDevUploadMiddleware({
+          server,
+          vaultPath: vault.path,
+          getPipelineResult: getPipelineSnapshot,
+          refreshPipelineCache,
+          config,
         });
       },
       'astro:server:done': async () => {
@@ -458,6 +473,7 @@ interface DevCoverRegistrationDeps {
   server: unknown;
   vaultPath: string;
   getPipelineResult: () => DevCoverPipelineSnapshot;
+  refreshPipelineCache: () => Promise<void>;
 }
 
 function registerDevCoverMiddleware(deps: DevCoverRegistrationDeps): void {
@@ -473,6 +489,34 @@ function registerDevCoverMiddleware(deps: DevCoverRegistrationDeps): void {
     createDevCoverMiddleware({
       vaultPath: deps.vaultPath,
       getPipelineResult: deps.getPipelineResult,
+      refreshPipelineCache: deps.refreshPipelineCache,
+    }),
+  );
+}
+
+interface DevUploadRegistrationDeps {
+  server: unknown;
+  vaultPath: string;
+  getPipelineResult: () => DevCoverPipelineSnapshot;
+  refreshPipelineCache: () => Promise<void>;
+  config: ObpubConfig;
+}
+
+function registerDevUploadMiddleware(deps: DevUploadRegistrationDeps): void {
+  const middlewares = (
+    deps.server as {
+      middlewares?: { use?: (path: string, handler: unknown) => unknown };
+    }
+  ).middlewares;
+  if (typeof middlewares?.use !== 'function') return;
+
+  middlewares.use(
+    '/__obpub/upload-attachment',
+    createDevUploadMiddleware({
+      vaultPath: deps.vaultPath,
+      getPipelineResult: deps.getPipelineResult,
+      refreshPipelineCache: deps.refreshPipelineCache,
+      config: deps.config,
     }),
   );
 }

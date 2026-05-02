@@ -169,7 +169,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   const notes = await discoverNotes(vault.path, vault.id, walkIgnore);
   const attachments = await discoverAttachments(
     vault.path,
-    walkIgnore,
+    stripUploadDirFromIgnore(walkIgnore, config.attachments.uploadDir),
     config.attachments.allowedExtensions,
   );
 
@@ -184,6 +184,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   const indexedNotes = toIndexedNotes(notes, slugByRelPath);
   const wikilinkIndex = buildWikilinkIndex(indexedNotes);
   const attachmentByBasenameLower = indexAttachmentsByBasename(attachments);
+  const attachmentIds = new Set(attachments);
 
   // ── Phase B — Classification ───────────────────────────────────────────────
   const warnings: PipelineWarning[] = [];
@@ -283,6 +284,13 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     )) {
       attachmentRefs.push(ref);
     }
+    for (const ref of collectFrontmatterAttachmentRefs(
+      note.frontmatter,
+      slug,
+      attachmentIds,
+    )) {
+      attachmentRefs.push(ref);
+    }
   }
 
   // Also collect attachment refs from private notes so the closure correctly excludes
@@ -291,6 +299,13 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined || publicSlugs.has(slug)) continue;
     for (const ref of collectAttachmentRefs(n.body, slug, attachmentByBasenameLower)) {
+      attachmentRefs.push(ref);
+    }
+    for (const ref of collectFrontmatterAttachmentRefs(
+      n.frontmatter,
+      slug,
+      attachmentIds,
+    )) {
       attachmentRefs.push(ref);
     }
   }
@@ -580,6 +595,25 @@ function collectAttachmentRefs(
   return out;
 }
 
+function collectFrontmatterAttachmentRefs(
+  frontmatter: Record<string, unknown>,
+  sourceSlug: string,
+  attachmentIds: ReadonlySet<string>,
+): AttachmentRef[] {
+  const out: AttachmentRef[] = [];
+  for (const key of ['cover', 'thumbnail'] as const) {
+    const value = frontmatter[key];
+    if (typeof value !== 'string') continue;
+    const cleaned = value.trim();
+    if (!cleaned.startsWith('/attachments/')) continue;
+    const id = cleaned.slice('/attachments/'.length);
+    if (attachmentIds.has(id)) {
+      out.push({ id, sourceNoteId: sourceSlug });
+    }
+  }
+  return out;
+}
+
 function extractEdges(
   body: string,
   fromSlug: string,
@@ -692,4 +726,17 @@ function stripTripwireFromIgnore(
   if (tripwirePaths.length === 0) return [...merged];
   const tripwireSet = new Set(tripwirePaths);
   return merged.filter((p) => !tripwireSet.has(p));
+}
+
+function stripUploadDirFromIgnore(
+  merged: readonly string[],
+  uploadDir: string,
+): string[] {
+  const normalized = uploadDir.replace(/^\/+|\/+$/g, '');
+  const uploadDirGlobs = new Set([
+    normalized,
+    `${normalized}/**`,
+    `${normalized}/**/*`,
+  ]);
+  return merged.filter((p) => !uploadDirGlobs.has(p.replace(/^\/+|\/+$/g, '')));
 }

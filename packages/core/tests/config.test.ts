@@ -67,6 +67,8 @@ describe('defineConfig', () => {
       '.svg',
       '.pdf',
     ]);
+    expect(cfg.attachments.uploadDir).toBe('attachments');
+    expect(cfg.attachments.uploadMaxBytes).toBe(10_485_760);
     expect(cfg.graph.enabled).toBe(true);
     expect(cfg.graph.includePrivateAsAnonymousNodes).toBe(false);
     expect(cfg.unsafeAllowPrivateFolder).toBe(false);
@@ -165,6 +167,97 @@ describe('defineConfig', () => {
     expect(ignore).not.toContain('private/**');
     expect(ignore).toEqual(expect.arrayContaining(['.obsidian/**', '.trash/**']));
     expect(ignore).toHaveLength(2);
+  });
+
+  it('accepts a custom POSIX-style attachment upload directory', () => {
+    const cfg = defineConfig(
+      baseInput({
+        attachments: {
+          uploadDir: 'assets/images',
+        },
+      }),
+    );
+
+    expect(cfg.attachments.uploadDir).toBe('assets/images');
+  });
+
+  it('rejects an empty attachment upload directory', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadDir: '',
+          },
+        }),
+      ),
+    ).toThrow(/uploadDir|빈 문자열/);
+  });
+
+  it('rejects absolute attachment upload directories', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadDir: '/tmp/uploads',
+          },
+        }),
+      ),
+    ).toThrow(/uploadDir|상대/);
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadDir: 'C:\\uploads',
+          },
+        }),
+      ),
+    ).toThrow(/uploadDir|POSIX|상대/);
+  });
+
+  it('rejects traversal in attachment upload directories', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadDir: 'images/../secret',
+          },
+        }),
+      ),
+    ).toThrow(/uploadDir|상위/);
+  });
+
+  it('rejects private attachment upload directories unless unsafeAllowPrivateFolder is true', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadDir: 'private/uploads',
+          },
+        }),
+      ),
+    ).toThrow(/uploadDir|private/);
+
+    const cfg = defineConfig(
+      baseInput({
+        unsafeAllowPrivateFolder: true,
+        attachments: {
+          uploadDir: 'private/uploads',
+        },
+      }),
+    );
+    expect(cfg.attachments.uploadDir).toBe('private/uploads');
+  });
+
+  it('rejects non-positive attachment upload size limits', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          attachments: {
+            uploadMaxBytes: 0,
+          },
+        }),
+      ),
+    ).toThrow(/uploadMaxBytes/);
   });
 });
 

@@ -15,6 +15,7 @@ export interface DevCoverFileSystem {
 interface DevCoverMiddlewareDeps {
   readonly vaultPath: string;
   readonly getPipelineResult: () => DevCoverPipelineSnapshot;
+  readonly refreshPipelineCache?: () => Promise<void>;
   readonly fs?: DevCoverFileSystem;
 }
 
@@ -104,6 +105,20 @@ export function createDevCoverMiddleware(deps: DevCoverMiddlewareDeps) {
     const raw = await fs.readFile(sourceAbs);
     const updated = updateFrontmatterImageFields(raw, { cover, thumbnail });
     await fs.writeFile(sourceAbs, updated);
+    try {
+      await deps.refreshPipelineCache?.();
+    } catch (err) {
+      try {
+        await fs.writeFile(sourceAbs, raw);
+      } catch {
+        // Best-effort rollback. The refresh failure is the primary error.
+      }
+      sendJson(res, 500, {
+        error: 'pipeline_refresh_failed',
+        detail: errorMessage(err),
+      });
+      return;
+    }
     sendJson(res, 200, { ok: true });
   };
 }
@@ -153,7 +168,7 @@ function parseOptionalImageField(value: unknown, field: string): string | null {
   return value;
 }
 
-function isSameOrigin(
+export function isSameOrigin(
   headers: Record<string, string | string[] | undefined>,
 ): boolean {
   const originRaw = headerValue(headers, 'origin');
@@ -177,7 +192,7 @@ function headerValue(
   return Array.isArray(value) ? value[0] : value;
 }
 
-function isSafeSlug(slug: string): boolean {
+export function isSafeSlug(slug: string): boolean {
   return (
     slug.length > 0 &&
     slug === slug.trim() &&
@@ -187,16 +202,16 @@ function isSafeSlug(slug: string): boolean {
   );
 }
 
-function isSafeSourcePath(sourceRel: string): boolean {
+export function isSafeSourcePath(sourceRel: string): boolean {
   return (
     sourceRel.length > 0 &&
-    !sourceRel.includes('..') &&
     !sourceRel.includes('\\') &&
-    !nodePath.isAbsolute(sourceRel)
+    !nodePath.isAbsolute(sourceRel) &&
+    !sourceRel.split('/').includes('..')
   );
 }
 
-function isInside(root: string, absPath: string): boolean {
+export function isInside(root: string, absPath: string): boolean {
   const rel = nodePath.relative(root, absPath);
   return rel === '' || (rel.length > 0 && !rel.startsWith('..') && !nodePath.isAbsolute(rel));
 }

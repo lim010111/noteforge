@@ -5,11 +5,9 @@ const {
   slug,
   heroImage,
   thumbnailImage,
-  embeddedImages = [],
   sourcePath,
 } = Astro.props as DevImagePickerProps;
 
-const candidates = [...new Set(embeddedImages)];
 const currentThumbnail = thumbnailImage ?? heroImage;
 
 function labelFor(url: string): string {
@@ -23,72 +21,160 @@ function labelFor(url: string): string {
     return url;
   }
 }
+
+const panelIdFor = (field: 'cover' | 'thumbnail') =>
+  `dev-image-picker-${slug}-panel-${field}`;
+const tabIdFor = (field: 'cover' | 'thumbnail') =>
+  `dev-image-picker-${slug}-tab-${field}`;
 ---
 <div
   class="dev-image-picker not-prose"
   data-dev-image-picker
   data-slug={slug}
+  data-cover-endpoint="/__obpub/cover"
+  data-upload-endpoint="/__obpub/upload-attachment"
 >
   <button class="dev-image-picker__trigger" type="button" data-picker-open>
-    이미지 설정
+    이미지 수정
   </button>
   <dialog class="dev-image-picker__dialog" data-picker-dialog>
     <div class="dev-image-picker__panel">
       <div class="dev-image-picker__head">
         <div>
-          <h2 class="dev-image-picker__title">이미지 설정</h2>
-          <p class="dev-image-picker__source">{sourcePath}</p>
+          <h2 class="dev-image-picker__title">이미지 수정</h2>
+          <p class="dev-image-picker__source">{sourcePath} · 표지·썸네일 변경</p>
         </div>
-        <button class="dev-image-picker__icon-button" type="button" data-picker-close aria-label="닫기">
+        <button
+          class="dev-image-picker__icon-button"
+          type="button"
+          data-picker-close
+          aria-label="닫기"
+        >
           ×
         </button>
       </div>
 
-      {(['cover', 'thumbnail'] as const).map((field) => {
+      <div class="dev-image-picker__tablist" role="tablist" aria-label="이미지 슬롯">
+        {(['cover', 'thumbnail'] as const).map((field, index) => (
+          <button
+            class="dev-image-picker__tab"
+            type="button"
+            role="tab"
+            id={tabIdFor(field)}
+            data-picker-tab={field}
+            aria-selected={index === 0 ? 'true' : 'false'}
+            aria-controls={panelIdFor(field)}
+            tabindex={index === 0 ? 0 : -1}
+          >
+            {field === 'cover' ? '배경' : '썸네일'}
+          </button>
+        ))}
+      </div>
+
+      {(['cover', 'thumbnail'] as const).map((field, index) => {
         const current = field === 'cover' ? heroImage : currentThumbnail;
-        const title = field === 'cover' ? '배경' : '썸네일';
         return (
-          <section class="dev-image-picker__slot" data-picker-slot={field}>
-            <div class="dev-image-picker__slot-head">
-              <h3 class="dev-image-picker__slot-title">{title}</h3>
-              {current !== undefined && (
-                <span class="dev-image-picker__current">{labelFor(current)}</span>
-              )}
-            </div>
-            {candidates.length > 0 && (
-              <div class="dev-image-picker__grid">
-                {candidates.map((url) => (
-                  <button
-                    class="dev-image-picker__candidate"
-                    type="button"
-                    data-picker-field={field}
-                    data-picker-value={url}
-                  >
-                    <img src={url} alt="" loading="lazy" decoding="async" />
-                    <span>{labelFor(url)}</span>
-                  </button>
-                ))}
+          <section
+            class="dev-image-picker__slot"
+            role="tabpanel"
+            id={panelIdFor(field)}
+            data-picker-slot={field}
+            data-picker-current={current ?? ''}
+            aria-labelledby={tabIdFor(field)}
+            hidden={index !== 0}
+          >
+            <figure class="dev-image-picker__preview-card" data-picker-preview={field}>
+              <div class="dev-image-picker__preview-frame">
+                <span class="dev-image-picker__preview-badge" aria-hidden="true">
+                  미리보기
+                </span>
+                <img
+                  src={current}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  data-picker-preview-img={field}
+                  hidden={current === undefined}
+                />
+                <div
+                  class="dev-image-picker__preview-empty"
+                  data-picker-preview-empty={field}
+                  hidden={current !== undefined}
+                >
+                  선택 없음
+                </div>
               </div>
-            )}
-            <div class="dev-image-picker__manual">
-              <input
-                class="dev-image-picker__input"
-                type="url"
-                inputmode="url"
-                placeholder="https://example.com/image.png"
-                data-picker-url={field}
-              />
-              <button class="dev-image-picker__button" type="button" data-picker-url-submit={field}>
-                적용
-              </button>
-              <button class="dev-image-picker__button" type="button" data-picker-clear={field}>
-                초기화
-              </button>
+              <figcaption data-picker-preview-label={field}>
+                {current !== undefined ? labelFor(current) : '선택 없음'}
+              </figcaption>
+            </figure>
+
+            <div class="dev-image-picker__upload-card">
+              <div class="dev-image-picker__upload-card-head">
+                <h3 class="dev-image-picker__upload-card-title">새 이미지 업로드</h3>
+                <p class="dev-image-picker__upload-card-caption">
+                  권장 1920×1080px · 최대 10MB
+                </p>
+              </div>
+              <div
+                class="dev-image-picker__upload"
+                data-picker-upload-zone={field}
+                role="button"
+                tabindex="0"
+                aria-label="이미지 파일 끌어다 놓기 또는 클릭해서 선택"
+                aria-describedby={`dev-image-picker-${field}-upload-hint`}
+              >
+                <span class="dev-image-picker__upload-icon" aria-hidden="true">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M16.5 17h.5a4.5 4.5 0 0 0 .2-9 5.5 5.5 0 0 0-10.6-1.5A4 4 0 0 0 7 17h.5" />
+                    <path d="M12 11v8" />
+                    <path d="m8.5 14.5 3.5-3.5 3.5 3.5" />
+                  </svg>
+                </span>
+                <p class="dev-image-picker__upload-headline">
+                  <strong>클릭해서 선택</strong>, 또는 끌어다 놓기
+                </p>
+                <small id={`dev-image-picker-${field}-upload-hint`}>
+                  또는 Ctrl+V로 붙여넣기 · PNG, JPG, GIF, WebP, SVG
+                </small>
+                <progress
+                  class="dev-image-picker__progress"
+                  data-picker-upload-progress={field}
+                  max="100"
+                  value="0"
+                  hidden
+                ></progress>
+                <input
+                  class="dev-image-picker__file"
+                  type="file"
+                  accept="image/*"
+                  data-picker-file={field}
+                  hidden
+                />
+              </div>
             </div>
           </section>
         );
       })}
+
       <p class="dev-image-picker__status" data-picker-status aria-live="polite"></p>
+
+      <div class="dev-image-picker__footer">
+        <button class="dev-image-picker__danger-link" type="button" data-picker-clear>
+          기본값으로 초기화
+        </button>
+        <button class="dev-image-picker__button" type="button" data-picker-close>
+          닫기
+        </button>
+      </div>
     </div>
   </dialog>
 </div>
@@ -99,20 +185,93 @@ function labelFor(url: string): string {
     if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') continue;
     root.dataset.bound = 'true';
     const slug = root.dataset.slug;
+    const coverEndpoint = root.dataset.coverEndpoint ?? '/__obpub/cover';
+    const uploadEndpoint = root.dataset.uploadEndpoint ?? '/__obpub/upload-attachment';
     const dialog = root.querySelector('[data-picker-dialog]');
     const status = root.querySelector('[data-picker-status]');
     if (!(dialog instanceof HTMLDialogElement) || slug === undefined) continue;
+    let activeUploadField = 'cover';
+    const imageField = (field) => field === 'cover' || field === 'thumbnail';
     const setStatus = (message) => {
       if (status instanceof HTMLElement) status.textContent = message;
+    };
+    const setProgress = (field, percent) => {
+      const progress = root.querySelector(`[data-picker-upload-progress="${field}"]`);
+      if (!(progress instanceof HTMLProgressElement)) return;
+      if (percent === null) {
+        progress.hidden = true;
+        progress.value = 0;
+        return;
+      }
+      progress.hidden = false;
+      progress.value = Math.max(0, Math.min(100, percent));
     };
     const close = () => {
       if (dialog.open) dialog.close();
     };
+    const reloadSoon = () => {
+      setStatus('저장됨 · 새로고침 중');
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 250);
+    };
+    const responseError = async (response) => {
+      const text = await response.text();
+      if (text.length > 0) {
+        try {
+          const payload = JSON.parse(text);
+          if (typeof payload.error === 'string') return payload.error;
+        } catch {
+          return text;
+        }
+      }
+      return `HTTP ${response.status}`;
+    };
+
+    const tabs = Array.from(root.querySelectorAll('[data-picker-tab]'));
+    const setActiveTab = (field, focus = false) => {
+      if (!imageField(field)) return;
+      activeUploadField = field;
+      for (const tab of tabs) {
+        if (!(tab instanceof HTMLElement)) continue;
+        const isActive = tab.dataset.pickerTab === field;
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        tab.tabIndex = isActive ? 0 : -1;
+        if (isActive && focus) tab.focus();
+      }
+      for (const slot of root.querySelectorAll('[data-picker-slot]')) {
+        if (!(slot instanceof HTMLElement)) continue;
+        slot.hidden = slot.dataset.pickerSlot !== field;
+      }
+    };
+    for (const tab of tabs) {
+      if (!(tab instanceof HTMLElement)) continue;
+      tab.addEventListener('click', () => {
+        const field = tab.dataset.pickerTab;
+        if (imageField(field)) setActiveTab(field);
+      });
+      tab.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) return;
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        const currentIndex = tabs.indexOf(tab);
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        const nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+        const nextTab = tabs[nextIndex];
+        if (!(nextTab instanceof HTMLElement)) return;
+        const nextField = nextTab.dataset.pickerTab;
+        if (imageField(nextField)) setActiveTab(nextField, true);
+      });
+    }
+
     root.querySelector('[data-picker-open]')?.addEventListener('click', () => {
       setStatus('');
+      setActiveTab('cover');
       dialog.showModal();
     });
-    root.querySelector('[data-picker-close]')?.addEventListener('click', close);
+    for (const closer of root.querySelectorAll('[data-picker-close]')) {
+      closer.addEventListener('click', close);
+    }
     dialog.addEventListener('click', (event) => {
       if (event.target === dialog) close();
     });
@@ -120,40 +279,154 @@ function labelFor(url: string): string {
     const postUpdate = async (field, value) => {
       setStatus('저장 중');
       const body = { slug, [field]: value };
-      const response = await fetch('/__obpub/cover', {
+      const response = await fetch(coverEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}`);
+        throw new Error(await responseError(response));
       }
-      setStatus('저장됨');
-      window.setTimeout(close, 250);
+      reloadSoon();
     };
+
+    const uploadFile = async (field, file) => {
+      if (field !== 'cover' && field !== 'thumbnail') return;
+      if (!(file instanceof File) || !file.type.startsWith('image/')) {
+        setStatus('이미지 파일만 업로드할 수 있습니다');
+        return;
+      }
+      setStatus('업로드 중');
+      setProgress(field, null);
+      const body = new FormData();
+      body.set('slug', slug);
+      body.set('field', field);
+      body.set('file', file, file.name);
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadEndpoint);
+        xhr.upload.addEventListener('progress', (event) => {
+          if (!event.lengthComputable) {
+            setStatus('업로드 중');
+            return;
+          }
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setStatus(`업로드 중 (${percent}%)`);
+          setProgress(field, percent);
+        });
+        xhr.addEventListener('load', () => {
+          setProgress(field, null);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(undefined);
+            return;
+          }
+          try {
+            const payload = JSON.parse(xhr.responseText);
+            reject(new Error(payload.error ?? `HTTP ${xhr.status}`));
+          } catch {
+            reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+          }
+        });
+        xhr.addEventListener('error', () => {
+          setProgress(field, null);
+          reject(new Error('업로드 실패'));
+        });
+        xhr.send(body);
+      });
+
+      reloadSoon();
+    };
+
+    const uploadFirstFile = async (field, files) => {
+      const file = files?.[0];
+      if (file === undefined) return;
+      await uploadFile(field, file);
+    };
+
+    for (const zone of root.querySelectorAll('[data-picker-upload-zone]')) {
+      if (!(zone instanceof HTMLElement)) continue;
+      const field = zone.dataset.pickerUploadZone;
+      const activate = () => {
+        if (field === 'cover' || field === 'thumbnail') activeUploadField = field;
+      };
+      zone.addEventListener('mouseenter', activate);
+      zone.addEventListener('focus', activate);
+      zone.addEventListener('click', (event) => {
+        if (event.target instanceof HTMLInputElement) return;
+        activate();
+        const input = root.querySelector(`[data-picker-file="${field}"]`);
+        if (input instanceof HTMLInputElement) input.click();
+      });
+      zone.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        zone.click();
+      });
+      zone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        activate();
+        zone.dataset.dragOver = 'true';
+      });
+      zone.addEventListener('dragleave', () => {
+        delete zone.dataset.dragOver;
+      });
+      zone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        delete zone.dataset.dragOver;
+        activate();
+        void (async () => {
+          try {
+            await uploadFirstFile(field, event.dataTransfer?.files);
+          } catch (err) {
+            setStatus(err instanceof Error ? err.message : String(err));
+          }
+        })();
+      });
+    }
+
+    for (const input of root.querySelectorAll('[data-picker-file]')) {
+      if (!(input instanceof HTMLInputElement)) continue;
+      input.addEventListener('change', () => {
+        const field = input.dataset.pickerFile;
+        void (async () => {
+          try {
+            await uploadFirstFile(field, input.files);
+          } catch (err) {
+            setStatus(err instanceof Error ? err.message : String(err));
+          } finally {
+            input.value = '';
+          }
+        })();
+      });
+    }
+
+    dialog.addEventListener('paste', (event) => {
+      const files = event.clipboardData?.files;
+      if (files === undefined || files.length === 0) return;
+      event.preventDefault();
+      void (async () => {
+        try {
+          await uploadFirstFile(activeUploadField, files);
+        } catch (err) {
+          setStatus(err instanceof Error ? err.message : String(err));
+        }
+      })();
+    });
 
     root.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const candidate = target.closest('[data-picker-field][data-picker-value]');
       const clear = target.closest('[data-picker-clear]');
-      const submit = target.closest('[data-picker-url-submit]');
+      if (!(clear instanceof HTMLElement)) return;
+      const field =
+        clear.dataset.pickerClear && imageField(clear.dataset.pickerClear)
+          ? clear.dataset.pickerClear
+          : activeUploadField;
       void (async () => {
         try {
-          if (candidate instanceof HTMLElement) {
-            await postUpdate(
-              candidate.dataset.pickerField,
-              candidate.dataset.pickerValue,
-            );
-          } else if (clear instanceof HTMLElement) {
-            await postUpdate(clear.dataset.pickerClear, null);
-          } else if (submit instanceof HTMLElement) {
-            const field = submit.dataset.pickerUrlSubmit;
-            const input = root.querySelector(`[data-picker-url="${field}"]`);
-            if (!(input instanceof HTMLInputElement)) return;
-            await postUpdate(field, input.value);
-          }
+          await postUpdate(field, null);
         } catch (err) {
           setStatus(err instanceof Error ? err.message : String(err));
         }
@@ -177,31 +450,33 @@ function labelFor(url: string): string {
     border-radius: var(--radius-sm);
     background: var(--color-bg-surface);
     color: var(--color-text-body);
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: var(--text-meta);
     font-weight: var(--weight-meta);
     letter-spacing: var(--ls-meta);
     text-transform: uppercase;
     cursor: pointer;
     transition: background-color var(--duration-base) var(--ease-out),
-      color var(--duration-base) var(--ease-out);
+      color var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
   }
   .dev-image-picker__trigger,
   .dev-image-picker__button {
-    padding: var(--space-1) var(--space-2);
+    padding: var(--space-2) var(--space-4);
   }
   .dev-image-picker__trigger:hover,
   .dev-image-picker__button:hover,
   .dev-image-picker__icon-button:hover {
     background: var(--color-bg-surface-strong);
     color: var(--color-text-heading);
+    border-color: var(--color-border-strong);
   }
   .dev-image-picker__dialog {
-    width: min(44rem, calc(100vw - 2rem));
-    max-height: min(44rem, calc(100vh - 2rem));
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: min(48rem, calc(100vh - 2rem));
     padding: 0;
     border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background: var(--color-bg-page);
     color: var(--color-text-body);
   }
@@ -209,46 +484,34 @@ function labelFor(url: string): string {
     background: rgb(0 0 0 / 0.35);
   }
   .dev-image-picker__panel {
-    padding: var(--space-5);
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
   }
-  .dev-image-picker__head,
-  .dev-image-picker__slot-head,
-  .dev-image-picker__manual {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-  }
   .dev-image-picker__head {
-    justify-content: space-between;
+    display: flex;
     align-items: flex-start;
-    border-bottom: 1px solid var(--color-border);
+    justify-content: space-between;
+    gap: var(--space-3);
     padding-bottom: var(--space-3);
-  }
-  .dev-image-picker__title,
-  .dev-image-picker__slot-title {
-    margin: 0;
-    color: var(--color-text-heading);
+    border-bottom: 1px solid var(--color-border);
   }
   .dev-image-picker__title {
+    margin: 0;
+    color: var(--color-text-heading);
     font-family: var(--font-serif);
-    font-size: var(--text-h3);
-    font-weight: var(--weight-h3);
-    line-height: var(--lh-h3);
-    letter-spacing: var(--ls-h3);
-  }
-  .dev-image-picker__source,
-  .dev-image-picker__current,
-  .dev-image-picker__status {
-    font-family: var(--font-mono);
-    font-size: var(--text-meta);
-    color: var(--color-text-muted);
+    font-size: var(--text-h2);
+    font-weight: var(--weight-h2);
+    line-height: var(--lh-h2);
+    letter-spacing: var(--ls-h2);
   }
   .dev-image-picker__source,
   .dev-image-picker__status {
     margin: var(--space-1) 0 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    color: var(--color-text-muted);
   }
   .dev-image-picker__icon-button {
     width: 2rem;
@@ -256,48 +519,103 @@ function labelFor(url: string): string {
     display: grid;
     place-items: center;
     padding: 0;
+    font-size: 1.25rem;
+    line-height: 1;
   }
+
+  /* Tablist */
+  .dev-image-picker__tablist {
+    display: flex;
+    gap: var(--space-5);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .dev-image-picker__tab {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: var(--space-2) var(--space-1) var(--space-3);
+    font-family: var(--font-sans);
+    font-size: var(--text-meta);
+    font-weight: var(--weight-meta);
+    letter-spacing: var(--ls-meta);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
+  }
+  .dev-image-picker__tab:hover {
+    color: var(--color-text-heading);
+  }
+  .dev-image-picker__tab[aria-selected="true"] {
+    color: var(--color-text-link);
+    border-bottom-color: var(--color-accent);
+  }
+  .dev-image-picker__tab:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Tab panel */
   .dev-image-picker__slot {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-5);
   }
-  .dev-image-picker__slot-title {
+  .dev-image-picker__slot[hidden] {
+    display: none;
+  }
+
+  /* Preview card */
+  .dev-image-picker__preview-card {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .dev-image-picker__preview-frame {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-surface);
+    aspect-ratio: 16 / 9;
+  }
+  .dev-image-picker__preview-frame img,
+  .dev-image-picker__preview-empty {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .dev-image-picker__preview-frame img {
+    object-fit: cover;
+  }
+  .dev-image-picker__preview-empty {
+    display: grid;
+    place-items: center;
+    color: var(--color-text-muted);
     font-family: var(--font-mono);
+    font-size: var(--text-meta);
+  }
+  .dev-image-picker__preview-badge {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-surface);
+    color: var(--color-text-muted);
+    font-family: var(--font-sans);
     font-size: var(--text-meta);
     font-weight: var(--weight-meta);
     letter-spacing: var(--ls-meta);
     text-transform: uppercase;
   }
-  .dev-image-picker__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
-    gap: var(--space-2);
-  }
-  .dev-image-picker__candidate {
-    min-width: 0;
-    padding: var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    background: var(--color-bg-surface);
-    color: var(--color-text-body);
-    text-align: left;
-    cursor: pointer;
-  }
-  .dev-image-picker__candidate:hover {
-    background: var(--color-bg-surface-strong);
-  }
-  .dev-image-picker__candidate img {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    object-fit: cover;
-    display: block;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
-  }
-  .dev-image-picker__candidate span {
-    display: block;
-    margin-top: var(--space-1);
+  .dev-image-picker__preview-card figcaption {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -305,27 +623,159 @@ function labelFor(url: string): string {
     font-size: var(--text-meta);
     color: var(--color-text-muted);
   }
-  .dev-image-picker__input {
-    min-width: 0;
-    flex: 1;
+
+  /* Upload card */
+  .dev-image-picker__upload-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-5);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-lg);
     background: var(--color-bg-surface);
+  }
+  .dev-image-picker__upload-card-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .dev-image-picker__upload-card-title {
+    margin: 0;
+    color: var(--color-text-heading);
+    font-family: var(--font-serif);
+    font-size: var(--text-h3);
+    font-weight: var(--weight-h3);
+    line-height: var(--lh-h3);
+    letter-spacing: var(--ls-h3);
+  }
+  .dev-image-picker__upload-card-caption {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    color: var(--color-text-muted);
+  }
+  .dev-image-picker__upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-5);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-page);
     color: var(--color-text-body);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color var(--duration-base) var(--ease-out),
+      background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+  }
+  .dev-image-picker__upload:hover,
+  .dev-image-picker__upload:focus-visible,
+  .dev-image-picker__upload[data-drag-over="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-bg-surface-strong);
+    color: var(--color-text-heading);
+    outline: none;
+  }
+  .dev-image-picker__upload-icon {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: var(--space-1);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-surface-strong);
+    color: var(--color-text-muted);
+    transition: background-color var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+  }
+  .dev-image-picker__upload-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .dev-image-picker__upload:hover .dev-image-picker__upload-icon,
+  .dev-image-picker__upload:focus-visible .dev-image-picker__upload-icon,
+  .dev-image-picker__upload[data-drag-over="true"] .dev-image-picker__upload-icon {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+  .dev-image-picker__upload-headline {
+    margin: 0;
     font-family: var(--font-sans);
     font-size: var(--text-body);
-    padding: var(--space-2);
+    color: var(--color-text-body);
+  }
+  .dev-image-picker__upload-headline strong {
+    color: var(--color-text-link);
+    font-weight: 600;
+  }
+  .dev-image-picker__upload small {
+    font-family: var(--font-mono);
+    font-size: var(--text-meta);
+    color: var(--color-text-muted);
+  }
+  .dev-image-picker__progress {
+    width: 100%;
+    margin-top: var(--space-2);
+  }
+
+  /* Footer */
+  .dev-image-picker__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }
+  .dev-image-picker__danger-link {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: var(--space-1) 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-meta);
+    font-weight: var(--weight-meta);
+    letter-spacing: var(--ls-meta);
+    text-transform: uppercase;
+    color: var(--color-error);
+    cursor: pointer;
+  }
+  .dev-image-picker__danger-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .dev-image-picker__danger-link:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 
   @media (max-width: 36rem) {
-    .dev-image-picker__manual,
-    .dev-image-picker__head,
-    .dev-image-picker__slot-head {
-      align-items: stretch;
+    .dev-image-picker__panel {
+      padding: var(--space-5);
+      gap: var(--space-4);
+    }
+    .dev-image-picker__head {
       flex-direction: column;
+      align-items: stretch;
     }
     .dev-image-picker__icon-button {
       align-self: flex-end;
+    }
+    .dev-image-picker__tablist {
+      gap: var(--space-3);
+    }
+    .dev-image-picker__tab {
+      flex: 1;
+      text-align: center;
+    }
+    .dev-image-picker__footer {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-3);
     }
   }
 </style>

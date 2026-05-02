@@ -106,7 +106,7 @@ describe('vault-mixed integration — privacy invariants', () => {
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
 
-  it('[1] publicSlugs matches the exact expected set of 14 public notes', () => {
+  it('[1] publicSlugs matches the exact expected set of 15 public notes', () => {
     // The set spans the v0.1/v0.2 baseline (8 notes) plus the v0.3 fixture
     // additions: case (a) deep-public branch, case (c) draft+visible mix, and
     // case (d) folder-vs-note slug collision (`apps` note + `apps/colliding/index`
@@ -120,6 +120,7 @@ describe('vault-mixed integration — privacy invariants', () => {
       'public-with-embed',
       'public-with-comment',
       'public-with-extra-fm',
+      'public-with-frontmatter-cover',
       'public-with-secret-tag',
       'public-with-math',
       'note-with-alias',
@@ -166,9 +167,8 @@ describe('vault-mixed integration — privacy invariants', () => {
     );
     // public-note has no image, so firstImage should not register an entry.
     expect(result.firstImage.has('public-note')).toBe(false);
-    // Privacy gate: a note pulling only-private.png (none of the public
-    // fixtures do, but the closure check is the contract) would never appear
-    // here because the URL is filtered through `attachmentClosure`.
+    // Privacy gate: a note pulling an attachment outside the closure would never
+    // appear here because the URL is filtered through `attachmentClosure`.
     for (const url of result.firstImage.values()) {
       if (url.startsWith('/attachments/')) {
         const id = url.slice('/attachments/'.length);
@@ -199,12 +199,26 @@ describe('vault-mixed integration — privacy invariants', () => {
     );
   });
 
-  it('[4d] publicFrontmatter does not expose private-only cover/thumbnail attachment paths', () => {
+  it('[4d] publicFrontmatter does not expose unresolved cover/thumbnail attachment paths', () => {
     const fm = result.publicFrontmatter.get('public-with-image');
     expect(fm).toBeDefined();
     expect(fm).not.toHaveProperty('cover');
     expect(fm).not.toHaveProperty('thumbnail');
-    expect(JSON.stringify(fm)).not.toContain('/attachments/only-private.png');
+    expect(JSON.stringify(fm)).not.toContain('/attachments/missing-image.png');
+  });
+
+  it('[4e] frontmatter-only cover contributes to the public attachment closure', () => {
+    expect(result.attachmentClosure.has('frontmatter-only-cover.png')).toBe(true);
+    expect(result.publicFrontmatter.get('public-with-frontmatter-cover')).toMatchObject({
+      cover: '/attachments/frontmatter-only-cover.png',
+      thumbnail: 'https://example.com/frontmatter-thumbnail.png',
+    });
+  });
+
+  it('[4f] private-note frontmatter cover does not contribute to the public attachment closure', () => {
+    expect(result.publicSlugs.has('private/upload-hidden-image')).toBe(false);
+    expect(result.attachmentClosure.has('private-frontmatter-cover.png')).toBe(false);
+    expect(concatPublicHtml).not.toContain('/attachments/private-frontmatter-cover.png');
   });
 
   it('[5] publicGraph contains only public nodes and edges whose endpoints are public', () => {

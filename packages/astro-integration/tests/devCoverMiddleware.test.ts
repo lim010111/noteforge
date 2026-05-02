@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createDevCoverMiddleware,
+  isSafeSourcePath,
   updateFrontmatterImageFields,
   type DevCoverFileSystem,
 } from '../src/devCoverMiddleware.ts';
@@ -18,17 +19,22 @@ function makeSnapshot() {
   };
 }
 
-function makeFs(initial: string): DevCoverFileSystem & { written?: string } {
-  return {
+function makeFs(
+  initial: string,
+): DevCoverFileSystem & { written?: string; writes: string[] } {
+  const fs: DevCoverFileSystem & { written?: string; writes: string[] } = {
+    writes: [],
     async readFile(absPath: string) {
       expect(absPath).toBe(POST_ABS);
       return initial;
     },
     async writeFile(absPath: string, content: string) {
       expect(absPath).toBe(POST_ABS);
-      this.written = content;
+      fs.writes.push(content);
+      fs.written = content;
     },
   };
+  return fs;
 }
 
 function makeReq(body: unknown, overrides: Record<string, string> = {}) {
@@ -62,15 +68,17 @@ function makeRes() {
 async function invoke(
   body: unknown,
   options: {
-    fs?: DevCoverFileSystem & { written?: string };
+    fs?: DevCoverFileSystem & { written?: string; writes?: string[] };
     headers?: Record<string, string>;
     method?: string;
+    refreshPipelineCache?: () => Promise<void>;
   } = {},
 ) {
   const fs = options.fs ?? makeFs('---\ntitle: Hello\npublic: true\n---\nBody\n');
   const handler = createDevCoverMiddleware({
     vaultPath: VAULT_ROOT,
     getPipelineResult: makeSnapshot,
+    refreshPipelineCache: options.refreshPipelineCache,
     fs,
   });
   const req = makeReq(body, options.headers);
@@ -135,21 +143,55 @@ describe('updateFrontmatterImageFields', () => {
 });
 
 describe('createDevCoverMiddleware', () => {
+  it('allows dots inside source filenames while still rejecting traversal segments', () => {
+    expect(isSafeSourcePath('AI news/트랜스포머 아키텍쳐 퇴보화..md')).toBe(true);
+    expect(isSafeSourcePath('../post.md')).toBe(false);
+    expect(isSafeSourcePath('notes/../post.md')).toBe(false);
+    expect(isSafeSourcePath('/vault/post.md')).toBe(false);
+    expect(isSafeSourcePath('notes\\post.md')).toBe(false);
+  });
+
   it('writes validated cover/thumbnail values and returns 200 JSON', async () => {
     const fs = makeFs('---\ntitle: Hello\npublic: true\n---\nBody\n');
+    const refreshPipelineCache = vi.fn(async () => {});
     const { res } = await invoke(
       {
         slug: 'post',
         cover: '/attachments/images/a.png',
         thumbnail: 'https://example.com/thumb.png',
       },
-      { fs },
+      { fs, refreshPipelineCache },
     );
     expect(res.statusCode).toBe(200);
     expect(res.headers.get('content-type')).toBe('application/json');
     expect(JSON.parse(res.body)).toEqual({ ok: true });
     expect(fs.written).toContain('cover: /attachments/images/a.png');
     expect(fs.written).toContain('thumbnail: https://example.com/thumb.png');
+    expect(refreshPipelineCache).toHaveBeenCalledTimes(1);
+  });
+
+  it('rolls frontmatter back when the dev refresh fails', async () => {
+    const raw = '---\ntitle: Hello\npublic: true\n---\nBody\n';
+    const fs = makeFs(raw);
+    const refreshPipelineCache = vi.fn(async () => {
+      throw new Error('refresh failed');
+    });
+    const { res } = await invoke(
+      {
+        slug: 'post',
+        cover: '/attachments/images/a.png',
+      },
+      { fs, refreshPipelineCache },
+    );
+
+    expect(res.statusCode).toBe(500);
+    expect(JSON.parse(res.body)).toMatchObject({
+      error: 'pipeline_refresh_failed',
+      detail: 'refresh failed',
+    });
+    expect(fs.writes).toHaveLength(2);
+    expect(fs.writes[0]).toContain('cover: /attachments/images/a.png');
+    expect(fs.written).toBe(raw);
   });
 
   it('passes non-POST requests through to next()', async () => {

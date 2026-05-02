@@ -133,8 +133,8 @@ async function runLoad(
 describe('obpubLoader (Astro Content Layer adapter)', () => {
   // 8 v0.1/v0.2 notes + 5 v0.3 fixture additions (case (a) deep-public branch,
   // case (c) draft+visible mix, case (d) folder-vs-note slug collision) +
-  // v0.5's `public-with-math`. Case (b) `private/secrets/diary` stays excluded
-  // by the tripwire.
+  // v0.5's `public-with-math` + v0.51's frontmatter-only cover fixture.
+  // Case (b) `private/secrets/diary` stays excluded by the tripwire.
   const EXPECTED_PUBLIC = new Set([
     'public-note',
     'another-public',
@@ -142,6 +142,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-embed',
     'public-with-comment',
     'public-with-extra-fm',
+    'public-with-frontmatter-cover',
     'public-with-secret-tag',
     'public-with-math',
     'note-with-alias',
@@ -163,7 +164,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     await runLoad(loader, store, logger);
   });
 
-  it('(1) emits exactly the 14 public slugs as note-kind store keys', () => {
+  it('(1) emits exactly the 15 public slugs as note-kind store keys', () => {
     const noteKeys = store
       .values()
       .filter((e) => (e.data as Record<string, unknown>)['kind'] === 'note')

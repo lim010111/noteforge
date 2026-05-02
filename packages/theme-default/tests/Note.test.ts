@@ -207,10 +207,28 @@ describe('Note', () => {
       sourcePath: 'post.md',
     });
     expect(withPicker).toContain('data-dev-image-picker');
-    expect(withPicker).toContain('이미지 설정');
+    expect(withPicker).toContain('이미지 수정');
     expect(withPicker).toContain('/attachments/hero.png');
-    expect(withPicker).toContain('https://example.com/a.png');
     expect(withPicker).toContain('post.md');
+    expect(withPicker).toContain('data-picker-preview="cover"');
+    expect(withPicker).toContain('data-picker-preview="thumbnail"');
+    expect(withPicker).toContain('data-picker-tab="cover"');
+    expect(withPicker).toContain('data-picker-tab="thumbnail"');
+    expect(withPicker).toContain('data-picker-upload-zone="cover"');
+    expect(withPicker).toContain('data-picker-upload-zone="thumbnail"');
+    expect(withPicker).toContain('role="tablist"');
+    expect(withPicker).toContain('role="tab"');
+    expect(withPicker).toContain('role="tabpanel"');
+    expect(withPicker).toContain('data-picker-clear');
+    expect(withPicker).toContain('data-picker-close');
+    expect(withPicker).toContain('type="file"');
+    expect(withPicker).toContain('accept="image/*"');
+    expect(withPicker).toContain('role="button"');
+    expect(withPicker).not.toContain('type="url"');
+    expect(withPicker).not.toContain('data-picker-url=');
+    expect(withPicker).not.toContain('data-picker-apply');
+    expect(withPicker).toContain('/__obpub/cover');
+    expect(withPicker).toContain('/__obpub/upload-attachment');
   });
 
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
