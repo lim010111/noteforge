@@ -57,6 +57,7 @@ import {
   createDevCoverMiddleware,
   type DevCoverPipelineSnapshot,
 } from './devCoverMiddleware.ts';
+import { createDevUploadMiddleware } from './devUploadMiddleware.ts';
 
 export interface ObpubIntegrationOptions {
   /**
@@ -210,6 +211,7 @@ export function obpub(
                 err instanceof Error ? err.message : String(err)
               }`,
             );
+            throw err;
           }
         };
 
@@ -224,7 +226,7 @@ export function obpub(
             // becomes streamable on the next request without blocking the
             // HMR signal. Errors surface via logger.warn — they should not
             // poison the reload path.
-            void refreshPipelineCache();
+            void refreshPipelineCache().catch(() => undefined);
             if (opts.onDevInvalidate !== undefined) {
               opts.onDevInvalidate(
                 events.map((e) => ({ kind: e.kind, slug: e.slug })),
@@ -269,6 +271,13 @@ export function obpub(
           server,
           vaultPath: vault.path,
           getPipelineResult: getPipelineSnapshot,
+        });
+        registerDevUploadMiddleware({
+          server,
+          vaultPath: vault.path,
+          getPipelineResult: getPipelineSnapshot,
+          refreshPipelineCache,
+          config,
         });
       },
       'astro:server:done': async () => {
@@ -473,6 +482,33 @@ function registerDevCoverMiddleware(deps: DevCoverRegistrationDeps): void {
     createDevCoverMiddleware({
       vaultPath: deps.vaultPath,
       getPipelineResult: deps.getPipelineResult,
+    }),
+  );
+}
+
+interface DevUploadRegistrationDeps {
+  server: unknown;
+  vaultPath: string;
+  getPipelineResult: () => DevCoverPipelineSnapshot;
+  refreshPipelineCache: () => Promise<void>;
+  config: ObpubConfig;
+}
+
+function registerDevUploadMiddleware(deps: DevUploadRegistrationDeps): void {
+  const middlewares = (
+    deps.server as {
+      middlewares?: { use?: (path: string, handler: unknown) => unknown };
+    }
+  ).middlewares;
+  if (typeof middlewares?.use !== 'function') return;
+
+  middlewares.use(
+    '/__obpub/upload-attachment',
+    createDevUploadMiddleware({
+      vaultPath: deps.vaultPath,
+      getPipelineResult: deps.getPipelineResult,
+      refreshPipelineCache: deps.refreshPipelineCache,
+      config: deps.config,
     }),
   );
 }

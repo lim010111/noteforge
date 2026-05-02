@@ -877,6 +877,10 @@ describe('obpub integration — dev server wiring', () => {
     // handing the request off, so handler-side `req.url` is just the suffix.
     const handler = middlewares.handlers.get('/attachments');
     expect(handler, 'middleware must register on /attachments mount').toBeDefined();
+    expect(
+      middlewares.handlers.get('/__obpub/upload-attachment'),
+      'dev image uploads need a dedicated endpoint so file save + frontmatter update can be one transaction',
+    ).toBeDefined();
 
     // (a) closure HIT — public attachment in the closure
     {
