@@ -190,9 +190,9 @@ export function isSafeSlug(slug: string): boolean {
 export function isSafeSourcePath(sourceRel: string): boolean {
   return (
     sourceRel.length > 0 &&
-    !sourceRel.includes('..') &&
     !sourceRel.includes('\\') &&
-    !nodePath.isAbsolute(sourceRel)
+    !nodePath.isAbsolute(sourceRel) &&
+    !sourceRel.split('/').includes('..')
   );
 }
 

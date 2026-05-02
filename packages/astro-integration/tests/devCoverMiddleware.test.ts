@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createDevCoverMiddleware,
+  isSafeSourcePath,
   updateFrontmatterImageFields,
   type DevCoverFileSystem,
 } from '../src/devCoverMiddleware.ts';
@@ -135,6 +136,14 @@ describe('updateFrontmatterImageFields', () => {
 });
 
 describe('createDevCoverMiddleware', () => {
+  it('allows dots inside source filenames while still rejecting traversal segments', () => {
+    expect(isSafeSourcePath('AI news/트랜스포머 아키텍쳐 퇴보화..md')).toBe(true);
+    expect(isSafeSourcePath('../post.md')).toBe(false);
+    expect(isSafeSourcePath('notes/../post.md')).toBe(false);
+    expect(isSafeSourcePath('/vault/post.md')).toBe(false);
+    expect(isSafeSourcePath('notes\\post.md')).toBe(false);
+  });
+
   it('writes validated cover/thumbnail values and returns 200 JSON', async () => {
     const fs = makeFs('---\ntitle: Hello\npublic: true\n---\nBody\n');
     const { res } = await invoke(

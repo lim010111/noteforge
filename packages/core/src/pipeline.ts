@@ -169,7 +169,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   const notes = await discoverNotes(vault.path, vault.id, walkIgnore);
   const attachments = await discoverAttachments(
     vault.path,
-    walkIgnore,
+    stripUploadDirFromIgnore(walkIgnore, config.attachments.uploadDir),
     config.attachments.allowedExtensions,
   );
 
@@ -726,4 +726,17 @@ function stripTripwireFromIgnore(
   if (tripwirePaths.length === 0) return [...merged];
   const tripwireSet = new Set(tripwirePaths);
   return merged.filter((p) => !tripwireSet.has(p));
+}
+
+function stripUploadDirFromIgnore(
+  merged: readonly string[],
+  uploadDir: string,
+): string[] {
+  const normalized = uploadDir.replace(/^\/+|\/+$/g, '');
+  const uploadDirGlobs = new Set([
+    normalized,
+    `${normalized}/**`,
+    `${normalized}/**/*`,
+  ]);
+  return merged.filter((p) => !uploadDirGlobs.has(p.replace(/^\/+|\/+$/g, '')));
 }

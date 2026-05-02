@@ -23,10 +23,13 @@ function makeConfig(overrides: Partial<ObpubConfig> = {}): ObpubConfig {
   return cfg;
 }
 
-function makeSnapshot(publicSlugs: readonly string[] = ['post']) {
+function makeSnapshot(
+  publicSlugs: readonly string[] = ['post'],
+  sourceRel = 'post.md',
+) {
   return {
     publicSlugs: new Set(publicSlugs),
-    sourcePathBySlug: new Map([['post', 'post.md']]),
+    sourcePathBySlug: new Map([['post', sourceRel]]),
     attachmentClosure: new Set<string>(),
   };
 }
@@ -37,8 +40,11 @@ class MemoryFs implements DevUploadFileSystem {
   readonly log: string[] = [];
   failSourceWrite = false;
 
-  constructor(initialSource = '---\ntitle: Hello\npublic: true\n---\nBody\n') {
-    this.files.set(POST_ABS, Buffer.from(initialSource));
+  constructor(
+    initialSource = '---\ntitle: Hello\npublic: true\n---\nBody\n',
+    sourceAbs = POST_ABS,
+  ) {
+    this.files.set(sourceAbs, Buffer.from(initialSource));
   }
 
   async readFile(absPath: string): Promise<string> {
@@ -149,6 +155,7 @@ async function invoke(options: {
   refreshPipelineCache?: () => Promise<void>;
   headers?: Record<string, string>;
   method?: string;
+  sourceRel?: string;
 }) {
   const fs = options.fs ?? new MemoryFs();
   const refreshPipelineCache =
@@ -158,7 +165,7 @@ async function invoke(options: {
     });
   const handler = createDevUploadMiddleware({
     vaultPath: VAULT_ROOT,
-    getPipelineResult: () => makeSnapshot(options.publicSlugs),
+    getPipelineResult: () => makeSnapshot(options.publicSlugs, options.sourceRel),
     refreshPipelineCache,
     config: options.config ?? makeConfig(),
     fs,
@@ -235,6 +242,22 @@ describe('createDevUploadMiddleware', () => {
     ).toEqual(PNG_BYTES);
     expect(fs.files.get(POST_ABS)?.toString('utf8')).toContain(
       'thumbnail: /attachments/attachments/image-1.png',
+    );
+  });
+
+  it('accepts source markdown filenames that contain literal dot-dot text', async () => {
+    const sourceRel = 'AI news/트랜스포머 아키텍쳐 퇴보화..md';
+    const sourceAbs = path.resolve(VAULT_ROOT, sourceRel);
+    const fs = new MemoryFs(
+      '---\ntitle: Dotted\npublic: true\n---\nBody\n',
+      sourceAbs,
+    );
+
+    const { res } = await invoke({ fs, sourceRel });
+
+    expect(res.statusCode).toBe(200);
+    expect(fs.files.get(sourceAbs)?.toString('utf8')).toContain(
+      'cover: "/attachments/attachments/스크린샷.png"',
     );
   });
 
