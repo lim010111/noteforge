@@ -96,6 +96,18 @@ const attachmentsSchema = z
     allowedExtensions: z
       .array(z.string())
       .default([...DEFAULT_ALLOWED_EXTENSIONS]),
+    uploadDir: z
+      .string()
+      .min(1, '빈 문자열은 허용되지 않습니다')
+      .refine((value) => !isAbsoluteLikePath(value), '상대 POSIX 경로여야 합니다')
+      .refine((value) => !value.includes('\\'), 'POSIX 경로 구분자(/)만 허용됩니다')
+      .refine((value) => !value.includes('..'), '상위 경로(..)는 허용되지 않습니다')
+      .default('attachments'),
+    uploadMaxBytes: z
+      .number()
+      .int('정수여야 합니다')
+      .positive('양수여야 합니다')
+      .default(10_485_760),
   })
   .default({});
 
@@ -106,18 +118,33 @@ const graphSchema = z
   })
   .default({});
 
-const rawConfigSchema = z.object({
-  site: siteSchema,
-  vaults: z
-    .array(vaultSchema)
-    .min(1, 'vaults는 비어있지 않은 배열이어야 합니다')
-    .max(1, 'MVP v0.1은 단일 vault만 지원합니다'),
-  publishing: publishingSchema,
-  privateLinkBehavior: z.literal('strip-to-text').default('strip-to-text'),
-  attachments: attachmentsSchema,
-  graph: graphSchema,
-  unsafeAllowPrivateFolder: z.boolean().default(false),
-});
+const rawConfigSchema = z
+  .object({
+    site: siteSchema,
+    vaults: z
+      .array(vaultSchema)
+      .min(1, 'vaults는 비어있지 않은 배열이어야 합니다')
+      .max(1, 'MVP v0.1은 단일 vault만 지원합니다'),
+    publishing: publishingSchema,
+    privateLinkBehavior: z.literal('strip-to-text').default('strip-to-text'),
+    attachments: attachmentsSchema,
+    graph: graphSchema,
+    unsafeAllowPrivateFolder: z.boolean().default(false),
+  })
+  .superRefine((cfg, ctx) => {
+    const uploadDir = cfg.attachments.uploadDir;
+    if (
+      !cfg.unsafeAllowPrivateFolder &&
+      (uploadDir === 'private' || uploadDir.startsWith('private/'))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['attachments', 'uploadDir'],
+        message:
+          'private/ 하위 업로드는 tripwire 보호를 위해 허용되지 않습니다',
+      });
+    }
+  });
 
 export const obpubConfigSchema = rawConfigSchema.transform((cfg) => {
   const forcedIgnore = cfg.unsafeAllowPrivateFolder
@@ -242,4 +269,8 @@ function dedupe<T>(items: readonly T[]): T[] {
     }
   }
   return out;
+}
+
+function isAbsoluteLikePath(value: string): boolean {
+  return path.isAbsolute(value) || /^[A-Za-z]:[\\/]/.test(value);
 }
