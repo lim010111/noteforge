@@ -153,7 +153,7 @@ function parseOptionalImageField(value: unknown, field: string): string | null {
   return value;
 }
 
-function isSameOrigin(
+export function isSameOrigin(
   headers: Record<string, string | string[] | undefined>,
 ): boolean {
   const originRaw = headerValue(headers, 'origin');
@@ -177,7 +177,7 @@ function headerValue(
   return Array.isArray(value) ? value[0] : value;
 }
 
-function isSafeSlug(slug: string): boolean {
+export function isSafeSlug(slug: string): boolean {
   return (
     slug.length > 0 &&
     slug === slug.trim() &&
@@ -187,7 +187,7 @@ function isSafeSlug(slug: string): boolean {
   );
 }
 
-function isSafeSourcePath(sourceRel: string): boolean {
+export function isSafeSourcePath(sourceRel: string): boolean {
   return (
     sourceRel.length > 0 &&
     !sourceRel.includes('..') &&
@@ -196,7 +196,7 @@ function isSafeSourcePath(sourceRel: string): boolean {
   );
 }
 
-function isInside(root: string, absPath: string): boolean {
+export function isInside(root: string, absPath: string): boolean {
   const rel = nodePath.relative(root, absPath);
   return rel === '' || (rel.length > 0 && !rel.startsWith('..') && !nodePath.isAbsolute(rel));
 }
