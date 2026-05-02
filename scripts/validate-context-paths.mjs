@@ -36,6 +36,19 @@ const SKIP_DIRS = new Set([
   ".pnpm-store",
 ]);
 
+// References whose first concrete segment is a build / runtime artifact dir
+// (gitignored, recreated by the build) are documentation pointers to outputs
+// that intentionally don't exist in the source tree. Treat as valid without
+// touching the filesystem so CI doesn't depend on prior build steps.
+function refTouchesSkipDir(ref) {
+  const segments = ref.split("/").filter((s) => s !== "" && s !== ".");
+  for (const seg of segments) {
+    if (seg === "..") continue;
+    return SKIP_DIRS.has(seg);
+  }
+  return false;
+}
+
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue;
@@ -102,6 +115,7 @@ for (const file of contextFiles) {
       if (RE_ABS_OR_ANCHOR.test(url)) continue;
       const cleanUrl = url.replace(/[#?].*$/, "");
       if (!cleanUrl) continue;
+      if (refTouchesSkipDir(cleanUrl)) continue;
       const ext = cleanUrl.includes(".") ? cleanUrl.split(".").pop() : "";
       if (!TRACKED_EXTS.has(ext)) continue;
       totalRefs++;
@@ -126,8 +140,9 @@ for (const file of contextFiles) {
         ([s, e]) => matchStart >= s && matchStart < e,
       );
       if (inLink) continue;
-      totalRefs++;
       const ref = m[1];
+      if (refTouchesSkipDir(ref)) continue;
+      totalRefs++;
       if (!refExists(ref, fileDir)) {
         violations.push({
           file: relative(REPO_ROOT, file),
