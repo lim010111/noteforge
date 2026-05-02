@@ -791,7 +791,7 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 
 ### 7-16. `DevImagePicker` *(v0.51, dev-only)*
 
-**목적**: 개발 서버에서만 노트의 `cover`/`thumbnail`을 빠르게 설정한다. 기존 embedded image grid, URL 입력, 초기화 흐름은 유지하고, 각 슬롯에 파일 업로드 drop zone을 추가한다.
+**목적**: 개발 서버에서만 노트의 `cover`/`thumbnail`을 빠르게 설정한다. 각 슬롯은 현재 선택 미리보기, embedded image 후보 grid, 파일 업로드 drop zone, 적용/초기화 버튼을 제공한다. URL 직접 입력은 제공하지 않는다.
 
 **Upload zone contract**:
 
@@ -807,6 +807,7 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 ```
 
 - 입력 방식: 클릭 파일 선택, drag-drop, 다이얼로그 paste. 활성 슬롯은 마지막 hover/focus 슬롯이며 기본값은 `cover`.
+- 후보 grid 클릭은 즉시 저장하지 않고 슬롯 미리보기만 갱신한다. `적용` 버튼이 `/__obpub/cover` 저장 요청을 보낸다.
 - 업로드 중에는 `aria-live="polite"` status와 `<progress>`를 갱신한다.
 - 성공 시 `POST /__obpub/upload-attachment` 응답 후 `location.reload()`를 호출한다. 새 attachment가 closure에 들어간 뒤 reload되도록 integration이 pipeline cache refresh를 먼저 await한다.
 - dev-only UI이므로 production 정적 출력에는 endpoint가 없다. 시각 레이어는 raw vault body를 읽지 않고, core/integration이 제공한 `slug`, `sourcePath`, `embeddedImages`만 사용한다.
