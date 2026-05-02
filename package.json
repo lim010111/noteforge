@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "validate:context-paths": "node scripts/validate-context-paths.mjs",
     "obpub": "pnpm --filter @noteforge/cli obpub",
     "vendor:fonts": "node scripts/vendor-fonts.mjs",
     "vendor:katex": "node scripts/vendor-katex.mjs",
