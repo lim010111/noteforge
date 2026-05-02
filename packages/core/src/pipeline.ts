@@ -21,7 +21,12 @@ import { mathFromMarkdown } from 'mdast-util-math';
 import { math as mathSyntax } from 'micromark-extension-math';
 import type { Root } from 'mdast';
 
-import { renderMdastToHtml } from './render/htmlFromMdast.ts';
+import {
+  renderMdastToHtmlWithHeadings,
+  type NoteHeading,
+} from './render/htmlFromMdast.ts';
+
+export type { NoteHeading } from './render/htmlFromMdast.ts';
 
 import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
@@ -100,6 +105,14 @@ export interface PipelineResult {
   publicSlugs: Set<string>;
   /** Rendered HTML per public slug, after linkRewriter + transclude + serialization. */
   renderedHtml: Map<string, string>;
+  /**
+   * Structured h2/h3/h4 list per public slug, collected from the SAME hast pass
+   * that produced `renderedHtml`. Private transclusion subtrees were already
+   * removed by `expandTransclusions` before collection, so headings inside
+   * private content cannot leak through this channel — same surface area as
+   * `renderedHtml`. Empty array (or absent map entry) for notes with no h2-h4.
+   */
+  noteHeadings: Map<string, readonly NoteHeading[]>;
   /**
    * Allowlist-filtered frontmatter per public slug. `cover`/`thumbnail` values
    * are additionally gated against the public attachment closure before they
@@ -312,11 +325,17 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
 
   // Serialize public mdasts to HTML — heading anchors are applied here so the
   // HTML reaching every adapter (Astro loader, audit CLI) carries them.
+  // The same hast pass collects h2-h4 into `noteHeadings` for the theme's TOC;
+  // collecting from the post-transclude tree means private headings can never
+  // enter this channel.
   const renderedHtml = new Map<string, string>();
+  const noteHeadings = new Map<string, readonly NoteHeading[]>();
   for (const slug of publicSlugs) {
     const tree = rewrittenMdastBySlug.get(slug);
     if (tree === undefined) continue;
-    renderedHtml.set(slug, renderMdastToHtml(tree));
+    const { html, headings } = renderMdastToHtmlWithHeadings(tree);
+    renderedHtml.set(slug, html);
+    if (headings.length > 0) noteHeadings.set(slug, headings);
   }
 
   // Frontmatter allowlist + tag blocklist per public note.
@@ -441,6 +460,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     notes,
     publicSlugs,
     renderedHtml,
+    noteHeadings,
     publicFrontmatter,
     publicTags,
     publicGraph: {

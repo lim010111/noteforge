@@ -28,6 +28,7 @@ const VAULT_ROOT = path.resolve(HERE, '..', 'fixtures', 'vault-mixed');
 const CANARY_A_RE = /DO_NOT_LEAK_BANANA_[A-Za-z0-9]+/;
 const CANARY_B_RE = /CLAUDE_COMMENT_LEAK_[A-Za-z0-9]+/;
 const CANARY_C_RE = /FOLDER_TREE_DO_NOT_LEAK_[A-Za-z0-9]+/;
+const CANARY_D_RE = /TOC_HEADING_LEAK_[A-Za-z0-9]+/;
 
 async function readFixture(rel: string): Promise<string> {
   return fs.readFile(path.join(VAULT_ROOT, rel), 'utf8');
@@ -70,6 +71,23 @@ async function loadCanaryC(): Promise<string> {
   return m[0];
 }
 
+/**
+ * Canary D is the heading text on the private note `Private Secret.md`.
+ * `public-with-embed.md` transcludes that private note, so the heading would
+ * leak through the new `noteHeadings` channel if `collectHeadings` ran on a
+ * pre-transclude tree. The test below asserts the canary appears nowhere in
+ * the extracted heading list — a parallel guard to the existing canary-A body
+ * check, but for the TOC channel.
+ */
+async function loadCanaryD(): Promise<string> {
+  const body = await readFixture('Private Secret.md');
+  const m = CANARY_D_RE.exec(body);
+  if (m === null) {
+    throw new Error('fixture Private Secret.md does not contain canary D');
+  }
+  return m[0];
+}
+
 async function run(): Promise<PipelineResult> {
   const config = defineConfig({
     site: {
@@ -97,11 +115,13 @@ describe('vault-mixed integration — privacy invariants', () => {
   let canaryA: string;
   let canaryB: string;
   let canaryC: string;
+  let canaryD: string;
 
   beforeAll(async () => {
     canaryA = await loadCanaryA();
     canaryB = await loadCanaryB();
     canaryC = await loadCanaryC();
+    canaryD = await loadCanaryD();
     result = await run();
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
@@ -136,6 +156,28 @@ describe('vault-mixed integration — privacy invariants', () => {
   it('[2] canary A (DO_NOT_LEAK_BANANA_*) does not appear in any rendered public HTML', () => {
     expect(canaryA).toMatch(/^DO_NOT_LEAK_BANANA_/);
     expect(concatPublicHtml.includes(canaryA)).toBe(false);
+  });
+
+  it('[2c] canary D (TOC_HEADING_LEAK_*) — heading inside a transcluded private note never reaches noteHeadings', () => {
+    // `Private Secret.md` carries `## TOC_HEADING_LEAK_<suffix>`.
+    // `public-with-embed.md` transcludes that private note. If `collectHeadings`
+    // walked a pre-transclude tree, the heading would surface in
+    // `noteHeadings.get('public-with-embed')`. The pipeline runs collection on
+    // the post-transclude hast, so the canary must be absent from EVERY
+    // entry's id and text.
+    expect(canaryD).toMatch(/^TOC_HEADING_LEAK_/);
+    const allHeadings = [...result.noteHeadings.values()].flat();
+    const serialized = JSON.stringify(allHeadings);
+    expect(serialized.includes(canaryD)).toBe(false);
+    // Also assert no public note exposes a heading at all under the embed slug
+    // — Public With Embed has no own headings and the transcluded targets'
+    // headings are stripped — so the map entry should be absent (we skip the
+    // map.set() when the headings array is empty).
+    expect(result.noteHeadings.has('public-with-embed')).toBe(false);
+    // Body channel parallel: the canary string itself must also be absent
+    // from rendered HTML. The slug-derived id (`toc_heading_leak_<suffix>`-
+    // shaped) likewise cannot appear.
+    expect(concatPublicHtml.includes(canaryD)).toBe(false);
   });
 
   it('[2b] canary C (FOLDER_TREE_DO_NOT_LEAK_*) — case (b) tripwire fixture\'s title + body never reach rendered HTML', () => {

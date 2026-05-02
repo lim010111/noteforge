@@ -13,7 +13,9 @@ import { toHtml } from 'hast-util-to-html';
 import type { Root as HastRoot } from 'hast';
 import {
   applyHeadingAnchors,
+  collectHeadings,
   renderMdastToHtml,
+  renderMdastToHtmlWithHeadings,
 } from '../src/render/htmlFromMdast.ts';
 
 function render(md: string): string {
@@ -99,5 +101,71 @@ describe('renderMdastToHtml', () => {
     const anchorCount = (html.match(/class="heading-anchor"/g) ?? []).length;
     expect(anchorCount).toBe(1);
     expect(html).toMatch(/<h2\b[^>]*\bid="section"/);
+  });
+});
+
+describe('collectHeadings / renderMdastToHtmlWithHeadings', () => {
+  function headings(md: string) {
+    return renderMdastToHtmlWithHeadings(fromMarkdown(md)).headings;
+  }
+
+  it('returns empty array for an empty tree', () => {
+    expect(collectHeadings({ type: 'root', children: [] })).toEqual([]);
+  });
+
+  it('extracts h2 with id + plain text', () => {
+    expect(headings('## Hello World')).toEqual([
+      { depth: 2, id: 'hello-world', text: 'Hello World' },
+    ]);
+  });
+
+  it('extracts h3 and h4, ignores h1', () => {
+    expect(headings('# Top\n\n## Two\n\n### Three\n\n#### Four')).toEqual([
+      { depth: 2, id: 'two', text: 'Two' },
+      { depth: 3, id: 'three', text: 'Three' },
+      { depth: 4, id: 'four', text: 'Four' },
+    ]);
+  });
+
+  it('flattens inline emphasis / inline code into the heading text', () => {
+    // The hast tree produced by mdast-util-to-hast for `**Bold** \`code\``
+    // wraps the words in <strong> / <code>. The collected text must walk
+    // through those wrappers and concatenate visible text only.
+    expect(headings('## **Bold** `code` plain')).toEqual([
+      { depth: 2, id: 'bold-code-plain', text: 'Bold code plain' },
+    ]);
+  });
+
+  it('excludes the appended heading-anchor "#" from the collected text', () => {
+    // Without skipping the autolink child, every TOC entry would end with "#".
+    // collectHeadings runs AFTER applyHeadingAnchors, so the anchor exists in
+    // the tree at collection time — proving the skip is real.
+    const result = headings('## Section');
+    expect(result[0]?.text).toBe('Section');
+    expect(result[0]?.text.endsWith('#')).toBe(false);
+  });
+
+  it('reflects rehype-slug dedup for duplicate heading text', () => {
+    // Two headings with identical text: rehype-slug appends -1 to the second
+    // id. The TOC must mirror this so its hrefs match the actual anchor ids.
+    expect(headings('## Foo\n\n## Foo')).toEqual([
+      { depth: 2, id: 'foo', text: 'Foo' },
+      { depth: 2, id: 'foo-1', text: 'Foo' },
+    ]);
+  });
+
+  it('renderMdastToHtmlWithHeadings returns html identical to renderMdastToHtml', () => {
+    // Backwards-compat guarantee: the new entrypoint must not regress the old
+    // one's output. Both call the same hast pipeline; only the second return
+    // value is added.
+    const md = '## Alpha\n\nbody\n\n### Beta';
+    const tree = fromMarkdown(md);
+    const oldHtml = renderMdastToHtml(fromMarkdown(md));
+    const { html } = renderMdastToHtmlWithHeadings(tree);
+    expect(html).toBe(oldHtml);
+  });
+
+  it('returns empty headings for a tree with only paragraphs', () => {
+    expect(headings('plain text only')).toEqual([]);
   });
 });
