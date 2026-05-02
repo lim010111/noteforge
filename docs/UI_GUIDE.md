@@ -789,9 +789,31 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 - `tags`와 `date` 둘 중 하나만 있으면 구분자 `|`는 렌더하지 않는다.
 - excerpt fallback은 이미 privacy 처리된 `rendered.html`에서 만들며, raw vault body를 새로 읽지 않는다.
 
+### 7-16. `DevImagePicker` *(v0.51, dev-only)*
+
+**목적**: 개발 서버에서만 노트의 `cover`/`thumbnail`을 빠르게 설정한다. 기존 embedded image grid, URL 입력, 초기화 흐름은 유지하고, 각 슬롯에 파일 업로드 drop zone을 추가한다.
+
+**Upload zone contract**:
+
+```html
+<div class="dev-image-picker__upload"
+     data-picker-upload-zone="cover"
+     role="button"
+     tabindex="0"
+     aria-label="이미지 파일 끌어다 놓기 또는 클릭해서 선택">
+  <span>파일 끌어다 놓기 · 클릭해서 선택 · Ctrl+V</span>
+  <input type="file" accept="image/*" hidden />
+</div>
+```
+
+- 입력 방식: 클릭 파일 선택, drag-drop, 다이얼로그 paste. 활성 슬롯은 마지막 hover/focus 슬롯이며 기본값은 `cover`.
+- 업로드 중에는 `aria-live="polite"` status와 `<progress>`를 갱신한다.
+- 성공 시 `POST /__obpub/upload-attachment` 응답 후 `location.reload()`를 호출한다. 새 attachment가 closure에 들어간 뒤 reload되도록 integration이 pipeline cache refresh를 먼저 await한다.
+- dev-only UI이므로 production 정적 출력에는 endpoint가 없다. 시각 레이어는 raw vault body를 읽지 않고, core/integration이 제공한 `slug`, `sourcePath`, `embeddedImages`만 사용한다.
+
 ### Cross-component 불변식 (요약)
 
-1. **JS 추가 0줄.** v0.2 테마 토글 sync script 외에 새 JS 없음. `FolderTree`, 사이드바 드로어, rail 모두 `<details>` 또는 정적 리스트.
+1. **공개 페이지 JS 최소화.** `FolderTree`, 사이드바 드로어, rail은 `<details>` 또는 정적 리스트다. 예외는 기존 theme toggle과 dev-only `DevImagePicker` 스크립트뿐이며, 둘 다 production content data를 새로 읽지 않는다.
 2. **Privacy-filtered 데이터만 입력.** 모든 컴포넌트는 `packages/core/src/privacy/`에서 이미 걸러진 입력만 받는다. 컴포넌트는 자체 필터링하지 않는다.
 3. **`aria-current="page"`** 가 유일한 active-state 메커니즘. 커스텀 데이터 속성 금지.
 4. **카테고리 액센트가 닿는 곳**: depth-0 폴더 점, FolderIndex 첫-breadcrumb 점, RecentRail row 점, FeaturedRail row 점 — *그 외 어디에도 안 됨*.

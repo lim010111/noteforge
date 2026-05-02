@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Dev image picker upload**: `이미지 설정` 다이얼로그에서 cover/thumbnail 이미지를 드래그-드롭, 파일 선택, 클립보드 붙여넣기로 업로드. 업로드는 dev-only `POST /__obpub/upload-attachment`에서 파일 저장 + frontmatter 갱신 + pipeline cache refresh를 한 트랜잭션으로 처리.
+- **Attachment upload config**: `attachments.uploadDir`(기본 `attachments`)와 `attachments.uploadMaxBytes`(기본 `10_485_760`) 추가. `private/` 업로드 경로는 tripwire 보호를 위해 기본 거부.
+
+### Changed
+
+- 공개 노트의 `cover`/`thumbnail` frontmatter가 `/attachments/<rel>`을 단독으로 가리켜도 public attachment closure에 포함된다. private 노트의 frontmatter 참조는 기존 public source gate를 통과하지 못한다.
+
 ## [0.4.0] - 2026-04-29
 
 ### Added
