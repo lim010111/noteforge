@@ -62,3 +62,6 @@ pnpm obpub audit [--strict]          # 빌드 산출물 독립 검증
 - **tripwire**: `private/` 폴더 규칙. frontmatter로도 우회 불가.
 - **strip-to-text**: private 링크를 `<a>` 없이 텍스트로만 남기는 기본 동작.
 - **canary**: fixture에 심어둔 누출 감지용 고유 문자열.
+
+## Agent 운용
+이 프로젝트는 AI agent (Claude Code · Codex CLI) 가 작업하는 것을 가정한다. agent log / eval 결과는 [evals/agent-results.json](./evals/agent-results.json) 에 누적되고, AI-readiness 점수 보드는 [docs/ai-readiness-score.json](./docs/ai-readiness-score.json) 에 기록된다. 모든 디렉터리의 `CLAUDE.md` 는 동일 내용 `AGENTS.md` 와 짝을 이뤄야 하며 검증은 `pnpm validate:context-paths` 가 수행한다.
