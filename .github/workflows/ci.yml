@@ -37,5 +37,6 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm validate:context-paths
       - run: pnpm --filter @noteforge/cli build
       - run: node packages/cli/dist/bin.js --help
