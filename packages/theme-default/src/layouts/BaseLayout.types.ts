@@ -9,6 +9,7 @@
  */
 import type { SidebarProps } from '../components/Sidebar.types.ts';
 import type { SocialLinksProps } from '../components/SocialLinks.types.ts';
+import type { TableOfContentsProps } from '../components/TableOfContents.types.ts';
 
 export interface BaseLayoutProps {
   title: string;
@@ -38,4 +39,12 @@ export interface BaseLayoutProps {
    * `socialSchema` in `@noteforge/core/config`.
    */
   social?: SocialLinksProps;
+  /**
+   * Optional Table of Contents payload. When provided, the layout adds a
+   * sticky right rail at xl+ widths (combinable with `sidebar`); when omitted
+   * the rail column is absent and the existing 1- or 2-column shell is
+   * preserved. The rail is hidden below xl via CSS — TOC is a per-article
+   * navigation, not a global concern.
+   */
+  tableOfContents?: TableOfContentsProps;
 }

@@ -473,4 +473,79 @@ describe('BaseLayout', () => {
       'sidebar prop must not affect <head> — the theme-init script appears exactly once whether the sidebar is wired or not',
     ).toBe(1);
   });
+
+  it('(toc-1) tableOfContents prop renders exactly one .site-shell__toc; absent prop renders zero', async () => {
+    const without = await render({ title: 'T' });
+    expect(
+      countMatches(without, /\bsite-shell__toc\b/g),
+      'absent tableOfContents must NOT emit the rail container — empty <aside> would still claim grid column at xl+',
+    ).toBe(0);
+    expect(
+      countMatches(without, /\bsite-shell--with-toc\b/g),
+      'absent tableOfContents must NOT mark the shell as --with-toc — modifier toggles the 3-col grid math',
+    ).toBe(0);
+
+    const withToc = await render({
+      title: 'T',
+      tableOfContents: {
+        headings: [
+          { id: 'intro', depth: 2, text: 'Introduction' },
+          { id: 'next', depth: 2, text: 'Next Steps' },
+        ],
+      },
+    });
+    expect(
+      countMatches(withToc, /\bsite-shell__toc\b/g),
+      'present tableOfContents must emit exactly one rail container',
+    ).toBe(1);
+    expect(
+      countMatches(withToc, /\bsite-shell--with-toc\b/g),
+      'present tableOfContents must mark the shell with --with-toc so layout.css can engage the 3-col grid',
+    ).toBe(1);
+    expect(
+      withToc,
+      'a TOC link to the first heading must reach the DOM with its href intact',
+    ).toMatch(/<a\s[^>]*\bhref="#intro"/);
+  });
+
+  it('(toc-2) headings text passes through, but a < in heading text must be HTML-escaped', async () => {
+    // Heading text comes from core unchanged — the theme cannot trust that
+    // every author writes safe markdown. Astro's interpolation escapes by
+    // default; this assertion is the regression guard against a future
+    // refactor that swaps `{h.text}` for `set:html`.
+    const html = await render({
+      title: 'T',
+      tableOfContents: {
+        headings: [
+          { id: 'oops', depth: 2, text: '<script>alert(1)</script>' },
+        ],
+      },
+    });
+    expect(
+      html,
+      'raw <script> in heading text must be escaped — ANY appearance is a stored-XSS path',
+    ).not.toMatch(/<script>alert\(1\)<\/script>/);
+    expect(
+      html,
+      'escaped form is what we expect — Astro emits &lt;script&gt; via auto-escape',
+    ).toContain('&lt;script&gt;');
+  });
+
+  it('(toc-3) tableOfContents text inside the layout is not surfaced when the prop is absent — guard against new leak channel', async () => {
+    // Parallel to assertion (6) in Note.test.ts: a heading list cast onto
+    // BaseLayoutProps without setting tableOfContents must not leak its text
+    // into the rendered HTML. The contract is presence-based: only an
+    // explicit `tableOfContents` prop renders the TOC.
+    const sneaky = {
+      title: 'T',
+      // headings is NOT a BaseLayoutProps field; cast it onto the props bag
+      // to simulate a future refactor that leaks raw heading data.
+      headings: [
+        { id: 'leak', depth: 2, text: 'TOC_LAYOUT_LEAK_PROBE' },
+      ],
+    } as unknown as Record<string, unknown>;
+    const html = await render(sneaky);
+    expect(html).not.toContain('TOC_LAYOUT_LEAK_PROBE');
+    expect(html).not.toMatch(/\bsite-shell__toc\b/);
+  });
 });

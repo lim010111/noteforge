@@ -24,6 +24,14 @@
   font-family: var(--font-serif);
   color: var(--color-text-heading);
 }
+/* Sticky site-header sits at the top edge (height: 3rem). Without
+   scroll-margin a fragment click (TOC anchor or `#section`) lands the heading
+   flush with viewport top — i.e. behind the header. The margin pushes the
+   target down so the heading lands just under the header. h4 included even
+   though TOC defaults to h2-h3 so direct in-body `#h4-id` URLs behave too. */
+.prose :where(h2, h3, h4) {
+  scroll-margin-top: 3.75rem;
+}
 .prose :where(h1) {
   font-size: var(--text-h1);
   font-weight: var(--weight-h1);

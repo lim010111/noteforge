@@ -167,7 +167,14 @@
 
   /* Layout — v0.3 sidebar dimension. Fixed width on lg+; below lg the
      sidebar collapses to a <details> drawer and this value is unused. */
-  --container-sidebar-w: 16rem;
+  --container-sidebar-w: 14rem;
+
+  /* Layout — v0.6 TOC rail dimension. Fixed width on xl+; below xl the rail
+     is hidden entirely (TOC is a per-article aid, not a global concern).
+     `--toc-sticky-top` matches the sticky site-header height (3rem ≈ 48px)
+     plus a small breathing-space gap so the card doesn't kiss the header. */
+  --container-toc-w: 17rem;
+  --toc-sticky-top: 3.75rem;
 }
 
 /*

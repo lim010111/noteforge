@@ -21,7 +21,28 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeKatex from 'rehype-katex';
 import type { Literal, Root as MdastRoot } from 'mdast';
-import type { Element, Root as HastRoot } from 'hast';
+import type { ElementContent, Element, Root as HastRoot } from 'hast';
+
+/**
+ * Structured heading record for in-page navigation (Table of Contents).
+ *
+ * Derived from the post-transclude, post-privacy-filter hast tree at the
+ * SAME moment HTML is serialized — so headings inside private transclusions
+ * cannot leak: their AST subtrees were already removed by `expandTransclusions`
+ * before this collection runs.
+ *
+ * h1 is intentionally omitted — the page title (`<h1>{note.title}`) is
+ * rendered separately by the theme outside the body, and a TOC entry would
+ * just duplicate it.
+ */
+export interface NoteHeading {
+  /** rehype-slug-derived fragment id (matches the in-body `<h2 id="...">`). */
+  id: string;
+  /** Heading depth — h2/h3/h4 only. */
+  depth: 2 | 3 | 4;
+  /** Visible text content, with the appended `.heading-anchor` "#" excluded. */
+  text: string;
+}
 
 const HEADING_ANCHOR_TAGS: ReadonlySet<string> = new Set(['h2', 'h3', 'h4']);
 const HEADING_ANCHOR_CLASS = 'heading-anchor';
@@ -126,4 +147,78 @@ export function renderMdastToHtml(tree: MdastRoot): string {
 export function applyHeadingAnchors(hast: HastRoot): void {
   slugStep(hast);
   autolinkStep(hast);
+}
+
+const TOC_HEADING_TAGS: ReadonlyMap<string, 2 | 3 | 4> = new Map([
+  ['h2', 2],
+  ['h3', 3],
+  ['h4', 4],
+]);
+
+/**
+ * Walk a hast tree and collect h2/h3/h4 headings in document order.
+ *
+ * Must run AFTER `applyHeadingAnchors` — it reads the `id` attribute that
+ * `rehype-slug` writes (so we get the SAME slug algorithm, including dedup
+ * suffixes like `-1`/`-2`, that the in-body anchors use).
+ *
+ * Text extraction: walks the heading's children depth-first concatenating
+ * text nodes, but skips the appended `<a class="heading-anchor">#</a>` child
+ * — otherwise every TOC entry would end with "#".
+ *
+ * Headings whose `id` is missing or non-string are skipped (defensive: should
+ * never happen given the slug step ran first, but the type allows it).
+ */
+export function collectHeadings(hast: HastRoot): readonly NoteHeading[] {
+  const out: NoteHeading[] = [];
+  for (const child of hast.children) {
+    if (child.type !== 'element') continue;
+    const depth = TOC_HEADING_TAGS.get(child.tagName);
+    if (depth === undefined) continue;
+    const id = child.properties?.['id'];
+    if (typeof id !== 'string' || id.length === 0) continue;
+    out.push({ id, depth, text: extractHeadingText(child.children) });
+  }
+  return out;
+}
+
+function isHeadingAnchor(node: ElementContent): boolean {
+  if (node.type !== 'element' || node.tagName !== 'a') return false;
+  const className = node.properties?.['className'];
+  return Array.isArray(className) && className.includes(HEADING_ANCHOR_CLASS);
+}
+
+function extractHeadingText(children: readonly ElementContent[]): string {
+  let acc = '';
+  for (const node of children) {
+    if (isHeadingAnchor(node)) continue;
+    if (node.type === 'text') {
+      acc += node.value;
+      continue;
+    }
+    if (node.type === 'element') {
+      acc += extractHeadingText(node.children);
+    }
+  }
+  return acc;
+}
+
+/**
+ * Render a public-mdast tree to HTML and return the structured heading list
+ * collected from the SAME hast pass. Use this entrypoint when a downstream
+ * consumer needs a TOC; the older `renderMdastToHtml` (no headings) stays
+ * around so unaware callers don't have to change.
+ */
+export function renderMdastToHtmlWithHeadings(
+  tree: MdastRoot,
+): { html: string; headings: readonly NoteHeading[] } {
+  const hast = toHast(tree, {
+    allowDangerousHtml: false,
+    handlers: mathHandlers,
+  });
+  if (hast === null || hast === undefined) return { html: '', headings: [] };
+  if (hast.type !== 'root') return { html: toHtml(hast), headings: [] };
+  katexStep(hast);
+  applyHeadingAnchors(hast);
+  return { html: toHtml(hast), headings: collectHeadings(hast) };
 }

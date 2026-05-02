@@ -3,6 +3,7 @@ import { isPublishable } from '@noteforge/core/privacy/publishable';
 import type {
   BacklinkEntry,
   BacklinksViewModel,
+  NoteHeading,
   NoteViewModel,
 } from '@noteforge/theme-default';
 
@@ -143,6 +144,14 @@ export function entryToNoteViewModel(
   const sourcePath = asString(
     (entry.data as { sourcePath?: unknown }).sourcePath,
   );
+  // The loader emits `headings` only when the post has at least one h2-h4;
+  // when the field is missing, the TOC component never renders. We don't
+  // re-derive — the heading list shares its surface area with the rendered
+  // body, both produced from the same post-transclude hast pass.
+  const headingsRaw = (entry.data as { headings?: unknown }).headings;
+  const headings: readonly NoteHeading[] | undefined = Array.isArray(headingsRaw)
+    ? (headingsRaw as readonly NoteHeading[])
+    : undefined;
 
   const vm: NoteViewModel = {
     slug: entry.id,
@@ -157,6 +166,7 @@ export function entryToNoteViewModel(
   if (thumbnailImage !== undefined) vm.thumbnailImage = thumbnailImage;
   if (embeddedImages !== undefined) vm.embeddedImages = embeddedImages;
   if (sourcePath !== undefined) vm.sourcePath = sourcePath;
+  if (headings !== undefined && headings.length > 0) vm.headings = headings;
   return vm;
 }
 

@@ -231,6 +231,31 @@ describe('Note', () => {
     expect(withPicker).toContain('/__obpub/upload-attachment');
   });
 
+  it('(12) headings on the view-model are NOT rendered as TOC markup inside the article (TOC is a layout concern)', async () => {
+    // The TOC lives in BaseLayout's `tableOfContents` slot, not inside Note.
+    // If Note ever started rendering the TOC, the article would have two
+    // navigations (one in body, one in rail) — both broken in different ways.
+    // Equally important: a future regression that surfaced `headings` text
+    // inside the article body would re-introduce a content channel that
+    // bypasses the body's privacy filter ordering.
+    const html = await render({
+      title: 'T',
+      tags: [],
+      body: '<p>only body</p>',
+      headings: [
+        { id: 'sec', depth: 2, text: 'Section' },
+        { id: 'sub', depth: 3, text: 'Sub' },
+      ],
+    });
+    expect(html).not.toMatch(/<aside[^>]*\bclass="[^"]*\bnote-toc-rail\b/);
+    expect(html).not.toMatch(/\bnote-toc__list\b/);
+    expect(html).not.toMatch(/\bnote-toc__title\b/);
+    // The heading texts themselves are derived from body and could appear
+    // legitimately in body markup; the assertion is structural — no TOC
+    // container element. Verify body still rendered.
+    expect(html).toContain('<p>only body</p>');
+  });
+
   it('(7) canary CLAUDE_COMMENT_LEAK_77b absent in HTML when body is the sanitized fixture', async () => {
     const raw = await fs.readFile(`${FIXTURE_DIR}public-with-comment.md`, 'utf8');
     const bodyOnly = raw.replace(/^---[\s\S]*?---\s*/, '');
