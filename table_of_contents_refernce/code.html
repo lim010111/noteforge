@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Future of Digital Typography - ModernPublish</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary": "#7e3000",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-container-high": "#dce9ff",
+                      "on-secondary-container": "#5c647a",
+                      "secondary-fixed-dim": "#bec6e0",
+                      "on-secondary-fixed-variant": "#3f465c",
+                      "surface-container": "#e5eeff",
+                      "secondary-fixed": "#dae2fd",
+                      "inverse-on-surface": "#eaf1ff",
+                      "surface-tint": "#4d44e3",
+                      "on-tertiary-fixed": "#351000",
+                      "on-surface": "#0b1c30",
+                      "on-tertiary-fixed-variant": "#7b2f00",
+                      "on-error": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed": "#e2dfff",
+                      "on-error-container": "#93000a",
+                      "on-primary-container": "#dad7ff",
+                      "primary-container": "#4f46e5",
+                      "on-primary": "#ffffff",
+                      "on-surface-variant": "#464555",
+                      "tertiary-fixed-dim": "#ffb695",
+                      "on-background": "#0b1c30",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-tertiary-container": "#ffd2be",
+                      "on-primary-fixed-variant": "#3323cc",
+                      "outline": "#777587",
+                      "tertiary-container": "#a44100",
+                      "secondary": "#565e74",
+                      "outline-variant": "#c7c4d8",
+                      "surface-dim": "#cbdbf5",
+                      "surface": "#f8f9ff",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#0f0069",
+                      "inverse-surface": "#213145",
+                      "secondary-container": "#dae2fd",
+                      "background": "#f8f9ff",
+                      "surface-container-lowest": "#ffffff",
+                      "error": "#ba1a1a",
+                      "primary": "#3525cd",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-low": "#eff4ff",
+                      "on-secondary-fixed": "#131b2e",
+                      "inverse-primary": "#c3c0ff",
+                      "tertiary-fixed": "#ffdbcc",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#f8f9ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "20px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "container-max": "1280px",
+                      "xl": "32px",
+                      "sm": "8px"
+              },
+              "fontFamily": {
+                      "button": ["Inter"],
+                      "body-md": ["Inter"],
+                      "label-caps": ["Inter"],
+                      "h2": ["Manrope"],
+                      "h1": ["Manrope"],
+                      "body-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "button": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "h1": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col antialiased">
+<!-- TopNavBar Component -->
+<nav aria-label="Main Navigation" class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md font-manrope text-sm font-medium tracking-tight docked full-width top-0 border-b sticky z-50 border-slate-200 dark:border-slate-800 flat no shadows">
+<div class="flex justify-between items-center w-full px-6 md:px-12 h-16 max-w-7xl mx-auto">
+<!-- Brand -->
+<a class="text-xl font-extrabold tracking-tighter text-slate-900 dark:text-white flex items-center gap-2" href="#">
+                ModernPublish
+            </a>
+<!-- Navigation Links (Web) -->
+<div class="hidden md:flex items-center gap-6 h-full">
+<a aria-current="page" class="text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 pb-4 -mb-[17px] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-200 flex items-center h-full px-2" href="#">Articles</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-200 flex items-center h-full px-2" href="#">Guides</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-200 flex items-center h-full px-2" href="#">Case Studies</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-200 flex items-center h-full px-2" href="#">Newsletter</a>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-4">
+<!-- Search Bar Placeholder for "on_right" -->
+<div class="hidden lg:flex items-center bg-surface-container-low rounded-full px-3 py-1.5 border border-outline-variant focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-fixed transition-all">
+<span class="material-symbols-outlined text-outline text-[20px] mr-2">search</span>
+<input class="bg-transparent border-none outline-none text-body-sm w-32 focus:w-48 transition-all p-0" placeholder="Search..." type="text"/>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary font-button text-button px-4 py-2 rounded-full transition-colors hidden sm:block">
+                    Get Started
+                </button>
+<div class="h-8 w-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant cursor-pointer ml-2">
+<img alt="User profile" class="h-full w-full object-cover" data-alt="A close up portrait of a male user profile picture, professional lighting, clean white background, Corporate / Modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDru7ISMFwAYwpWV1N5XXOLCWY7vRr7DBjC1bZ2OV9_b1OEGkkdNXysLum5vWxDlTfYDTMFoxL5X4pQohQEbyqssJKXTSZLxyLN_zUYhZ1NnecBYDY8JDsGN3_Fw9CIo9csgwBU-42C1M3mxlC4ESok1_Z7SzTRpsE8SLvEfYl-HEqF_atMVsOBk3Sqi6E_oIn1Oi7ARWv0Ojt4CugF4YbOkenlgsGnzbkojSU44zs7UTXQwxSdcu_80MW1Ol2tNVK3LNBcFkbxX7g"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-6 md:px-12 py-12 flex flex-col lg:flex-row gap-12 relative">
+<!-- Article Canvas (Left/Main) -->
+<article class="flex-grow max-w-[800px] w-full mx-auto lg:mx-0">
+<!-- Article Header -->
+<header class="mb-10">
+<div class="flex items-center gap-3 mb-4">
+<span class="bg-surface-container-highest text-on-surface font-label-caps text-label-caps px-2.5 py-1 rounded-sm uppercase tracking-wider">Design</span>
+<span class="text-outline font-body-sm text-body-sm">Published Oct 24, 2024</span>
+</div>
+<h1 class="font-h1 text-h1 text-on-background mb-6 leading-tight">The Future of Digital Typography</h1>
+<p class="font-body-md text-body-md text-on-surface-variant text-lg leading-relaxed mb-8">
+                    As displays become sharper and screens more varied, the foundational elements of reading online are evolving. We explore how modern rendering engines and variable formats are changing the rules of the grid.
+                </p>
+<div class="flex items-center gap-4 py-4 border-t border-b border-surface-container-highest">
+<div class="h-12 w-12 rounded-full overflow-hidden">
+<img alt="Author" class="h-full w-full object-cover" data-alt="A portrait of a female author, professional lighting, neutral background, looking at camera, Corporate / Modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuSLGC1mymksx_WkyIDR31_qfQO2Hjvy1pCfFvUyqntTs9xRNsZQJkeb43Xk5_Z-bSZCF5dQ8yA8NFSzF__wy5pOoCwDPsIqHYt2sY-9yWK3dcjJjn5l73ejhfVXmzHVgZ-446HkpSRcoYmkQoZvg_j-l14qDggtBQj3071lssQ0FeV5w8XrFkEDvrPKPbS6_JKP8I4mhgyhRwM4XRtQQr6J0a3zC6XQuMfSlOw-dFLbPGuxS-0xYEns3bQWLb_HvD2mJ8QNOjgxw"/>
+</div>
+<div>
+<p class="font-button text-button text-on-background">Elena Rostova</p>
+<p class="font-body-sm text-body-sm text-outline">Lead Typography Researcher</p>
+</div>
+</div>
+</header>
+<!-- Hero Image -->
+<figure class="mb-12 rounded-lg overflow-hidden border border-outline-variant bg-surface-container">
+<img alt="Typography code on screen" class="w-full h-auto object-cover max-h-[400px]" data-alt="A close up shot of a computer screen displaying complex CSS and typography code, bright modern light-mode aesthetic, crisp text rendering, Corporate / Modern style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiLhjfaLe5b9HnPcBLnhIljHrj2uNAxPmJJYAfrcVx_E_fr2PM1wxbnvuKHjbaxRNh996PwnSsDWloJn3d3H-Z0usLr5d1W7vdTq3mzNMIm0JrEC924z2M527xXL_c9sg7GxphG3CjQqHp1esb16S_ZGrzDImx_1Cg2AAw2acyTnvvcJcvWtwPfwFB0JUA7V31M17Ie4LIkJZCZCY2rUraTTLF9k1zKnVaVzL_uskpyc3sqmW2lf0wvLS0yWOHRy011T-VvOfonvc"/>
+<figcaption class="p-3 text-center font-body-sm text-body-sm text-outline border-t border-outline-variant bg-surface">
+                    Code rendering of a modern variable font implementation.
+                </figcaption>
+</figure>
+<!-- Article Body Content -->
+<div class="prose max-w-none prose-slate">
+<h2 class="font-h2 text-h2 text-on-background mt-10 mb-4" id="introduction">Introduction</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    For decades, digital typography was constrained by the physical limitations of early monitors. Web safe fonts were a necessity, not a choice. Today, however, the landscape has completely shifted. With high-DPI displays becoming the standard across desktop and mobile devices, designers have an unprecedented level of control over how text is rendered.
+                </p>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    This new era isn't just about higher resolution; it's about dynamic behavior. Typography is no longer a static element applied to a page, but a responsive system that adapts to its container, the user's preferences, and even ambient lighting conditions.
+                </p>
+<div class="p-6 bg-surface-container-low border-l-4 border-primary my-8 rounded-r-lg">
+<p class="font-body-md text-body-md italic text-on-background m-0">
+                        "The screen is a canvas that breathes. Typography must learn to inhale and exhale with the layout." — Marcus Chen, UX Architect
+                    </p>
+</div>
+<h2 class="font-h2 text-h2 text-on-background mt-12 mb-4" id="shift-variable">The Shift to Variable Fonts</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    Perhaps the most significant technological leap in recent years is the widespread adoption of OpenType Variable Fonts. Instead of loading separate files for regular, bold, and italic styles, a single variable font file contains a continuous range of design variations.
+                </p>
+<figure class="my-8 rounded-lg overflow-hidden border border-outline-variant bg-surface-container">
+<img alt="Abstract geometric typography" class="w-full h-auto object-cover max-h-[300px]" data-alt="An abstract graphic design demonstrating weight interpolation in a variable font, showcasing letterforms transforming smoothly from thin to heavy, bright clean aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeFO63D2_3Zg8REeChOsPBmY-qSo0Bz73Dmz70G6O-oKulAMhzcRohUznO0MZU_9YKAy9LojaH3KxTClZsEDCWSBY3KwpNV3UVKkKsisRL6XZjdFCiGWHOZFy2G7vGygCt11W03npg64de2i0ibt5WjwQI5ELiWpFiioOg3CvaIS_xo7XfVafL0fuh-acadZMHXDD-XQQKQRfWc79ik0nPB1kAWfPiaEGdksKevxBlEZNkBUTfJXgjepip_KeY77H_hKnE_ylLLAY"/>
+</figure>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    This technology drastically reduces page load times while offering designers granular control over weight, width, and optical size. By defining specific axes within the font, developers can animate typography smoothly in response to user interaction or scroll position.
+                </p>
+<h3 class="font-h2 text-[20px] leading-[28px] font-semibold text-on-background mt-10 mb-4" id="performance-benefits">Performance Benefits</h3><p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">Beyond design flexibility, the performance gains from serving a single font file instead of multiple weight-specific files are substantial. This reduces HTTP requests and overall payload size, leading to faster First Contentful Paint (FCP) metrics across all devices.</p><h3 class="font-h2 text-[20px] leading-[28px] font-semibold text-on-background mt-10 mb-4" id="accessibility">Accessibility Standards</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    With great power comes great responsibility. The ability to manipulate type dynamically means we must be ever more vigilant about accessibility. High contrast ratios, legible line heights, and scalable text sizes are non-negotiable in modern design systems.
+                </p>
+<ul class="list-disc pl-6 mb-6 font-body-md text-body-md text-on-surface-variant space-y-2">
+<li>Maintaining a minimum contrast ratio of 4.5:1 for standard text.</li>
+<li>Ensuring line height (leading) is at least 1.5 times the font size.</li>
+<li>Avoiding justified text, which can create 'rivers' of whitespace that hinder reading for users with dyslexia.</li>
+</ul>
+<h3 class="font-h2 text-[20px] leading-[28px] font-semibold text-on-background mt-10 mb-4" id="future-trends">Future Trends</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                    Looking ahead, we anticipate deeper integration between typography and system-level preferences. As operating systems expose more APIs for ambient light detection and user focus modes, typography will adjust its weight and contrast autonomously to ensure optimal reading comfort at all times.
+                </p>
+</div>
+<!-- Article Footer Tags -->
+<div class="mt-12 pt-8 border-t border-surface-container-highest flex gap-2">
+<span class="bg-surface-container-low text-on-surface font-body-sm text-body-sm px-3 py-1 rounded-full border border-outline-variant">Typography</span>
+<span class="bg-surface-container-low text-on-surface font-body-sm text-body-sm px-3 py-1 rounded-full border border-outline-variant">Web Design</span>
+<span class="bg-surface-container-low text-on-surface font-body-sm text-body-sm px-3 py-1 rounded-full border border-outline-variant">Variable Fonts</span>
+</div>
+</article>
+<!-- Right Sidebar (Table of Contents Modal) -->
+<aside class="hidden lg:block w-[280px] flex-shrink-0 relative">
+<div class="sticky top-[100px] bg-white border border-outline-variant rounded-xl p-6 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)]">
+<h3 class="font-label-caps text-label-caps text-on-background uppercase tracking-wider mb-4 border-b border-surface-container-highest pb-2">Table of Contents</h3>
+<nav class="flex flex-col gap-3"><ul class="flex flex-col gap-1">
+<li>
+<a class="font-body-sm text-body-sm text-secondary hover:text-on-background transition-colors flex items-center gap-3 py-1" href="#introduction">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+      Introduction
+    </a>
+</li>
+<li class="relative">
+<a class="font-body-sm text-body-sm text-primary font-semibold flex items-center gap-3 py-1" href="#shift-variable">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+      The Shift to Variable Fonts
+    </a>
+<!-- Sub-levels -->
+<ul class="ml-[11px] mt-1 border-l border-outline-variant flex flex-col gap-1">
+<li>
+<a class="font-body-sm text-body-sm text-secondary hover:text-on-background transition-colors flex items-center gap-3 pl-4 py-1 relative before:content-[''] before:absolute before:left-0 before:top-1/2 before:w-3 before:h-px before:bg-outline-variant" href="#performance-benefits">
+          Performance Benefits
+        </a>
+</li>
+<li>
+<a class="font-body-sm text-body-sm text-secondary hover:text-on-background transition-colors flex items-center gap-3 pl-4 py-1 relative before:content-[''] before:absolute before:left-0 before:top-1/2 before:w-3 before:h-px before:bg-outline-variant" href="#accessibility">
+          Accessibility Standards
+        </a>
+</li>
+</ul>
+</li>
+<li class="mt-1">
+<a class="font-body-sm text-body-sm text-secondary hover:text-on-background transition-colors flex items-center gap-3 py-1" href="#future-trends">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+      Future Trends
+    </a>
+</li>
+</ul></nav>
+<div class="mt-8 pt-6 border-t border-surface-container-highest">
+<p class="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-3">Share Article</p>
+<div class="flex gap-2">
+<button aria-label="Share on Twitter" class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+<button aria-label="Bookmark" class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-highest flex items-center justify-center text-on-surface transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[18px]">bookmark</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Footer Component -->
+<footer class="bg-slate-50 dark:bg-slate-950 font-manrope text-xs text-slate-500 dark:text-slate-400 full-width border-t mt-auto border-slate-200 dark:border-slate-800 flat no shadows">
+<div class="flex flex-col md:flex-row justify-between items-center py-8 px-6 md:px-12 max-w-7xl mx-auto w-full gap-4">
+<div class="font-bold text-slate-900 dark:text-white text-base">
+                ModernPublish
+            </div>
+<div class="flex flex-wrap justify-center gap-4 md:gap-6">
+<a class="text-slate-500 hover:text-indigo-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all ease-in-out duration-150" href="#">Privacy Policy</a>
+<a class="text-slate-500 hover:text-indigo-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all ease-in-out duration-150" href="#">Terms of Service</a>
+<a class="text-slate-500 hover:text-indigo-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all ease-in-out duration-150" href="#">Contact</a>
+<a class="text-slate-500 hover:text-indigo-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all ease-in-out duration-150" href="#">RSS Feed</a>
+</div>
+<div class="text-center md:text-right">
+                © 2024 ModernPublish. Built for clarity.
+            </div>
+</div>
+</footer>
+</body></html>
