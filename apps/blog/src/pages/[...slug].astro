@@ -200,6 +200,11 @@ if (props.kind === 'note') {
     siteName={obpubConfig.site.title}
     sidebar={sidebar}
     social={obpubConfig.site.social}
+    tableOfContents={
+      renderedNote!.headings && renderedNote!.headings.length > 0
+        ? { headings: renderedNote!.headings }
+        : undefined
+    }
   >
     <Note note={renderedNote!} />
     <Backlinks backlinks={backlinks!} />
