@@ -399,7 +399,8 @@
 }
 .folder-tree__name {
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-small);
+  line-height: var(--lh-small);
   color: var(--color-text-body);
   text-decoration: none;
   padding: var(--space-1) var(--space-2);
@@ -416,12 +417,13 @@
 }
 .folder-tree__note-link {
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-small);
+  line-height: var(--lh-small);
   color: var(--color-text-body);
   text-decoration: none;
   display: inline-block;
   padding: var(--space-1) var(--space-2);
-  margin-left: var(--space-5);
+  margin-left: var(--space-4);
   border-radius: var(--radius-md);
   transition: color var(--duration-base) var(--ease-out),
     background-color var(--duration-base) var(--ease-out);
@@ -929,4 +931,101 @@
   letter-spacing: var(--ls-meta);
   text-transform: uppercase;
   color: var(--color-text-body);
+}
+
+/* ---------- Table of Contents (v0.6 right-rail card) ----------
+ * Visual translation of the reference card to the project's design SSOT
+ * (tokens.css: hairline borders, single iron-oxide accent, no SaaS-style
+ * elevation). Sticky positioning + container queries live in layout.css;
+ * everything visual is here. Only renders when `<BaseLayout
+ * tableOfContents={...} />` is engaged at xl+. */
+.note-toc-rail {
+  display: block;
+}
+.note-toc {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-1);
+}
+.note-toc__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-meta);
+  font-weight: var(--weight-meta);
+  letter-spacing: var(--ls-meta);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 0 var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+.note-toc__list,
+.note-toc__sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.note-toc__sublist {
+  /* Hang the sublist from a vertical hairline that aligns with the parent
+     dot indicator. The 7px left margin centers the line under the 4px dot
+     plus its 8px gap. */
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+  margin-left: 7px;
+}
+.note-toc__item {
+  margin: 0;
+}
+.note-toc__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  line-height: var(--lh-small);
+  transition: color var(--duration-base) var(--ease-out);
+  padding: var(--space-1) 0;
+}
+.note-toc__link:hover {
+  color: var(--color-text-body);
+}
+.note-toc__link[aria-current="true"] {
+  color: var(--color-accent);
+  font-weight: var(--weight-meta);
+}
+.note-toc__dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-text-faded);
+  flex-shrink: 0;
+  transition:
+    width var(--duration-base) var(--ease-out),
+    height var(--duration-base) var(--ease-out),
+    background var(--duration-base) var(--ease-out);
+}
+.note-toc__link[aria-current="true"] .note-toc__dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+}
+/* h3 connector — small horizontal hairline jutting from the sublist's
+   vertical border to the link text, mirroring the reference's
+   "branch" affordance without adding markup. */
+.note-toc__link--sub::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 1px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  margin-right: var(--space-1);
 }

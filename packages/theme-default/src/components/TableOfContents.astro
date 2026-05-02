@@ -1,0 +1,139 @@
+---
+/**
+ * Table of Contents — sticky right-rail navigation for long-form posts.
+ *
+ * View-only: the heading list comes from `@noteforge/core` (`noteHeadings`),
+ * already privacy-filtered. This component MUST NOT walk vault content, parse
+ * markdown, or re-derive ids; it just transforms the flat list into a 2-level
+ * <ul>/<li> tree and ships a small scroll-spy script.
+ *
+ * Layout: rendered inside `BaseLayout`'s `tableOfContents` slot. Hidden via
+ * CSS below the xl breakpoint (~80rem). Returns nothing when there are no
+ * headings at the requested depth — the layout slot stays a no-op so an empty
+ * `<aside>` cannot land in the DOM.
+ */
+import type { TableOfContentsProps } from "./TableOfContents.types.ts";
+import type { NoteHeading } from "@noteforge/core/pipeline";
+
+const { headings, title = "목차", maxDepth = 3 } = Astro.props as TableOfContentsProps;
+
+const filtered = headings.filter((h) => h.depth <= maxDepth);
+
+interface TopEntry {
+  heading: NoteHeading;
+  children: NoteHeading[];
+}
+
+// Group h3/h4 under the most recent h2. h3/h4 that appear before any h2 are
+// promoted to top-level — a defensive fallback; well-formed posts start with
+// h2 first.
+const tree: TopEntry[] = [];
+for (const h of filtered) {
+  if (h.depth === 2 || tree.length === 0) {
+    tree.push({ heading: h, children: [] });
+  } else {
+    tree[tree.length - 1]!.children.push(h);
+  }
+}
+
+const isEmpty = tree.length === 0;
+---
+{!isEmpty && (
+  <aside class="note-toc-rail" aria-label={title}>
+    <nav class="note-toc">
+      <h2 class="note-toc__title">{title}</h2>
+      <ul class="note-toc__list">
+        {tree.map((entry) => (
+          <li class="note-toc__item">
+            <a
+              class="note-toc__link"
+              href={`#${entry.heading.id}`}
+              data-toc-id={entry.heading.id}
+            >
+              <span class="note-toc__dot" aria-hidden="true" />
+              {entry.heading.text}
+            </a>
+            {entry.children.length > 0 && (
+              <ul class="note-toc__sublist">
+                {entry.children.map((child) => (
+                  <li class="note-toc__item note-toc__item--sub">
+                    <a
+                      class="note-toc__link note-toc__link--sub"
+                      href={`#${child.id}`}
+                      data-toc-id={child.id}
+                    >
+                      {child.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </aside>
+)}
+{!isEmpty && (
+  <script>
+    {/* Scroll-spy. Progressive enhancement only — if IntersectionObserver is
+        missing, the TOC stays usable as static anchors. The active link is
+        toggled via aria-current="true" so CSS can style it without an extra
+        class hook. rootMargin must use px/% (the spec rejects rem here), so
+        the top offset is hardcoded to compensate for the ~3rem sticky
+        site-header at the default 16px root font-size. */}
+    (() => {
+      if (!("IntersectionObserver" in window)) return;
+      const links = new Map<string, HTMLAnchorElement>();
+      document
+        .querySelectorAll<HTMLAnchorElement>("[data-toc-id]")
+        .forEach((a) => {
+          const id = a.dataset.tocId;
+          if (id !== undefined) links.set(id, a);
+        });
+      if (links.size === 0) return;
+      const headingNodes = document.querySelectorAll<HTMLElement>(
+        "main h2[id], main h3[id], main h4[id]",
+      );
+      if (headingNodes.length === 0) return;
+
+      const setActive = (id: string | undefined): void => {
+        for (const link of links.values()) {
+          link.removeAttribute("aria-current");
+        }
+        if (id !== undefined) {
+          const link = links.get(id);
+          if (link !== undefined) link.setAttribute("aria-current", "true");
+        }
+      };
+
+      let lastActive: string | undefined;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          // Pick the topmost intersecting heading on each tick. If nothing
+          // intersects, keep the previous active link to avoid flicker when
+          // scrolling past gaps between sections.
+          const visible = entries
+            .filter((e) => e.isIntersecting)
+            .sort(
+              (a, b) =>
+                a.boundingClientRect.top - b.boundingClientRect.top,
+            );
+          const top = visible[0];
+          if (top !== undefined) {
+            const id = top.target.id;
+            if (id !== lastActive) {
+              setActive(id);
+              lastActive = id;
+            }
+          }
+        },
+        {
+          rootMargin: "-60px 0px -70% 0px",
+          threshold: 0,
+        },
+      );
+      headingNodes.forEach((h) => observer.observe(h));
+    })();
+  </script>
+)}

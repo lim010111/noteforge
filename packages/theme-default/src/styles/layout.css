@@ -262,6 +262,9 @@
 .site-shell__sidebar {
   display: none;
 }
+.site-shell__toc {
+  display: none;
+}
 @media (min-width: 64rem) {
   .site-shell--with-sidebar {
     display: grid;
@@ -276,6 +279,34 @@
     height: calc(100vh - 3rem);
     overflow-y: auto;
     border-right: 1px solid var(--color-border);
+  }
+}
+
+/*
+ * v0.6 TOC rail — only engages at xl+ (>= 80rem) and only when BaseLayout
+ * receives a `tableOfContents` prop. Below xl the rail is hidden entirely:
+ * a per-article TOC adds clutter on narrow screens, and the article body
+ * already carries heading anchors for in-page navigation. Combined with the
+ * sidebar prop the layout becomes a 3-column grid `[16rem | 1fr | 18rem]`.
+ */
+@media (min-width: 80rem) {
+  .site-shell--with-toc.site-shell--with-sidebar {
+    grid-template-columns: var(--container-sidebar-w) 1fr var(--container-toc-w);
+  }
+  .site-shell--with-toc:not(.site-shell--with-sidebar) {
+    display: grid;
+    grid-template-columns: 1fr var(--container-toc-w);
+    align-items: start;
+  }
+  .site-shell--with-toc .site-shell__toc {
+    display: block;
+    position: sticky;
+    top: var(--toc-sticky-top);
+    align-self: start;
+    max-height: calc(100vh - var(--toc-sticky-top) - var(--space-4));
+    overflow-y: auto;
+    padding-right: var(--space-4);
+    padding-top: var(--space-5);
   }
 }
 

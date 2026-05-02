@@ -3,6 +3,7 @@ import type { BaseLayoutProps } from "./BaseLayout.types";
 import { themeInitScript } from "../scripts/theme-init.ts";
 import Sidebar from "../components/Sidebar.astro";
 import SocialLinks from "../components/SocialLinks.astro";
+import TableOfContents from "../components/TableOfContents.astro";
 import "../styles/base.css";
 
 const {
@@ -14,8 +15,17 @@ const {
   siteName,
   sidebar,
   social,
+  tableOfContents,
 } = Astro.props as BaseLayoutProps;
 const hasSidebar = sidebar !== undefined;
+const hasToc = tableOfContents !== undefined;
+const shellClasses = [
+  "site-shell",
+  hasSidebar ? "site-shell--with-sidebar" : null,
+  hasToc ? "site-shell--with-toc" : null,
+]
+  .filter((c): c is string => c !== null)
+  .join(" ");
 ---
 <!doctype html>
 <html lang={lang}>
@@ -101,7 +111,7 @@ const hasSidebar = sidebar !== undefined;
         </div>
       </div>
     </header>
-    <div class={`site-shell${hasSidebar ? " site-shell--with-sidebar" : ""}`}>
+    <div class={shellClasses}>
       {hasSidebar && (
         <div class="site-shell__sidebar">
           <Sidebar {...sidebar!} />
@@ -110,6 +120,11 @@ const hasSidebar = sidebar !== undefined;
       <main id="main" class="site-main">
         <slot />
       </main>
+      {hasToc && (
+        <div class="site-shell__toc">
+          <TableOfContents {...tableOfContents!} />
+        </div>
+      )}
     </div>
     <footer class="site-footer">
       <div class="site-footer__inner">

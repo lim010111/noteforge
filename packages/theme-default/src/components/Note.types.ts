@@ -7,11 +7,20 @@
  * surface and is forbidden — this type IS the contract that keeps the theme from
  * leaking arbitrary frontmatter into HTML.
  *
+ * Derived view-model extensions: a small set of fields are NOT frontmatter at
+ * all — they are derived from the already privacy-filtered body (`heroImage`,
+ * `embeddedImages`, `headings`). These are allowed without a frontmatter
+ * allowlist entry because they share the surface area of `body`: the same
+ * mdast/hast pass that produced the sanitized HTML produced them. They cannot
+ * leak content beyond what `body` already does.
+ *
  * Caller responsibilities (the component does NOT re-derive any of these):
  *   - `tags`    has already been filtered through `publishing.tagBlocklist`.
  *   - `body`    is sanitized HTML — link-rewrite, transclude expansion, and the
  *               `%%comment%%` strip have already run in `@noteforge/core/privacy`.
  */
+import type { NoteHeading } from '@noteforge/core/pipeline';
+
 export interface NoteViewModel {
   /** Public slug, used by dev-only authoring tools. */
   slug?: string;
@@ -40,6 +49,14 @@ export interface NoteViewModel {
   embeddedImages?: readonly string[];
   /** Vault-relative source markdown path, used only by dev-only picker UI. */
   sourcePath?: string;
+  /**
+   * Structured h2/h3/h4 list collected by `@noteforge/core` at the same hast
+   * pass that produced `body`. Drives the layout's right-rail TOC. Empty or
+   * absent means the post has no h2-h4 headings (no TOC rendered). The Note
+   * component itself MUST NOT render the TOC inside the article — it is a
+   * layout concern owned by `<BaseLayout tableOfContents={...} />`.
+   */
+  headings?: readonly NoteHeading[];
 }
 
 export interface NoteProps {
