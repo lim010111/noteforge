@@ -1,4 +1,4 @@
-'/home/shine/projects/obsidian_blog/stitch_blog_image_customizer' 안에 존재하는 파일들을 기반으로(특히 HTML) 우리 블로그의 `이미지 수정` 페이지의 디자인 및 UI를 수정해.
+`docs/references/thumbnail_customization_page/` 안에 존재하는 파일들을 기반으로(특히 HTML) 우리 블로그의 `이미지 수정` 페이지의 디자인 및 UI를 수정해.
 다만, design.md와 스크린샷 파일은 참고만 해. 제일 중요한 건 HTML 파일이야. HTML 파일을 그대로 우리 이미지 수정 페이지에 반영해. 
 
 ---
