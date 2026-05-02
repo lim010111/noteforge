@@ -216,6 +216,7 @@ describe('Note', () => {
     expect(withPicker).toContain('type="file"');
     expect(withPicker).toContain('accept="image/*"');
     expect(withPicker).toContain('role="button"');
+    expect(withPicker).toContain('/__obpub/cover');
     expect(withPicker).toContain('/__obpub/upload-attachment');
   });
 

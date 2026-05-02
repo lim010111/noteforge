@@ -28,6 +28,7 @@ function labelFor(url: string): string {
   class="dev-image-picker not-prose"
   data-dev-image-picker
   data-slug={slug}
+  data-cover-endpoint="/__obpub/cover"
   data-upload-endpoint="/__obpub/upload-attachment"
 >
   <button class="dev-image-picker__trigger" type="button" data-picker-open>
@@ -127,6 +128,7 @@ function labelFor(url: string): string {
     if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') continue;
     root.dataset.bound = 'true';
     const slug = root.dataset.slug;
+    const coverEndpoint = root.dataset.coverEndpoint ?? '/__obpub/cover';
     const uploadEndpoint = root.dataset.uploadEndpoint ?? '/__obpub/upload-attachment';
     const dialog = root.querySelector('[data-picker-dialog]');
     const status = root.querySelector('[data-picker-status]');
@@ -149,6 +151,24 @@ function labelFor(url: string): string {
     const close = () => {
       if (dialog.open) dialog.close();
     };
+    const reloadSoon = () => {
+      setStatus('저장됨 · 새로고침 중');
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 250);
+    };
+    const responseError = async (response) => {
+      const text = await response.text();
+      if (text.length > 0) {
+        try {
+          const payload = JSON.parse(text);
+          if (typeof payload.error === 'string') return payload.error;
+        } catch {
+          return text;
+        }
+      }
+      return `HTTP ${response.status}`;
+    };
     root.querySelector('[data-picker-open]')?.addEventListener('click', () => {
       setStatus('');
       dialog.showModal();
@@ -161,17 +181,15 @@ function labelFor(url: string): string {
     const postUpdate = async (field, value) => {
       setStatus('저장 중');
       const body = { slug, [field]: value };
-      const response = await fetch('/__obpub/cover', {
+      const response = await fetch(coverEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}`);
+        throw new Error(await responseError(response));
       }
-      setStatus('저장됨');
-      window.setTimeout(close, 250);
+      reloadSoon();
     };
 
     const uploadFile = async (field, file) => {
@@ -219,11 +237,7 @@ function labelFor(url: string): string {
         xhr.send(body);
       });
 
-      setStatus('저장됨');
-      window.setTimeout(() => {
-        close();
-        window.location.reload();
-      }, 250);
+      reloadSoon();
     };
 
     const uploadFirstFile = async (field, files) => {
@@ -240,7 +254,8 @@ function labelFor(url: string): string {
       };
       zone.addEventListener('mouseenter', activate);
       zone.addEventListener('focus', activate);
-      zone.addEventListener('click', () => {
+      zone.addEventListener('click', (event) => {
+        if (event.target instanceof HTMLInputElement) return;
         activate();
         const input = root.querySelector(`[data-picker-file="${field}"]`);
         if (input instanceof HTMLInputElement) input.click();

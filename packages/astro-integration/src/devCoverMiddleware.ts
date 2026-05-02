@@ -15,6 +15,7 @@ export interface DevCoverFileSystem {
 interface DevCoverMiddlewareDeps {
   readonly vaultPath: string;
   readonly getPipelineResult: () => DevCoverPipelineSnapshot;
+  readonly refreshPipelineCache?: () => Promise<void>;
   readonly fs?: DevCoverFileSystem;
 }
 
@@ -104,6 +105,20 @@ export function createDevCoverMiddleware(deps: DevCoverMiddlewareDeps) {
     const raw = await fs.readFile(sourceAbs);
     const updated = updateFrontmatterImageFields(raw, { cover, thumbnail });
     await fs.writeFile(sourceAbs, updated);
+    try {
+      await deps.refreshPipelineCache?.();
+    } catch (err) {
+      try {
+        await fs.writeFile(sourceAbs, raw);
+      } catch {
+        // Best-effort rollback. The refresh failure is the primary error.
+      }
+      sendJson(res, 500, {
+        error: 'pipeline_refresh_failed',
+        detail: errorMessage(err),
+      });
+      return;
+    }
     sendJson(res, 200, { ok: true });
   };
 }
