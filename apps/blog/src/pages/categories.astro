@@ -35,10 +35,14 @@ for (const entry of publishable as readonly NoteEntry[]) {
   if (d !== undefined) dateBySlug.set(entry.id, d);
 }
 
+// v0.7 follow-up: category mode now ships its own `/peft/lora/` index
+// routes (paired with `[...slug].astro`'s walkCategories branch), so section
+// headers can finally carry hrefs in both modes. The `path` is slugified
+// upstream by `buildCategoryTree`, so this no longer leaks vault paths.
 const sections: CategoryOverviewSection[] = buildCategoryOverviewSections(
   tree,
   dateBySlug,
-  { sectionLinks: navMode !== 'category' },
+  { sectionLinks: true },
 );
 const sidebar = buildSidebarPayload(all, undefined, navMode);
 const canonicalUrl = ensureTrailingSlash(

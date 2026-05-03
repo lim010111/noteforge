@@ -22,6 +22,7 @@ const {
   avatarSrc,
   nickname,
   slotCount,
+  hideLeafNotes,
 } = Astro.props as SidebarProps;
 ---
 <aside class="sidebar" aria-label="사이트 내비게이션">
@@ -31,5 +32,6 @@ const {
     activeSlug={activeSlug}
     activeFolderPath={activeFolderPath}
     slotCount={slotCount}
+    hideLeafNotes={hideLeafNotes}
   />
 </aside>

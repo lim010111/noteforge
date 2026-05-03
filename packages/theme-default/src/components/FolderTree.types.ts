@@ -22,4 +22,13 @@ export interface FolderTreeProps {
   activeFolderPath?: string;
   /** Number of `--color-accent-cat-N` slots in tokens.css. Pass `CATEGORY_ACCENT_SLOT_COUNT`. */
   slotCount: number;
+  /**
+   * When true, do not render leaf note items inside the tree. Used in
+   * `nav.mode === 'category'` where notes surface only through the category
+   * index page (clicking the parent category lists them in the main column),
+   * keeping the sidebar a pure category navigator. A category whose
+   * `children` is empty *and* whose notes are hidden by this flag also
+   * downgrades from `<details>` to a plain `<a>` to avoid an empty toggle.
+   */
+  hideLeafNotes?: boolean;
 }

@@ -19,6 +19,8 @@ export interface AliasRouteId extends RouteId {
 
 export type FolderRouteId = RouteId;
 
+export type CategoryRouteId = RouteId;
+
 const FILE_TRAILER = '(apps/blog/src/pages/[...slug].astro)';
 
 /**
@@ -56,6 +58,27 @@ export function assertNoFolderCollisions(
       throw new Error(
         `[...slug] route collision: folder '${folder.slug}/' shares its slug with an existing note or alias. ` +
           `Resolve by renaming the folder or the colliding note. ` +
+          FILE_TRAILER,
+      );
+    }
+  }
+}
+
+/**
+ * Throw if any category-index slug collides with a note or alias slug already
+ * claimed by `claimed`. Mirrors `assertNoFolderCollisions` but its message
+ * names the offender as a category so reviewers can distinguish the two
+ * routing kinds (`nav.mode === 'category'` vs `'folder'`) when triaging.
+ */
+export function assertNoCategoryCollisions(
+  claimed: ReadonlySet<string>,
+  categories: readonly CategoryRouteId[],
+): void {
+  for (const cat of categories) {
+    if (claimed.has(cat.slug)) {
+      throw new Error(
+        `[...slug] route collision: category '${cat.slug}/' shares its slug with an existing note or alias. ` +
+          `Resolve by renaming the category or the colliding note. ` +
           FILE_TRAILER,
       );
     }

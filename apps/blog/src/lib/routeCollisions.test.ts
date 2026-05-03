@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertNoAliasCollisions,
+  assertNoCategoryCollisions,
   assertNoFolderCollisions,
 } from './routeCollisions.ts';
 
@@ -87,5 +88,31 @@ describe('assertNoFolderCollisions', () => {
     expect(folderMsg).toContain(trailer);
     expect(aliasMsg.startsWith('[...slug] route collision:')).toBe(true);
     expect(folderMsg.startsWith('[...slug] route collision:')).toBe(true);
+  });
+});
+
+describe('assertNoCategoryCollisions', () => {
+  it('does not throw when category slugs do not collide with claimed routes', () => {
+    expect(() =>
+      assertNoCategoryCollisions(new Set(['about']), [{ slug: 'peft' }]),
+    ).not.toThrow();
+  });
+
+  it('throws when a category slug collides with an existing note slug', () => {
+    expect(() =>
+      assertNoCategoryCollisions(new Set(['peft']), [{ slug: 'peft' }]),
+    ).toThrow(/route collision: category 'peft\/'/);
+  });
+
+  it('throw message identifies kind as category (not folder)', () => {
+    try {
+      assertNoCategoryCollisions(new Set(['peft']), [{ slug: 'peft' }]);
+      expect.fail('expected throw');
+    } catch (e) {
+      const msg = (e as Error).message;
+      expect(msg).toContain("category 'peft/'");
+      expect(msg).not.toContain('folder');
+      expect(msg).toContain('apps/blog/src/pages/[...slug].astro');
+    }
   });
 });

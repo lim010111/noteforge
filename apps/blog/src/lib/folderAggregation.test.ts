@@ -9,9 +9,11 @@ import {
   assertNoFolderCollisions,
 } from './routeCollisions.ts';
 import {
+  buildCategoryIndexViewModel,
   buildCategoryTree,
   buildFolderIndexViewModel,
   buildFolderTree,
+  walkCategories,
   walkFolders,
 } from './folderAggregation.ts';
 import type { NoteEntry } from './viewModels.ts';
@@ -444,6 +446,7 @@ describe('buildFolderTree — vault-mixed fixture-driven (v0.3 step 9)', () => {
         },
       ],
       publishing: { tagBlocklist: ['client/**'] },
+      nav: { mode: 'folder' },
     });
     const result = await runCorePipeline(config);
     publishable = publishableFromPipeline(result);
@@ -595,8 +598,35 @@ describe('buildCategoryTree — single-segment category', () => {
     expect(tree.children).toHaveLength(1);
     const tech = tree.children[0]!;
     expect(tech.name).toBe('Tech');
-    expect(tech.path).toBe('Tech');
+    // path is slugified (URL-safe) while name preserves the original casing —
+    // the sidebar/category-index uses path for the href and name for display.
+    expect(tech.path).toBe('tech');
     expect(tech.notes).toEqual([{ slug: 'AI/Claude/agents', title: 'agents' }]);
+  });
+
+  it('keeps name original-cased while slugifying path (URL identity)', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+    ]);
+    const peft = tree.children[0]!;
+    expect(peft.name).toBe('PEFT');
+    expect(peft.path).toBe('peft');
+    const lora = peft.children[0]!;
+    expect(lora.name).toBe('LoRA');
+    expect(lora.path).toBe('peft/lora');
+  });
+
+  it('collapses two display names that slugify to the same key into one node', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: 'peft' } }),
+    ]);
+    expect(tree.children).toHaveLength(1);
+    const peft = tree.children[0]!;
+    expect(peft.path).toBe('peft');
+    // First-seen casing wins as the display name.
+    expect(peft.name).toBe('PEFT');
+    expect(peft.notes.map((n) => n.slug)).toEqual(['a', 'b']);
   });
 });
 
@@ -678,7 +708,7 @@ describe('buildCategoryTree — path normalisation', () => {
       makeEntry('a', { title: 'A', frontmatter: { category: '/Tech/' } }),
     ]);
     expect(tree.children).toHaveLength(1);
-    expect(tree.children[0]!.path).toBe('Tech');
+    expect(tree.children[0]!.path).toBe('tech');
   });
 
   it('collapses internal double slashes into a single segment boundary', () => {
@@ -712,6 +742,90 @@ describe('buildCategoryTree — leaf slug invariant', () => {
     const essay = tree.children[0]!;
     const y2026 = essay.children[0]!;
     expect(y2026.notes[0]?.slug).toBe('temp_drafts/2026/일기');
+  });
+});
+
+describe('walkCategories', () => {
+  it('yields every non-root category node in pre-order', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: 'PEFT/AdaLoRA' } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: 'RAG' } }),
+    ]);
+    const paths = [...walkCategories(tree)].map((n) => n.path);
+    expect(paths).toEqual(['peft', 'peft/adalora', 'peft/lora', 'rag']);
+  });
+
+  it('yields nothing for an empty tree', () => {
+    expect([...walkCategories(buildCategoryTree([]))]).toEqual([]);
+  });
+});
+
+describe('buildCategoryIndexViewModel', () => {
+  it('returns null for paths that do not exist in the tree', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT' } }),
+    ]);
+    expect(buildCategoryIndexViewModel(tree, 'missing')).toBeNull();
+  });
+
+  it('breadcrumb labels carry original category name; hrefs use slugified path', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+    ]);
+    const vm = buildCategoryIndexViewModel(tree, 'peft/lora');
+    expect(vm).not.toBeNull();
+    expect(vm!.folderName).toBe('LoRA');
+    expect(vm!.folderPath).toBe('peft/lora');
+    expect(vm!.breadcrumb).toEqual([
+      { label: 'home', href: '/' },
+      { label: 'PEFT', href: '/peft/' },
+      { label: 'LoRA', href: '/peft/lora/' },
+    ]);
+  });
+
+  it('childFolders use original name + slugified href, recursive note counts', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: 'PEFT/LoRA' } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: 'PEFT/AdaLoRA' } }),
+    ]);
+    const vm = buildCategoryIndexViewModel(tree, 'peft');
+    expect(vm).not.toBeNull();
+    expect(vm!.childFolders).toEqual([
+      { name: 'AdaLoRA', href: '/peft/adalora/', noteCount: 1 },
+      { name: 'LoRA', href: '/peft/lora/', noteCount: 2 },
+    ]);
+    expect(vm!.childNotes).toEqual([]);
+  });
+
+  it('childNotes use entry.id slug for href (already category-prefixed upstream)', () => {
+    const tree = buildCategoryTree([
+      makeEntry('peft/lora/lora-란', {
+        title: 'LoRA 란',
+        frontmatter: { category: 'PEFT/LoRA' },
+      }),
+    ]);
+    const vm = buildCategoryIndexViewModel(tree, 'peft/lora');
+    expect(vm!.childNotes).toEqual([
+      { title: 'LoRA 란', href: '/peft/lora/lora-란/' },
+    ]);
+  });
+
+  it('mixed node — surfaces both child categories and direct notes', () => {
+    const tree = buildCategoryTree([
+      makeEntry('peft/peft-overview', {
+        title: 'PEFT 개요',
+        frontmatter: { category: 'PEFT' },
+      }),
+      makeEntry('peft/lora/x', {
+        title: 'X',
+        frontmatter: { category: 'PEFT/LoRA' },
+      }),
+    ]);
+    const vm = buildCategoryIndexViewModel(tree, 'peft');
+    expect(vm!.childFolders.map((f) => f.name)).toEqual(['LoRA']);
+    expect(vm!.childNotes.map((n) => n.title)).toEqual(['PEFT 개요']);
   });
 });
 

@@ -176,6 +176,18 @@ describe('buildSidebarPayload — nav.mode (v0.7)', () => {
     expect(payload.activeSlug).toBe('temp_drafts/diary-1');
     expect(payload.activeFolderPath).toBe('에세이/2026/');
   });
+
+  it("category mode auto-enables hideLeafNotes so the sidebar stays category-only", () => {
+    expect(buildSidebarPayload(entries, undefined, 'category').hideLeafNotes).toBe(true);
+  });
+
+  it("folder mode leaves hideLeafNotes unset (legacy full tree)", () => {
+    expect(buildSidebarPayload(entries, undefined, 'folder').hideLeafNotes).toBeUndefined();
+  });
+
+  it("default mode (omitted) inherits category-mode hideLeafNotes flag", () => {
+    expect(buildSidebarPayload(entries).hideLeafNotes).toBe(true);
+  });
 });
 
 describe('buildSidebarPayload — privacy guard', () => {

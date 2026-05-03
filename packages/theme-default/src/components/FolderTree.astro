@@ -52,10 +52,19 @@ type Props = FolderTreeProps & {
   normalizedActiveFolder?: string;
 };
 
+function shouldRenderAsLeafLink(child: FolderNode, hideLeafNotes: boolean): boolean {
+  // A category whose children list is empty AND whose own notes are being
+  // hidden produces a `<details>` with nothing inside — visual noise. In
+  // that case we render the row as a single link instead so the sidebar
+  // stays compact and the user can still navigate to the category index.
+  return hideLeafNotes && child.children.length === 0 && child.notes.length === 0;
+}
+
 const props = Astro.props as Props;
 const isBranch = props.branch !== undefined;
 const node: FolderNode = isBranch ? (props.branch as FolderNode) : props.root;
 const activeSlug = props.activeSlug;
+const hideLeafNotes = props.hideLeafNotes ?? false;
 // `slotCount` is preserved on the props contract for API stability across
 // theme consumers, but the v0.5 design refresh dropped the per-folder colour
 // dot; the prop is intentionally unused here. See CategoryOverview/FolderIndex
@@ -69,7 +78,13 @@ const normalizedActiveFolder = isBranch
     ? props.activeFolderPath.replace(/\/+$/, "")
     : undefined;
 
-const isEmpty = node.children.length === 0 && node.notes.length === 0;
+// When leaf notes are hidden, an otherwise-empty tree (no children, only
+// notes) collapses to "nothing visible" — the component renders nothing,
+// matching the no-folders-no-notes case so the heading is never an
+// existence oracle for an empty section.
+const isEmpty =
+  node.children.length === 0 &&
+  (hideLeafNotes || node.notes.length === 0);
 
 function isFolderOpen(folderPath: string): boolean {
   const prefix = folderPath + "/";
@@ -102,6 +117,19 @@ function isNoteActive(slug: string): boolean {
       {node.children.map((child) => {
         const open = isFolderOpen(child.path);
         const active = isFolderActive(child.path);
+        if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
+          return (
+            <li class="folder-tree__item folder-tree__item--leaf-category">
+              <a
+                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                href={`/${child.path}/`}
+                aria-current={active ? "page" : undefined}
+              >
+                {child.name}
+              </a>
+            </li>
+          );
+        }
         return (
           <li class="folder-tree__item">
             <details class="folder-tree__details" open={open}>
@@ -119,6 +147,7 @@ function isNoteActive(slug: string): boolean {
                 root={props.root}
                 slotCount={slotCount}
                 activeSlug={activeSlug}
+                hideLeafNotes={hideLeafNotes}
                 branch={child}
                 depth={1}
                 normalizedActiveFolder={normalizedActiveFolder}
@@ -127,7 +156,7 @@ function isNoteActive(slug: string): boolean {
           </li>
         );
       })}
-      {node.notes.map((n) => {
+      {!hideLeafNotes && node.notes.map((n) => {
         const active = isNoteActive(n.slug);
         return (
           <li class="folder-tree__item folder-tree__item--leaf">
@@ -149,6 +178,19 @@ function isNoteActive(slug: string): boolean {
     {node.children.map((child) => {
       const open = isFolderOpen(child.path);
       const active = isFolderActive(child.path);
+      if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
+        return (
+          <li class="folder-tree__item folder-tree__item--leaf-category">
+            <a
+              class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+              href={`/${child.path}/`}
+              aria-current={active ? "page" : undefined}
+            >
+              {child.name}
+            </a>
+          </li>
+        );
+      }
       return (
         <li class="folder-tree__item">
           <details class="folder-tree__details" open={open}>
@@ -166,6 +208,7 @@ function isNoteActive(slug: string): boolean {
               root={props.root}
               slotCount={slotCount}
               activeSlug={activeSlug}
+              hideLeafNotes={hideLeafNotes}
               branch={child}
               depth={(props.depth as number) + 1}
               normalizedActiveFolder={normalizedActiveFolder}
@@ -174,7 +217,7 @@ function isNoteActive(slug: string): boolean {
         </li>
       );
     })}
-    {node.notes.map((n) => {
+    {!hideLeafNotes && node.notes.map((n) => {
       const active = isNoteActive(n.slug);
       return (
         <li class="folder-tree__item folder-tree__item--leaf">

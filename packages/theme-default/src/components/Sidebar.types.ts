@@ -26,4 +26,10 @@ export interface SidebarProps {
   nickname?: string;
   /** Number of `--color-accent-cat-N` slots (typically `CATEGORY_ACCENT_SLOT_COUNT`). */
   slotCount: number;
+  /**
+   * Threaded through to FolderTree. In `nav.mode === 'category'` the sidebar
+   * is a pure category navigator and individual notes only appear on the
+   * category index page they belong to.
+   */
+  hideLeafNotes?: boolean;
 }

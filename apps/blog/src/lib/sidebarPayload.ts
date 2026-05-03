@@ -25,6 +25,14 @@ export interface SidebarPayload {
   avatarSrc?: string;
   nickname?: string;
   slotCount: number;
+  /**
+   * Set to true when the sidebar should display only categories. In
+   * `nav.mode === 'category'` (the default) note items live on the
+   * category-index page that lists them, so leaving them in the sidebar
+   * tree as well is duplicative and crowds the navigator. `buildSidebarPayload`
+   * sets this automatically based on `mode`.
+   */
+  hideLeafNotes?: boolean;
 }
 
 /**
@@ -58,6 +66,13 @@ export function buildSidebarPayload(
     folderTree,
     slotCount: CATEGORY_ACCENT_SLOT_COUNT,
   };
+
+  // In category mode the sidebar is a pure category navigator; notes appear
+  // on the category-index page they belong to. Folder mode keeps the
+  // historical full-tree view because vault path *is* the URL there.
+  if (mode === 'category') {
+    payload.hideLeafNotes = true;
+  }
 
   if (options?.activeSlug !== undefined) {
     payload.activeSlug = options.activeSlug;

@@ -2,6 +2,7 @@ import type {
   FolderIndexViewModel,
   FolderNode,
 } from '@noteforge/theme-default';
+import { slugifySegment } from '@noteforge/core/slug';
 // Deep-import the slot helper so value-level resolution does not pull in the
 // barrel's `.astro` re-exports (Vitest's default project lacks the Astro Vite
 // plugin needed to parse `.astro`). Type-only imports from the barrel above
@@ -110,12 +111,22 @@ export function buildFolderTree(
   return root;
 }
 
-function categorySegments(raw: unknown): string[] {
+interface CategorySegment {
+  /** Display name (original frontmatter casing/whitespace, e.g. `'PEFT'`). */
+  readonly name: string;
+  /** URL-safe form (lowercased, dashes), e.g. `'peft'`. */
+  readonly slug: string;
+}
+
+function categorySegments(raw: unknown): CategorySegment[] {
   if (typeof raw !== 'string') return [];
-  const segs: string[] = [];
+  const segs: CategorySegment[] = [];
   for (const part of raw.split('/')) {
     const trimmed = part.trim();
-    if (trimmed.length > 0) segs.push(trimmed);
+    if (trimmed.length === 0) continue;
+    const slug = slugifySegment(trimmed);
+    if (slug.length === 0) continue;
+    segs.push({ name: trimmed, slug });
   }
   return segs;
 }
@@ -150,12 +161,16 @@ export function buildCategoryTree(
 
     let cursor = root;
     for (let i = 0; i < segments.length; i++) {
-      const segName = segments[i]!;
-      let child = cursor.children.find((c) => c.name === segName);
+      const seg = segments[i]!;
+      // Match by slug (URL identity). Two display names that slugify to the
+      // same key collapse into one node — first-seen casing wins as the name.
+      let child = cursor.children.find(
+        (c) => c.path === segments.slice(0, i + 1).map((s) => s.slug).join('/'),
+      );
       if (child === undefined) {
         child = {
-          name: segName,
-          path: segments.slice(0, i + 1).join('/'),
+          name: seg.name,
+          path: segments.slice(0, i + 1).map((s) => s.slug).join('/'),
           children: [],
           notes: [],
         };
@@ -215,6 +230,19 @@ export function* walkFolders(root: FolderNode): Generator<FolderNode> {
 }
 
 /**
+ * Walk a category tree and yield every non-root category node. Identical
+ * traversal to `walkFolders` but kept under its own name so call sites at
+ * the routing layer (`apps/blog/src/pages/[...slug].astro`) can express
+ * intent — folder-index vs category-index — without aliasing.
+ */
+export function* walkCategories(root: FolderNode): Generator<FolderNode> {
+  for (const child of root.children) {
+    yield child;
+    yield* walkCategories(child);
+  }
+}
+
+/**
  * Build a `<FolderIndex />` view-model for a single folder path.
  *
  * Pure function — no privacy/Astro access. Caller passes the already-built
@@ -265,6 +293,81 @@ export function buildFolderIndexViewModel(
   };
 
   const firstSegment = segments[0];
+  if (firstSegment !== undefined) {
+    const slot = pickCategoryAccentSlot(firstSegment, CATEGORY_ACCENT_SLOT_COUNT);
+    if (slot !== null) {
+      vm.categorySlot = slot as 1 | 2 | 3 | 4 | 5;
+    }
+  }
+
+  return vm;
+}
+
+/**
+ * Build a `<FolderIndex />` view-model for a single category-tree node.
+ *
+ * Reuses the same `FolderIndexViewModel` shape as `buildFolderIndexViewModel`
+ * — the renderer is the same; only the upstream tree differs (frontmatter
+ * `category` vs vault path). The breadcrumb diverges from the folder-index
+ * path: a category node's `path` is slugified for URL identity, but the
+ * displayed breadcrumb labels need to carry the **original** name (e.g.
+ * `'PEFT'` not `'peft'`). We walk the tree so each crumb pairs the original
+ * `node.name` with the cumulative slugified `node.path` for the href.
+ *
+ * Returns `null` when `slugPath` does not resolve in the tree (caller treats
+ * this as a programmer error — the routing layer only emits routes for nodes
+ * that exist).
+ */
+export function buildCategoryIndexViewModel(
+  root: FolderNode,
+  slugPath: string,
+): FolderIndexViewModel | null {
+  const slugSegments = slugPath.length === 0 ? [] : slugPath.split('/');
+  const breadcrumb: FolderIndexViewModel['breadcrumb'] = [
+    { label: 'home', href: '/' },
+  ];
+  let cursor: FolderNode = root;
+  for (let i = 0; i < slugSegments.length; i++) {
+    const seg = slugSegments[i]!;
+    // Category nodes store a slugified `path` distinct from the
+    // original-cased `name`, so the lookup keys on the path's last segment
+    // (URL identity) rather than `name` (display).
+    const next = cursor.children.find((c) => {
+      const tail = c.path.split('/').pop();
+      return tail === seg;
+    });
+    if (next === undefined) return null;
+    breadcrumb.push({
+      label: next.name,
+      href: `/${next.path}/`,
+    });
+    cursor = next;
+  }
+  const target = cursor;
+
+  const childFolders = target.children.map((child) => ({
+    name: child.name,
+    href: `/${child.path}/`,
+    noteCount: countNotesRecursive(child),
+  }));
+  const childNotes = target.notes.map((n) => ({
+    title: n.title,
+    href: `/${n.slug}/`,
+    ...(n.description !== undefined ? { description: n.description } : {}),
+    ...(n.tags !== undefined ? { tags: n.tags } : {}),
+    ...(n.date !== undefined ? { date: n.date } : {}),
+    ...(n.thumbnail !== undefined ? { thumbnail: n.thumbnail } : {}),
+  }));
+
+  const vm: FolderIndexViewModel = {
+    folderName: target.name,
+    folderPath: target.path,
+    breadcrumb,
+    childFolders,
+    childNotes,
+  };
+
+  const firstSegment = slugSegments[0];
   if (firstSegment !== undefined) {
     const slot = pickCategoryAccentSlot(firstSegment, CATEGORY_ACCENT_SLOT_COUNT);
     if (slot !== null) {
