@@ -55,6 +55,37 @@
   }
 }
 
+/*
+ * v0.6 alignment fix — when the shell adopts a sidebar/toc grid, .site-main
+ * is centered inside the *content* column (not the viewport), so the header
+ * must mirror the same grid to keep .site-header__inner column-aligned with
+ * .site-main. Without this, brand+nav drift left of the article column once
+ * the sidebar appears at lg+ (or the toc at xl+).
+ */
+@media (min-width: 64rem) {
+  body.has-sidebar .site-header {
+    display: grid;
+    grid-template-columns: var(--container-sidebar-w) 1fr;
+  }
+  body.has-sidebar .site-header__inner {
+    grid-column: 2;
+    width: 100%;
+  }
+}
+@media (min-width: 80rem) {
+  body.has-sidebar.has-toc .site-header {
+    grid-template-columns: var(--container-sidebar-w) 1fr var(--container-toc-w);
+  }
+  body.has-toc:not(.has-sidebar) .site-header {
+    display: grid;
+    grid-template-columns: 1fr var(--container-toc-w);
+  }
+  body.has-toc:not(.has-sidebar) .site-header__inner {
+    grid-column: 1;
+    width: 100%;
+  }
+}
+
 .brand {
   font-family: var(--font-mono);
   font-size: var(--text-meta);
