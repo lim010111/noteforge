@@ -59,7 +59,7 @@ const shellClasses = [
     <script is:inline set:html={themeInitScript}></script>
     <slot name="head" />
   </head>
-  <body class={hasSidebar ? "has-sidebar" : undefined}>
+  <body class:list={[hasSidebar && "has-sidebar", hasToc && "has-toc"]}>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
     <header class="site-header">
       <div class="site-header__inner">
