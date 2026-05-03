@@ -226,7 +226,10 @@ export function createWatcher(options: WatcherOptions): Watcher {
     if (note === undefined) return;
     if (stopped) return;
 
-    const slug = computeSlug({ frontmatter: note.frontmatter, relativePath: rel });
+    const slug = computeSlug(
+      { frontmatter: note.frontmatter, relativePath: rel },
+      { mode: options.config.nav.mode },
+    );
     upsertIndexedNote(note, slug);
 
     const targets = resolvedTargets(note.body);
@@ -269,10 +272,13 @@ export function createWatcher(options: WatcherOptions): Watcher {
     for await (const entry of walkVault({ root: options.vaultPath, ignore: walkIgnore })) {
       const note = await loadNote(entry.path, entry.relativePath);
       if (note === undefined) continue;
-      const slug = computeSlug({
-        frontmatter: note.frontmatter,
-        relativePath: entry.relativePath,
-      });
+      const slug = computeSlug(
+        {
+          frontmatter: note.frontmatter,
+          relativePath: entry.relativePath,
+        },
+        { mode: options.config.nav.mode },
+      );
       slugByRelPath.set(entry.relativePath, slug);
       relPathBySlug.set(slug, entry.relativePath);
       indexedBySlug.set(slug, toIndexedNote(note, slug));

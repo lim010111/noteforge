@@ -105,6 +105,7 @@ async function run(): Promise<PipelineResult> {
     publishing: {
       tagBlocklist: ['client/**'],
     },
+    nav: { mode: 'folder' },
   });
   return runCorePipeline(config);
 }

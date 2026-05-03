@@ -18,6 +18,7 @@
     ".": "./src/index.ts",
     "./config": "./src/config.ts",
     "./pipeline": "./src/pipeline.ts",
+    "./slug": "./src/slug.ts",
     "./discover/parseNote": "./src/discover/parseNote.ts",
     "./privacy/classify": "./src/privacy/classify.ts",
     "./privacy/linkRewriter": "./src/privacy/linkRewriter.ts",

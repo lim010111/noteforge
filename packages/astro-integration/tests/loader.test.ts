@@ -116,6 +116,7 @@ function makeConfig(): ObpubConfig {
     publishing: {
       tagBlocklist: ['client/**'],
     },
+    nav: { mode: 'folder' },
   });
 }
 

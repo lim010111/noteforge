@@ -105,4 +105,136 @@ describe('computeSlug', () => {
       expect(computeSlug(input({ relativePath: ' Hello.md' }))).toBe('hello');
     });
   });
+
+  describe("category mode (options.mode === 'category')", () => {
+    it('prefixes filename with slugified category path', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 'PEFT/LoRA' },
+            relativePath: 'temp_drafts/LoRA 란.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('peft/lora/lora-란');
+    });
+
+    it('uses filename only when category is missing (no vault-path leak)', () => {
+      expect(
+        computeSlug(
+          input({ relativePath: 'temp_drafts/sub/Hello.md' }),
+          { mode: 'category' },
+        ),
+      ).toBe('hello');
+    });
+
+    it('uses filename only when category is non-string', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 42 },
+            relativePath: 'temp_drafts/Hello.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('hello');
+    });
+
+    it('uses filename only when category is blank', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: '   ' },
+            relativePath: 'foo/Hello.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('hello');
+    });
+
+    it('drops empty category segments and trims whitespace', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 'A / / B / C ' },
+            relativePath: 'x/y/Note.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('a/b/c/note');
+    });
+
+    it('preserves Korean category segments', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: '에세이/2026' },
+            relativePath: 'somewhere/첫 글.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('에세이/2026/첫-글');
+    });
+
+    it('permalink wins over category mode', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { permalink: 'fixed/path', category: 'PEFT/LoRA' },
+            relativePath: 'a/b.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('fixed/path');
+    });
+
+    it('explicit slug wins over category mode', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { slug: 'short', category: 'PEFT/LoRA' },
+            relativePath: 'a/b.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('short');
+    });
+
+    it('category prefix uses last vault segment regardless of vault depth', () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 'AI' },
+            relativePath: 'a/b/c/d/Final Post.md',
+          }),
+          { mode: 'category' },
+        ),
+      ).toBe('ai/final-post');
+    });
+  });
+
+  describe('folder mode regression (default / explicit)', () => {
+    it("default (no options) preserves existing vault-path behavior", () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 'IGNORED/IN/FOLDER' },
+            relativePath: 'Projects/Foo.md',
+          }),
+        ),
+      ).toBe('projects/foo');
+    });
+
+    it("explicit mode='folder' ignores category", () => {
+      expect(
+        computeSlug(
+          input({
+            frontmatter: { category: 'IGNORED' },
+            relativePath: 'Projects/Foo.md',
+          }),
+          { mode: 'folder' },
+        ),
+      ).toBe('projects/foo');
+    });
+  });
 });

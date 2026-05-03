@@ -187,10 +187,14 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   );
 
   const slugByRelPath = new Map<string, string>();
+  const slugMode = config.nav.mode;
   for (const n of notes) {
     slugByRelPath.set(
       n.relativePath,
-      computeSlug({ frontmatter: n.frontmatter, relativePath: n.relativePath }),
+      computeSlug(
+        { frontmatter: n.frontmatter, relativePath: n.relativePath },
+        { mode: slugMode },
+      ),
     );
   }
 
