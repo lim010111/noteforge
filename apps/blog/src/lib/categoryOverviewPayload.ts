@@ -61,6 +61,17 @@ function toCategoryNote(
   return item;
 }
 
+export interface CategoryOverviewOptions {
+  /**
+   * Whether section headers carry an `href` to a folder-index page. Defaults
+   * to `true` (folder mode). `nav.mode === 'category'` disables folder-index
+   * routes (v0.7), so callers in that mode pass `false` to keep the section
+   * header as plain text — clicking a category never leads to a vault-path
+   * URL leak.
+   */
+  sectionLinks?: boolean;
+}
+
 /**
  * Flatten a folder tree into a Categories-overview view-model.
  *
@@ -81,17 +92,21 @@ function toCategoryNote(
 export function buildCategoryOverviewSections(
   root: FolderNode,
   dateBySlug: ReadonlyMap<string, string>,
+  options: CategoryOverviewOptions = {},
 ): CategoryOverviewSection[] {
+  const sectionLinks = options.sectionLinks ?? true;
+
   const sections: CategoryOverviewSection[] = root.children.map((child) => {
     const flattened = collectDescendantNotes(child);
     const notes = flattened
       .map((n) => toCategoryNote(n, dateBySlug))
       .sort(compareNotes);
-    return {
+    const section: CategoryOverviewSection = {
       name: child.name,
-      href: `/${child.path}/`,
       notes,
     };
+    if (sectionLinks) section.href = `/${child.path}/`;
+    return section;
   });
 
   sections.sort(compareSections);

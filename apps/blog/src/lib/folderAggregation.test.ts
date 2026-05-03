@@ -9,6 +9,7 @@ import {
   assertNoFolderCollisions,
 } from './routeCollisions.ts';
 import {
+  buildCategoryTree,
   buildFolderIndexViewModel,
   buildFolderTree,
   walkFolders,
@@ -564,5 +565,176 @@ describe('apps-level collision throw — case (d) routing-layer guard', () => {
     const trailer = '(apps/blog/src/pages/[...slug].astro)';
     expect(folderMsg).toContain(trailer);
     expect(aliasMsg).toContain(trailer);
+  });
+});
+
+// ── buildCategoryTree (v0.7) ────────────────────────────────────────────────
+// Mirrors the buildFolderTree contract but takes its tree position from the
+// frontmatter `category` field instead of `entry.id`. The leaf `slug` stays
+// `entry.id` so URLs continue to resolve via the existing vault-path routes.
+
+describe('buildCategoryTree — empty input', () => {
+  it('returns an empty root', () => {
+    expect(buildCategoryTree([])).toEqual({
+      name: '',
+      path: '',
+      children: [],
+      notes: [],
+    });
+  });
+});
+
+describe('buildCategoryTree — single-segment category', () => {
+  it('places a note under one folder when category is a bare string', () => {
+    const tree = buildCategoryTree([
+      makeEntry('AI/Claude/agents', {
+        title: 'agents',
+        frontmatter: { category: 'Tech' },
+      }),
+    ]);
+    expect(tree.children).toHaveLength(1);
+    const tech = tree.children[0]!;
+    expect(tech.name).toBe('Tech');
+    expect(tech.path).toBe('Tech');
+    expect(tech.notes).toEqual([{ slug: 'AI/Claude/agents', title: 'agents' }]);
+  });
+});
+
+describe('buildCategoryTree — nested slash-separated category', () => {
+  it('builds 에세이/2026 nesting from frontmatter', () => {
+    const tree = buildCategoryTree([
+      makeEntry('temp_drafts/diary-1', {
+        title: 'diary-1',
+        frontmatter: { category: '에세이/2026' },
+      }),
+    ]);
+    expect(tree.children).toHaveLength(1);
+    const essay = tree.children[0]!;
+    expect(essay.name).toBe('에세이');
+    expect(essay.path).toBe('에세이');
+    expect(essay.notes).toEqual([]);
+    expect(essay.children).toHaveLength(1);
+    const y2026 = essay.children[0]!;
+    expect(y2026.name).toBe('2026');
+    expect(y2026.path).toBe('에세이/2026');
+    expect(y2026.notes).toEqual([
+      { slug: 'temp_drafts/diary-1', title: 'diary-1' },
+    ]);
+  });
+
+  it('groups multiple notes that share the same category path', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: '에세이/2026' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: '에세이/2026' } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: '에세이/2025' } }),
+    ]);
+    const essay = tree.children[0]!;
+    expect(essay.children.map((c) => c.name)).toEqual(['2025', '2026']);
+    const y2026 = essay.children.find((c) => c.name === '2026')!;
+    expect(y2026.notes.map((n) => n.slug)).toEqual(['a', 'b']);
+    const y2025 = essay.children.find((c) => c.name === '2025')!;
+    expect(y2025.notes.map((n) => n.slug)).toEqual(['c']);
+  });
+});
+
+describe('buildCategoryTree — missing or invalid category', () => {
+  it('drops a note with no category into root.notes (Uncategorized)', () => {
+    const tree = buildCategoryTree([
+      makeEntry('AI/Claude/agents', {
+        title: 'agents',
+        frontmatter: {},
+      }),
+    ]);
+    expect(tree.children).toEqual([]);
+    expect(tree.notes).toEqual([
+      { slug: 'AI/Claude/agents', title: 'agents' },
+    ]);
+  });
+
+  it('treats a non-string category (number, array, object) as Uncategorized', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 42 } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: ['x'] } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: { x: 1 } } }),
+    ]);
+    expect(tree.children).toEqual([]);
+    expect(tree.notes.map((n) => n.slug)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('treats an empty / whitespace-only category string as Uncategorized', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: '' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: '   ' } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: '/' } }),
+    ]);
+    expect(tree.children).toEqual([]);
+    expect(tree.notes.map((n) => n.slug)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('buildCategoryTree — path normalisation', () => {
+  it('strips leading and trailing slashes', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: '/Tech/' } }),
+    ]);
+    expect(tree.children).toHaveLength(1);
+    expect(tree.children[0]!.path).toBe('Tech');
+  });
+
+  it('collapses internal double slashes into a single segment boundary', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'Tech//AI' } }),
+    ]);
+    const tech = tree.children[0]!;
+    expect(tech.name).toBe('Tech');
+    expect(tech.children).toHaveLength(1);
+    expect(tech.children[0]!.name).toBe('AI');
+  });
+
+  it('trims whitespace around each segment', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: ' Tech / AI ' } }),
+    ]);
+    const tech = tree.children[0]!;
+    expect(tech.name).toBe('Tech');
+    expect(tech.children[0]!.name).toBe('AI');
+  });
+});
+
+describe('buildCategoryTree — leaf slug invariant', () => {
+  it('keeps each leaf note slug equal to entry.id regardless of category path', () => {
+    const tree = buildCategoryTree([
+      makeEntry('temp_drafts/2026/일기', {
+        title: 'Diary',
+        frontmatter: { category: '에세이/2026' },
+      }),
+    ]);
+    const essay = tree.children[0]!;
+    const y2026 = essay.children[0]!;
+    expect(y2026.notes[0]?.slug).toBe('temp_drafts/2026/일기');
+  });
+});
+
+describe('buildCategoryTree — sort and skip', () => {
+  it('sorts folders and notes case-insensitively', () => {
+    const tree = buildCategoryTree([
+      makeEntry('z', { title: 'z', frontmatter: { category: 'Zeta' } }),
+      makeEntry('a', { title: 'a', frontmatter: { category: 'alpha' } }),
+      makeEntry('m', { title: 'm', frontmatter: { category: 'Mango' } }),
+    ]);
+    expect(tree.children.map((c) => c.name)).toEqual(['alpha', 'Mango', 'Zeta']);
+  });
+
+  it('silently skips alias-redirect entries', () => {
+    const tree = buildCategoryTree([
+      makeAlias('legacy/old', 'posts/new'),
+      makeEntry('posts/new', {
+        title: 'new',
+        frontmatter: { category: 'Tech' },
+      }),
+    ]);
+    const tech = tree.children[0]!;
+    expect(tech.notes.map((n) => n.slug)).toEqual(['posts/new']);
+    expect(tree.children.map((c) => c.name)).not.toContain('legacy');
   });
 });

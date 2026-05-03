@@ -142,6 +142,45 @@ describe('buildCategoryOverviewSections', () => {
     expect(sections[0]?.notes[4]?.date).toBeUndefined();
   });
 
+  it('omits section href when sectionLinks option is false (category mode)', () => {
+    const root = folder('', '', {
+      notes: [{ slug: 'orphan', title: 'Orphan' }],
+      children: [
+        folder('Tech', 'Tech', {
+          notes: [{ slug: 'temp/x', title: 'X' }],
+        }),
+        folder('에세이', '에세이', {
+          children: [
+            folder('2026', '에세이/2026', {
+              notes: [{ slug: 'temp/diary', title: 'Diary' }],
+            }),
+          ],
+        }),
+      ],
+    });
+    const sections = buildCategoryOverviewSections(root, new Map(), {
+      sectionLinks: false,
+    });
+    for (const s of sections) {
+      expect(s.href).toBeUndefined();
+    }
+    // Note hrefs are unaffected — they still resolve via the vault-path routes.
+    expect(sections.find((s) => s.name === 'Tech')?.notes[0]?.href).toBe(
+      '/temp/x/',
+    );
+    expect(sections.find((s) => s.name === 'Uncategorized')).toBeDefined();
+  });
+
+  it('keeps section href by default (sectionLinks defaults to true)', () => {
+    const root = folder('', '', {
+      children: [
+        folder('AI', 'AI', { notes: [{ slug: 'AI/x', title: 'X' }] }),
+      ],
+    });
+    const sections = buildCategoryOverviewSections(root, new Map());
+    expect(sections[0]?.href).toBe('/AI/');
+  });
+
   it('carries preview metadata from folder notes into overview notes', () => {
     const root = folder('', '', {
       children: [

@@ -110,6 +110,78 @@ export function buildFolderTree(
   return root;
 }
 
+function categorySegments(raw: unknown): string[] {
+  if (typeof raw !== 'string') return [];
+  const segs: string[] = [];
+  for (const part of raw.split('/')) {
+    const trimmed = part.trim();
+    if (trimmed.length > 0) segs.push(trimmed);
+  }
+  return segs;
+}
+
+/**
+ * Build a folder tree keyed by frontmatter `category` instead of vault path.
+ *
+ * Same `FolderNode` shape as `buildFolderTree` so renderers and downstream
+ * payload helpers (`buildCategoryOverviewSections`, `buildSidebarPayload`) can
+ * consume either tree without conditional rendering. Differences:
+ *
+ * - Tree position comes from `entry.data.frontmatter['category']` split on
+ *   `/`. Whitespace-only segments and bare `/` resolve to no category.
+ * - Notes whose category is missing, blank, or non-string land in `root.notes`
+ *   so `buildCategoryOverviewSections` materialises them as `Uncategorized`
+ *   without needing a separate code path.
+ * - Leaf `slug` is still `entry.id` — URLs continue to resolve through the
+ *   vault-path routes; this helper only drives nav grouping (v0.7 explicitly
+ *   defers URL hiding to a follow-up).
+ */
+export function buildCategoryTree(
+  entries: readonly NoteEntry[],
+): FolderNode {
+  const root: FolderNode = { name: '', path: '', children: [], notes: [] };
+
+  for (const entry of entries) {
+    const kind = (entry.data as { kind?: string }).kind;
+    if (kind !== 'note') continue;
+    if (entry.id.length === 0) continue;
+
+    const segments = categorySegments(entry.data.frontmatter['category']);
+
+    let cursor = root;
+    for (let i = 0; i < segments.length; i++) {
+      const segName = segments[i]!;
+      let child = cursor.children.find((c) => c.name === segName);
+      if (child === undefined) {
+        child = {
+          name: segName,
+          path: segments.slice(0, i + 1).join('/'),
+          children: [],
+          notes: [],
+        };
+        cursor.children.push(child);
+      }
+      cursor = child;
+    }
+
+    const thumbnail = thumbnailForEntry(entry);
+    const description = descriptionForEntry(entry);
+    const tags = tagsForEntry(entry);
+    const date = coerceDate(entry.data.frontmatter['date']);
+    cursor.notes.push({
+      slug: entry.id,
+      title: noteTitle(entry),
+      ...(description !== undefined ? { description } : {}),
+      ...(tags.length > 0 ? { tags } : {}),
+      ...(date !== undefined ? { date } : {}),
+      ...(thumbnail !== undefined ? { thumbnail } : {}),
+    });
+  }
+
+  sortTree(root);
+  return root;
+}
+
 function countNotesRecursive(node: FolderNode): number {
   let n = node.notes.length;
   for (const child of node.children) n += countNotesRecursive(child);
