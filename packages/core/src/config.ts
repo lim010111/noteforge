@@ -18,6 +18,7 @@ const DEFAULT_FRONTMATTER_ALLOWLIST = [
   'permalink',
   'lang',
   'featured',
+  'category',
 ] as const;
 
 const DEFAULT_ALLOWED_EXTENSIONS = [
@@ -118,6 +119,12 @@ const graphSchema = z
   })
   .default({});
 
+const navSchema = z
+  .object({
+    mode: z.enum(['folder', 'category']).default('category'),
+  })
+  .default({});
+
 const rawConfigSchema = z
   .object({
     site: siteSchema,
@@ -129,6 +136,7 @@ const rawConfigSchema = z
     privateLinkBehavior: z.literal('strip-to-text').default('strip-to-text'),
     attachments: attachmentsSchema,
     graph: graphSchema,
+    nav: navSchema,
     unsafeAllowPrivateFolder: z.boolean().default(false),
   })
   .superRefine((cfg, ctx) => {
