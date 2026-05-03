@@ -26,7 +26,11 @@ const { tag, entries } = Astro.props as Props;
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
-const sidebar = buildSidebarPayload(await getCollection('notes'));
+const sidebar = buildSidebarPayload(
+  await getCollection('notes'),
+  undefined,
+  obpubConfig.nav.mode,
+);
 ---
 <BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
   <TagPage tagpage={{ tag, entries }} />

@@ -32,7 +32,11 @@ const about: AboutContent | undefined =
         ...(aboutCfg.headline !== undefined ? { headline: aboutCfg.headline } : {}),
       };
 
-const sidebar = buildSidebarPayload(await getCollection('notes'));
+const sidebar = buildSidebarPayload(
+  await getCollection('notes'),
+  undefined,
+  obpubConfig.nav.mode,
+);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );

@@ -74,18 +74,26 @@ export const getStaticPaths: GetStaticPaths = async () => {
   // `publishable` set the note routes use — privacy filtering happens once
   // upstream, never re-derived here. Root folder (path '') is excluded; that
   // URL is owned by `apps/blog/src/pages/index.astro`.
-  const tree = buildFolderTree(publishable);
+  //
+  // v0.7: when `nav.mode === 'category'` the sidebar/Categories page is
+  // rebuilt from the frontmatter `category` field, and folder-index routes
+  // would otherwise leak vault paths (or, worse, surface category names —
+  // which can be Korean — into URLs). So we skip emitting them entirely in
+  // category mode and let `<details>` toggles in FolderTree do the navigating.
   const folderRoutes: Array<{
     params: { slug: string };
     props: { kind: 'folder-index'; viewModel: FolderIndexViewModel };
   }> = [];
-  for (const folder of walkFolders(tree)) {
-    const viewModel = buildFolderIndexViewModel(tree, folder.path);
-    if (viewModel === null) continue;
-    folderRoutes.push({
-      params: { slug: folder.path },
-      props: { kind: 'folder-index', viewModel },
-    });
+  if (obpubConfig.nav.mode === 'folder') {
+    const tree = buildFolderTree(publishable);
+    for (const folder of walkFolders(tree)) {
+      const viewModel = buildFolderIndexViewModel(tree, folder.path);
+      if (viewModel === null) continue;
+      folderRoutes.push({
+        params: { slug: folder.path },
+        props: { kind: 'folder-index', viewModel },
+      });
+    }
   }
 
   assertNoFolderCollisions(
@@ -147,7 +155,11 @@ if (props.kind === 'note') {
     new URL(Astro.url.pathname, siteOrigin).toString(),
   );
   const all = await getCollection('notes');
-  sidebar = buildSidebarPayload(all, { activeSlug: props.entry.id });
+  sidebar = buildSidebarPayload(
+    all,
+    { activeSlug: props.entry.id },
+    obpubConfig.nav.mode,
+  );
 } else if (props.kind === 'alias-redirect') {
   const absoluteTo = new URL(props.to, siteOrigin).toString();
   const vm = entryToAliasRedirectViewModel(props.entry, absoluteTo);
@@ -162,9 +174,11 @@ if (props.kind === 'note') {
   );
   folderTitle = props.viewModel.folderName;
   const all = await getCollection('notes');
-  sidebar = buildSidebarPayload(all, {
-    activeFolderPath: `${props.viewModel.folderPath}/`,
-  });
+  sidebar = buildSidebarPayload(
+    all,
+    { activeFolderPath: `${props.viewModel.folderPath}/` },
+    obpubConfig.nav.mode,
+  );
 }
 ---
 {props.kind === 'alias-redirect' ? (

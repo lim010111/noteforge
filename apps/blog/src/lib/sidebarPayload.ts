@@ -5,8 +5,10 @@ import type { FolderNode } from '@noteforge/theme-default';
 // barrel above are erased at compile time and remain safe.
 import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default/lib/categoryAccent.ts';
 import { filterPublishable, type NotesEntry } from './viewModels.ts';
-import { buildFolderTree } from './folderAggregation.ts';
+import { buildCategoryTree, buildFolderTree } from './folderAggregation.ts';
 import obpubConfig from '../../obsidian-blog.config.ts';
+
+export type NavMode = 'folder' | 'category';
 
 /**
  * View-model the route layer hands to `<BaseLayout sidebar={...} />`.
@@ -44,9 +46,13 @@ export interface SidebarPayload {
 export function buildSidebarPayload(
   allEntries: readonly NotesEntry[],
   options?: { activeSlug?: string; activeFolderPath?: string },
+  mode: NavMode = 'category',
 ): SidebarPayload {
   const publishable = filterPublishable(allEntries);
-  const folderTree = buildFolderTree(publishable);
+  const folderTree =
+    mode === 'category'
+      ? buildCategoryTree(publishable)
+      : buildFolderTree(publishable);
 
   const payload: SidebarPayload = {
     folderTree,

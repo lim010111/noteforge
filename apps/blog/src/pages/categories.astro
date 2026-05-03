@@ -13,14 +13,21 @@ import {
   filterPublishable,
   type NoteEntry,
 } from '../lib/viewModels.ts';
-import { buildFolderTree } from '../lib/folderAggregation.ts';
+import {
+  buildCategoryTree,
+  buildFolderTree,
+} from '../lib/folderAggregation.ts';
 import { buildCategoryOverviewSections } from '../lib/categoryOverviewPayload.ts';
 import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
 import '../styles/global.css';
 
+const navMode = obpubConfig.nav.mode;
 const all = await getCollection('notes');
 const publishable = filterPublishable(all);
-const tree = buildFolderTree(publishable);
+const tree =
+  navMode === 'category'
+    ? buildCategoryTree(publishable)
+    : buildFolderTree(publishable);
 
 const dateBySlug = new Map<string, string>();
 for (const entry of publishable as readonly NoteEntry[]) {
@@ -31,8 +38,9 @@ for (const entry of publishable as readonly NoteEntry[]) {
 const sections: CategoryOverviewSection[] = buildCategoryOverviewSections(
   tree,
   dateBySlug,
+  { sectionLinks: navMode !== 'category' },
 );
-const sidebar = buildSidebarPayload(all);
+const sidebar = buildSidebarPayload(all, undefined, navMode);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );

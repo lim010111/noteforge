@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default/lib/categoryAccent.ts';
 import type { NoteEntry, NotesEntry } from './viewModels.ts';
 import { filterPublishable } from './viewModels.ts';
-import { buildFolderTree } from './folderAggregation.ts';
+import { buildCategoryTree, buildFolderTree } from './folderAggregation.ts';
 
 // Hoisted mutable holder — vi.mock factory bodies are hoisted above all
 // `import` statements, so any `let`/`const` they reference must come from a
@@ -66,7 +66,7 @@ describe('buildSidebarPayload — payload shape', () => {
       makeEntry('posts/foo', { title: 'foo' }),
     ];
     const direct = buildFolderTree(filterPublishable(entries));
-    const payload = buildSidebarPayload(entries);
+    const payload = buildSidebarPayload(entries, undefined, 'folder');
     expect(payload.folderTree).toEqual(direct);
   });
 });
@@ -121,6 +121,60 @@ describe('buildSidebarPayload — slot count SSOT', () => {
   it('emits slotCount equal to CATEGORY_ACCENT_SLOT_COUNT (no magic number)', () => {
     const payload = buildSidebarPayload([makeEntry('a', { title: 'a' })]);
     expect(payload.slotCount).toBe(CATEGORY_ACCENT_SLOT_COUNT);
+  });
+});
+
+describe('buildSidebarPayload — nav.mode (v0.7)', () => {
+  const entries: NotesEntry[] = [
+    makeEntry('temp_drafts/diary-1', {
+      title: 'diary-1',
+      frontmatter: { category: '에세이/2026' },
+    }),
+    makeEntry('AI/Claude/agents', {
+      title: 'agents',
+      frontmatter: { category: 'Tech/AI' },
+    }),
+    makeEntry('about', { title: 'About' }),
+  ];
+
+  it("defaults to category mode (matches buildCategoryTree) when mode is omitted", () => {
+    const direct = buildCategoryTree(filterPublishable(entries));
+    const payload = buildSidebarPayload(entries);
+    expect(payload.folderTree).toEqual(direct);
+  });
+
+  it("default differs from explicit 'folder' tree (default is no longer vault-path)", () => {
+    const defaulted = buildSidebarPayload(entries);
+    const folderOptIn = buildSidebarPayload(entries, undefined, 'folder');
+    expect(defaulted.folderTree).not.toEqual(folderOptIn.folderTree);
+  });
+
+  it("explicit mode 'folder' produces the vault-path tree (opt-in path preserved)", () => {
+    const direct = buildFolderTree(filterPublishable(entries));
+    const payload = buildSidebarPayload(entries, undefined, 'folder');
+    expect(payload.folderTree).toEqual(direct);
+  });
+
+  it("mode 'category' uses the frontmatter `category` field for the tree", () => {
+    const direct = buildCategoryTree(filterPublishable(entries));
+    const payload = buildSidebarPayload(entries, undefined, 'category');
+    expect(payload.folderTree).toEqual(direct);
+
+    const childNames = payload.folderTree.children.map((c) => c.name);
+    expect(childNames).toContain('Tech');
+    expect(childNames).toContain('에세이');
+    expect(childNames).not.toContain('AI');
+    expect(childNames).not.toContain('temp_drafts');
+  });
+
+  it("mode 'category' still threads activeSlug/activeFolderPath through", () => {
+    const payload = buildSidebarPayload(
+      entries,
+      { activeSlug: 'temp_drafts/diary-1', activeFolderPath: '에세이/2026/' },
+      'category',
+    );
+    expect(payload.activeSlug).toBe('temp_drafts/diary-1');
+    expect(payload.activeFolderPath).toBe('에세이/2026/');
   });
 });
 

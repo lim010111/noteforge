@@ -19,7 +19,7 @@ const all = await getCollection('notes');
 const publishable = filterPublishable(all);
 const recent = selectRecent(publishable);
 const featured = selectFeatured(publishable);
-const sidebar = buildSidebarPayload(all);
+const sidebar = buildSidebarPayload(all, undefined, obpubConfig.nav.mode);
 
 interface HomeRailItem {
   href: string;
