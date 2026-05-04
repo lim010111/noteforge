@@ -11,6 +11,7 @@ import {
 import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   buildBacklinksViewModel,
+  displayTitleForEntry,
   ensureTrailingSlash,
   entryToAliasRedirectViewModel,
   entryToNoteViewModel,
@@ -38,7 +39,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const all = await getCollection('notes');
   const publishable = filterPublishable(all);
   const titleBySlug = new Map(
-    publishable.map((e) => [e.id, e.data.title ?? e.id] as const),
+    publishable.map((e) => [e.id, displayTitleForEntry(e)] as const),
   );
 
   const noteRoutes = publishable.map((entry) => ({

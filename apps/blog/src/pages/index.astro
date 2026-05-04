@@ -5,9 +5,9 @@ import obpubConfig from '../../obsidian-blog.config.ts';
 import {
   coerceDate,
   descriptionForEntry,
+  displayTitleForEntry,
   ensureTrailingSlash,
   filterPublishable,
-  slugBasename,
   tagsForEntry,
   type NoteEntry,
 } from '../lib/viewModels.ts';
@@ -35,10 +35,7 @@ function toItems(entries: readonly NoteEntry[]): HomeRailItem[] {
     const date = coerceDate(entry.data.frontmatter['date']);
     const item: HomeRailItem = {
       href: `/${entry.id}/`,
-      // v0.5 — when a note has no frontmatter title, surface the slug's last
-      // segment ("lora") rather than its full path ("ai/gen-ai/공부-일지/lora").
-      // The latter was the user-visible "/" rail that read as URL noise.
-      title: entry.data.title ?? slugBasename(entry.id),
+      title: displayTitleForEntry(entry),
     };
     const description = descriptionForEntry(entry);
     const tags = tagsForEntry(entry);

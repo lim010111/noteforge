@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   coerceDate,
   descriptionForEntry,
+  displayTitleForEntry,
   slugBasename,
   tagsForEntry,
   thumbnailForEntry,
@@ -52,6 +53,99 @@ describe('slugBasename', () => {
     // must not crash or invent a name. Returning '' makes the misuse
     // visible in test output rather than masking it with a guess.
     expect(slugBasename('foo/bar/')).toBe('');
+  });
+});
+
+describe('displayTitleForEntry', () => {
+  function entry(
+    id: string,
+    data: Record<string, unknown> = {},
+  ): NoteEntry {
+    return {
+      id,
+      collection: 'notes',
+      data: {
+        kind: 'note',
+        frontmatter: {},
+        tags: [],
+        backlinks: [],
+        ...data,
+      },
+      rendered: { html: '', metadata: {} },
+    } as unknown as NoteEntry;
+  }
+
+  it('prefers loader-provided data.title (frontmatter.title routed through schema)', () => {
+    expect(
+      displayTitleForEntry(
+        entry('peft/lora/lora 란', {
+          title: 'Curated Title',
+          frontmatter: { title: 'shadowed' },
+          sourcePath: 'PEFT/LoRA/LoRA 란.md',
+        }),
+      ),
+    ).toBe('Curated Title');
+  });
+
+  it('falls back to frontmatter.title when data.title is absent', () => {
+    expect(
+      displayTitleForEntry(
+        entry('peft/lora/lora 란', {
+          frontmatter: { title: 'From Frontmatter' },
+          sourcePath: 'PEFT/LoRA/LoRA 란.md',
+        }),
+      ),
+    ).toBe('From Frontmatter');
+  });
+
+  it('falls back to sourcePath basename (original casing/spacing) when title is absent', () => {
+    // The whole point of this helper: an Obsidian note authored as
+    // `LoRA 란.md` without a frontmatter title still surfaces as `LoRA 란`,
+    // not the lowercased slug `lora 란`.
+    expect(
+      displayTitleForEntry(
+        entry('peft/lora/lora 란', {
+          sourcePath: 'PEFT/LoRA/LoRA 란.md',
+        }),
+      ),
+    ).toBe('LoRA 란');
+  });
+
+  it('preserves Korean basename casing/spacing when title is absent', () => {
+    expect(
+      displayTitleForEntry(
+        entry('에세이/2025/첫 글', {
+          sourcePath: '에세이/2025/첫 글.md',
+        }),
+      ),
+    ).toBe('첫 글');
+  });
+
+  it('strips .markdown extension as well as .md', () => {
+    expect(
+      displayTitleForEntry(
+        entry('notes/test', { sourcePath: 'Notes/Test.markdown' }),
+      ),
+    ).toBe('Test');
+  });
+
+  it('skips an empty-string frontmatter title and falls through to the next source', () => {
+    // gray-matter parses `title:` (no value) as `undefined` already, but
+    // an empty quoted string `title: ""` slips through. Treat both as absent.
+    expect(
+      displayTitleForEntry(
+        entry('peft/lora/lora 란', {
+          frontmatter: { title: '' },
+          sourcePath: 'PEFT/LoRA/LoRA 란.md',
+        }),
+      ),
+    ).toBe('LoRA 란');
+  });
+
+  it('falls all the way through to slug last-segment when title and sourcePath are absent', () => {
+    // Test fixtures don't always set sourcePath; production loader does.
+    // The last-resort fallback keeps the helper non-throwing.
+    expect(displayTitleForEntry(entry('peft/lora/lora 란'))).toBe('lora 란');
   });
 });
 

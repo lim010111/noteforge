@@ -14,6 +14,7 @@ import {
 import {
   coerceDate,
   descriptionForEntry,
+  displayTitleForEntry,
   tagsForEntry,
   thumbnailForEntry,
   type NoteEntry,
@@ -23,17 +24,15 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
-function lastSegment(slug: string): string {
-  const i = slug.lastIndexOf('/');
-  return i === -1 ? slug : slug.slice(i + 1);
-}
-
-function noteTitle(entry: NoteEntry): string {
-  return (
-    entry.data.title ??
-    asString(entry.data.frontmatter['title']) ??
-    lastSegment(entry.id)
+function sourceFolderSegments(entry: NoteEntry): string[] | null {
+  const sourcePath = asString(
+    (entry.data as { sourcePath?: unknown }).sourcePath,
   );
+  if (sourcePath === undefined) return null;
+  const cleaned = sourcePath.replace(/\.(md|markdown)$/i, '');
+  const segments = cleaned.split('/');
+  // Drop the filename segment — only ancestors are needed for tree node names.
+  return segments.slice(0, -1);
 }
 
 function compareCaseInsensitive(a: string, b: string): number {
@@ -74,17 +73,29 @@ export function buildFolderTree(
     if (kind !== 'note') continue;
     if (entry.id.length === 0) continue;
 
-    const segments = entry.id.split('/');
-    const folderSegments = segments.slice(0, -1);
+    // Slug segments drive `path` (URL identity, lowercased).
+    // sourcePath segments drive `name` (display, original on-disk casing).
+    // When sourcePath is absent (test fixtures), fall back to slug segments
+    // so the existing tests that author entry.id with original casing still
+    // pass.
+    const slugSegments = entry.id.split('/');
+    const folderSlugs = slugSegments.slice(0, -1);
+    const sourceFolders = sourceFolderSegments(entry);
+    const useSourceNames =
+      sourceFolders !== null && sourceFolders.length === folderSlugs.length;
+    const folderNames = useSourceNames ? sourceFolders! : folderSlugs;
 
     let cursor = root;
-    for (let i = 0; i < folderSegments.length; i++) {
-      const segName = folderSegments[i]!;
-      let child = cursor.children.find((c) => c.name === segName);
+    for (let i = 0; i < folderSlugs.length; i++) {
+      const cumulativePath = folderSlugs.slice(0, i + 1).join('/');
+      // Match by `path` (URL identity). Two display names that resolve to
+      // the same slug path collapse into a single node — first-seen casing
+      // wins.
+      let child = cursor.children.find((c) => c.path === cumulativePath);
       if (child === undefined) {
         child = {
-          name: segName,
-          path: folderSegments.slice(0, i + 1).join('/'),
+          name: folderNames[i]!,
+          path: cumulativePath,
           children: [],
           notes: [],
         };
@@ -99,7 +110,7 @@ export function buildFolderTree(
     const date = coerceDate(entry.data.frontmatter['date']);
     cursor.notes.push({
       slug: entry.id,
-      title: noteTitle(entry),
+      title: displayTitleForEntry(entry),
       ...(description !== undefined ? { description } : {}),
       ...(tags.length > 0 ? { tags } : {}),
       ...(date !== undefined ? { date } : {}),
@@ -185,7 +196,7 @@ export function buildCategoryTree(
     const date = coerceDate(entry.data.frontmatter['date']);
     cursor.notes.push({
       slug: entry.id,
-      title: noteTitle(entry),
+      title: displayTitleForEntry(entry),
       ...(description !== undefined ? { description } : {}),
       ...(tags.length > 0 ? { tags } : {}),
       ...(date !== undefined ? { date } : {}),
@@ -201,21 +212,6 @@ function countNotesRecursive(node: FolderNode): number {
   let n = node.notes.length;
   for (const child of node.children) n += countNotesRecursive(child);
   return n;
-}
-
-function findFolderByPath(
-  root: FolderNode,
-  path: string,
-): FolderNode | null {
-  if (path === '') return root;
-  const segments = path.split('/');
-  let cursor: FolderNode = root;
-  for (const seg of segments) {
-    const next = cursor.children.find((c) => c.name === seg);
-    if (next === undefined) return null;
-    cursor = next;
-  }
-  return cursor;
 }
 
 /**
@@ -258,17 +254,25 @@ export function buildFolderIndexViewModel(
   root: FolderNode,
   folderPath: string,
 ): FolderIndexViewModel | null {
-  const node = findFolderByPath(root, folderPath);
-  if (node === null) return null;
-
-  const segments = folderPath.length === 0 ? [] : folderPath.split('/');
+  const slugSegments = folderPath.length === 0 ? [] : folderPath.split('/');
   const breadcrumb: FolderIndexViewModel['breadcrumb'] = [
     { label: 'home', href: '/' },
   ];
-  for (let i = 0; i < segments.length; i++) {
-    const subPath = segments.slice(0, i + 1).join('/');
-    breadcrumb.push({ label: segments[i]!, href: `/${subPath}/` });
+  // Walk the tree so each crumb pairs the node's display `name` (original
+  // on-disk casing) with the slugified `path` for the href. Mirrors the
+  // pattern in `buildCategoryIndexViewModel`.
+  let cursor: FolderNode = root;
+  for (let i = 0; i < slugSegments.length; i++) {
+    const seg = slugSegments[i]!;
+    const next = cursor.children.find((c) => {
+      const tail = c.path.split('/').pop();
+      return tail === seg;
+    });
+    if (next === undefined) return null;
+    breadcrumb.push({ label: next.name, href: `/${next.path}/` });
+    cursor = next;
   }
+  const node = cursor;
 
   const childFolders = node.children.map((child) => ({
     name: child.name,
@@ -292,7 +296,7 @@ export function buildFolderIndexViewModel(
     childNotes,
   };
 
-  const firstSegment = segments[0];
+  const firstSegment = slugSegments[0];
   if (firstSegment !== undefined) {
     const slot = pickCategoryAccentSlot(firstSegment, CATEGORY_ACCENT_SLOT_COUNT);
     if (slot !== null) {

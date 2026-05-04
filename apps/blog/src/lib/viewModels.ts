@@ -76,8 +76,41 @@ export function slugBasename(slug: string): string {
   return i === -1 ? slug : slug.slice(i + 1);
 }
 
-function lastSegment(slug: string): string {
-  return slugBasename(slug);
+/**
+ * Resolve the user-facing display title for a note entry, preserving the
+ * original casing of the on-disk filename when no frontmatter title is set.
+ *
+ * Resolution order:
+ *   1. `entry.data.title` — populated by the loader from frontmatter.title.
+ *   2. `entry.data.frontmatter.title` — defensive read; same source as (1).
+ *   3. Basename of `entry.data.sourcePath` (vault relative path), with the
+ *      `.md` / `.markdown` extension stripped. This is the fix for the
+ *      "Obsidian filename has uppercase, publish lowercases it" bug — slug
+ *      segments are lowercased for URL identity, but the display title must
+ *      reflect the author's filename verbatim.
+ *   4. `slugBasename(entry.id)` — last-resort fallback (lowercased by
+ *      construction). Reachable only when both frontmatter title and
+ *      sourcePath are absent, which is true for some test fixtures but not
+ *      for production entries — the loader always populates sourcePath.
+ *
+ * Empty-string frontmatter titles (`title: ""`) fall through to the next
+ * source so an accidentally blank value does not blank out the listing.
+ */
+export function displayTitleForEntry(entry: NoteEntry): string {
+  const fm = entry.data.frontmatter;
+  const explicit = entry.data.title ?? asString(fm['title']);
+  if (explicit !== undefined && explicit.length > 0) return explicit;
+
+  const sourcePath = asString(
+    (entry.data as { sourcePath?: unknown }).sourcePath,
+  );
+  if (sourcePath !== undefined) {
+    const last = sourcePath.split('/').pop() ?? '';
+    const cleaned = last.replace(/\.(md|markdown)$/i, '');
+    if (cleaned.length > 0) return cleaned;
+  }
+
+  return slugBasename(entry.id);
 }
 
 /**
@@ -120,8 +153,7 @@ export function entryToNoteViewModel(
   body: string,
 ): NoteViewModel {
   const fm = entry.data.frontmatter;
-  const title =
-    entry.data.title ?? asString(fm['title']) ?? lastSegment(entry.id);
+  const title = displayTitleForEntry(entry);
   const date = coerceDate(fm['date']);
   const updated = coerceDate(fm['updated']);
   const description = asString(fm['description']);

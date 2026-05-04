@@ -25,6 +25,7 @@ interface NoteEntryDataInput {
   backlinks?: string[];
   heroImage?: string;
   thumbnailImage?: string;
+  sourcePath?: string;
 }
 
 function makeEntry(id: string, data: NoteEntryDataInput = {}): NoteEntry {
@@ -40,6 +41,9 @@ function makeEntry(id: string, data: NoteEntryDataInput = {}): NoteEntry {
       ...(data.heroImage !== undefined ? { heroImage: data.heroImage } : {}),
       ...(data.thumbnailImage !== undefined
         ? { thumbnailImage: data.thumbnailImage }
+        : {}),
+      ...(data.sourcePath !== undefined
+        ? { sourcePath: data.sourcePath }
         : {}),
     },
     rendered: { html: '', metadata: {} },
@@ -233,6 +237,52 @@ describe('buildFolderTree — folder-vs-note slug collision', () => {
   });
 });
 
+describe('buildFolderTree — sourcePath original casing', () => {
+  it('uses sourcePath segments for child.name when present (original casing preserved)', () => {
+    // Production loader feeds `entry.id` (lowercased slug) and
+    // `entry.data.sourcePath` (vault relative path with original casing).
+    // The tree must surface the original casing for display while keeping
+    // the slug for URL identity.
+    const tree = buildFolderTree([
+      makeEntry('peft/lora/lora 란', {
+        sourcePath: 'PEFT/LoRA/LoRA 란.md',
+      }),
+    ]);
+    expect(tree.children).toHaveLength(1);
+    const peft = tree.children[0]!;
+    expect(peft.name).toBe('PEFT');
+    expect(peft.path).toBe('peft');
+
+    expect(peft.children).toHaveLength(1);
+    const lora = peft.children[0]!;
+    expect(lora.name).toBe('LoRA');
+    expect(lora.path).toBe('peft/lora');
+  });
+
+  it('falls back to slug segments when sourcePath is absent (test fixture parity)', () => {
+    // Existing fixtures author entry.id with original casing directly.
+    // Without sourcePath, the tree must keep that behaviour.
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/agents', { title: 'agents' }),
+    ]);
+    const ai = tree.children[0]!;
+    expect(ai.name).toBe('AI');
+    expect(ai.path).toBe('AI');
+  });
+
+  it('uses the note basename from sourcePath for the note title fallback', () => {
+    // No frontmatter title — title falls through to sourcePath basename
+    // (`LoRA 란`), not the lowercased slug last-segment (`lora 란`).
+    const tree = buildFolderTree([
+      makeEntry('peft/lora/lora 란', {
+        sourcePath: 'PEFT/LoRA/LoRA 란.md',
+      }),
+    ]);
+    const note = tree.children[0]!.children[0]!.notes[0]!;
+    expect(note.title).toBe('LoRA 란');
+  });
+});
+
 describe('buildFolderTree — title fallback', () => {
   it('falls back to the slug when no title is provided', () => {
     const tree = buildFolderTree([
@@ -313,6 +363,25 @@ describe('buildFolderIndexViewModel', () => {
       { label: 'home', href: '/' },
       { label: 'AI', href: '/AI/' },
       { label: 'Claude', href: '/AI/Claude/' },
+    ]);
+  });
+
+  it('breadcrumb labels carry original folder casing from sourcePath; hrefs use slug', () => {
+    // Slug path is lowercased ('peft/lora') for URL identity, but the
+    // breadcrumb labels render the original on-disk casing ('PEFT', 'LoRA').
+    const tree = buildFolderTree([
+      makeEntry('peft/lora/lora 란', {
+        sourcePath: 'PEFT/LoRA/LoRA 란.md',
+      }),
+    ]);
+    const vm = buildFolderIndexViewModel(tree, 'peft/lora');
+    expect(vm).not.toBeNull();
+    expect(vm!.folderName).toBe('LoRA');
+    expect(vm!.folderPath).toBe('peft/lora');
+    expect(vm!.breadcrumb).toEqual([
+      { label: 'home', href: '/' },
+      { label: 'PEFT', href: '/peft/' },
+      { label: 'LoRA', href: '/peft/lora/' },
     ]);
   });
 

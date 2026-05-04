@@ -2,19 +2,11 @@ import type { TagPageEntry, TagSummary } from '@noteforge/theme-default';
 import {
   coerceDate,
   descriptionForEntry,
+  displayTitleForEntry,
   tagsForEntry,
   thumbnailForEntry,
   type NoteEntry,
 } from './viewModels.ts';
-
-function asString(v: unknown): string | undefined {
-  return typeof v === 'string' ? v : undefined;
-}
-
-function lastSegment(slug: string): string {
-  const i = slug.lastIndexOf('/');
-  return i === -1 ? slug : slug.slice(i + 1);
-}
 
 export function summarizeTags(entries: readonly NoteEntry[]): TagSummary[] {
   const counts = new Map<string, number>();
@@ -44,7 +36,7 @@ export function entriesForTag(
   for (const e of entries) {
     if (e.data.tags.includes(tag) === false) continue;
     if (e.id.length === 0) continue;
-    const title = e.data.title ?? asString(e.data.frontmatter['title']) ?? lastSegment(e.id);
+    const title = displayTitleForEntry(e);
     const description = descriptionForEntry(e);
     const tags = tagsForEntry(e);
     const date = coerceDate(e.data.frontmatter['date']);
