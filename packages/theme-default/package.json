@@ -1,9 +1,17 @@
 {
   "name": "@noteforge/theme-default",
-  "version": "0.0.0",
+  "version": "0.8.0",
   "private": true,
   "license": "MIT",
+  "author": "woohyun (https://github.com/lim010111)",
   "description": "Reference theme for noteforge.",
+  "keywords": [
+    "astro",
+    "astro-theme",
+    "obsidian",
+    "tailwindcss",
+    "noteforge"
+  ],
   "type": "module",
   "repository": {
     "type": "git",
