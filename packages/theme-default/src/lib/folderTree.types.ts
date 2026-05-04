@@ -21,4 +21,6 @@ export interface FolderNode {
     date?: string;
     thumbnail?: string;
   }[];
+  /** 자기 자신 + 모든 자손 폴더의 publishable 노트 합계. 빌더가 항상 채움. */
+  noteCount: number;
 }

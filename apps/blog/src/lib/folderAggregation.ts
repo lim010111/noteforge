@@ -63,7 +63,13 @@ function sortTree(node: FolderNode): void {
 export function buildFolderTree(
   entries: readonly NoteEntry[],
 ): FolderNode {
-  const root: FolderNode = { name: '', path: '', children: [], notes: [] };
+  const root: FolderNode = {
+    name: '',
+    path: '',
+    children: [],
+    notes: [],
+    noteCount: 0,
+  };
 
   for (const entry of entries) {
     // Defensive skip: alias-redirect entries should have been filtered by
@@ -98,6 +104,7 @@ export function buildFolderTree(
           path: cumulativePath,
           children: [],
           notes: [],
+          noteCount: 0,
         };
         cursor.children.push(child);
       }
@@ -119,6 +126,7 @@ export function buildFolderTree(
   }
 
   sortTree(root);
+  annotateNoteCounts(root);
   return root;
 }
 
@@ -161,7 +169,13 @@ function categorySegments(raw: unknown): CategorySegment[] {
 export function buildCategoryTree(
   entries: readonly NoteEntry[],
 ): FolderNode {
-  const root: FolderNode = { name: '', path: '', children: [], notes: [] };
+  const root: FolderNode = {
+    name: '',
+    path: '',
+    children: [],
+    notes: [],
+    noteCount: 0,
+  };
 
   for (const entry of entries) {
     const kind = (entry.data as { kind?: string }).kind;
@@ -184,6 +198,7 @@ export function buildCategoryTree(
           path: segments.slice(0, i + 1).map((s) => s.slug).join('/'),
           children: [],
           notes: [],
+          noteCount: 0,
         };
         cursor.children.push(child);
       }
@@ -205,13 +220,15 @@ export function buildCategoryTree(
   }
 
   sortTree(root);
+  annotateNoteCounts(root);
   return root;
 }
 
-function countNotesRecursive(node: FolderNode): number {
-  let n = node.notes.length;
-  for (const child of node.children) n += countNotesRecursive(child);
-  return n;
+function annotateNoteCounts(node: FolderNode): number {
+  let total = node.notes.length;
+  for (const child of node.children) total += annotateNoteCounts(child);
+  node.noteCount = total;
+  return total;
 }
 
 /**
@@ -277,7 +294,7 @@ export function buildFolderIndexViewModel(
   const childFolders = node.children.map((child) => ({
     name: child.name,
     href: `/${child.path}/`,
-    noteCount: countNotesRecursive(child),
+    noteCount: child.noteCount,
   }));
   const childNotes = node.notes.map((n) => ({
     title: n.title,
@@ -352,7 +369,7 @@ export function buildCategoryIndexViewModel(
   const childFolders = target.children.map((child) => ({
     name: child.name,
     href: `/${child.path}/`,
-    noteCount: countNotesRecursive(child),
+    noteCount: child.noteCount,
   }));
   const childNotes = target.notes.map((n) => ({
     title: n.title,
