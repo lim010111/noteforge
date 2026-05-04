@@ -31,6 +31,6 @@ node scripts/validate-context-paths.mjs
 - `/harness` 슬래시 커맨드는 execute.py 에 인자를 전달.
 
 ## 관련 (Related)
-- AI-readiness 보드: [docs/ai-readiness-score.json](../docs/ai-readiness-score.json)
 - evals 시드: [evals/README.md](../evals/README.md)
 - CI 게이트: [github actions ci workflow](../.github/workflows/ci.yml)
+- Agent 스케폴딩(phases / AI-readiness 보드): `archive/agent-scaffolding-pre-v0.8` 브랜치 (공개 main 미포함)

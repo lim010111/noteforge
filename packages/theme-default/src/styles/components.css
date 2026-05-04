@@ -1,6 +1,6 @@
 /*
- * Component visuals — v0.2.
- * SSOT: phases/step9-design-overhaul/design/COMPONENTS.md
+ * Component visuals — v0.2 base + later increments.
+ * Visual contract: docs/UI_GUIDE.md §7 (component anatomy).
  *
  * Scope: Backlinks, TagList (index), TagPage (per-tag), Graph (static SVG),
  * NotFound (404). All values reference tokens.css variables; mode switching

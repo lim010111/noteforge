@@ -4,9 +4,8 @@
  * The component is a *pure* renderer: it never reads from Astro globals, the
  * file system, or the privacy pipeline. Caller (apps/blog) is responsible for
  * passing already-filtered `childFolders` / `childNotes` derived from
- * `filterPublishable` + `buildFolderTree` output. See
- * `phases/step10-v03-sidebar-redesign/design/COMPONENTS.md` §FolderIndex for
- * the design contract.
+ * `filterPublishable` + `buildFolderTree` output. See docs/UI_GUIDE.md §7
+ * ("FolderIndex") for the design contract.
  */
 export interface FolderIndexBreadcrumbSegment {
   /** Display label for the segment (folder name; first segment is `home`). */

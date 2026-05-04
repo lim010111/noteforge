@@ -1,6 +1,6 @@
 /*
  * Prose — body styling for `<Note />` article content.
- * v0.2 SSOT: phases/step9-design-overhaul/design/COMPONENTS.md (`Note — article body`).
+ * Visual contract: docs/UI_GUIDE.md §7 ("Note — article body").
  *
  * Scope: rules apply only inside `.prose` so headings, links, and paragraphs in
  * UI chrome (header, footer, nav) are unaffected. Mode switching is handled at

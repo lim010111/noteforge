@@ -3,8 +3,8 @@
  * FolderIndex — page rendered at `/<folder>/` URLs (collision rules with note
  * slugs are guarded build-time in `apps/blog/src/pages/[...slug].astro`).
  * Lists immediate child *folders* first, then immediate child *notes*, with a
- * breadcrumb above. See `phases/step10-v03-sidebar-redesign/design/COMPONENTS.md`
- * §FolderIndex for the visual contract.
+ * breadcrumb above. See docs/UI_GUIDE.md §7 ("FolderIndex") for the visual
+ * contract.
  *
  * Privacy contract: this component is a *pure renderer*. It never touches
  * `getCollection`, the file system, or the privacy pipeline; all filtering

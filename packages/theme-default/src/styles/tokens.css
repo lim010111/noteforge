@@ -1,8 +1,8 @@
 /*
  * Design tokens — v0.2 base + v0.3 delta (light + dark).
- * SSOT v0.2: phases/step9-design-overhaul/design/TOKENS.md
- * SSOT v0.3 delta: phases/step10-v03-sidebar-redesign/design/TOKENS.md
- * (this file mirrors both 1:1; v0.3 adds *only*, never renames v0.2 tokens).
+ * This file is the SSOT for design tokens; the human-readable mirror lives
+ * at docs/UI_GUIDE.md (active) and docs/UI_GUIDE.v0.2.md (snapshot). v0.3
+ * adds *only*, never renames v0.2 tokens.
  *
  * Mode resolution
  *   default (no [data-theme])     → @media (prefers-color-scheme) decides
@@ -60,7 +60,8 @@
   /* Color — v0.3 category accent slots (warm earth tone ring, AA on both
      --color-bg-page and --color-bg-sidebar). Slot indices are semantically
      neutral; slot→segment mapping is decided in @noteforge/core. Five-slot
-     ceiling — see phases/step10-v03-sidebar-redesign/design/ANTIPATTERNS.md. */
+     ceiling — see docs/UI_GUIDE.md §3 ("v0.3 chromatic 확장") for the
+     anti-pattern table. */
   --color-accent-cat-1: #a83612; /* iron oxide — mirrors --color-accent */
   --color-accent-cat-2: #9a6f0e; /* ochre */
   --color-accent-cat-3: #5d6f3a; /* moss */
