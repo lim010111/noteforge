@@ -15,6 +15,7 @@ function folder(
     path,
     children: [],
     notes: [],
+    noteCount: 0,
     ...overrides,
   };
 }

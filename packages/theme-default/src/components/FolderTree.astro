@@ -18,6 +18,12 @@
  *     load (or a refresh) restores the canonical open-state. JS-less by design,
  *     so we accept that small flicker over a one-line `event.stopPropagation`.
  *     Clicking the chevron / empty summary area toggles open state directly.
+ *   - Each leaf-category (no children, hideLeafNotes): same row layout as the
+ *     <summary> branch — invisible chevron placeholder + name link + optional
+ *     count badge — so siblings line up regardless of which branch they take.
+ *   - Count badge: when `noteCount > 0`, render `<span class="folder-tree__count">`
+ *     after the name. Subtree total (self + descendants), pre-computed by the
+ *     tree builder.
  *   - Each note: `<li class="...--leaf"><a href="/<slug>/">title</a></li>`
  *     (trailing slash per ADR-012).
  *   - Empty root (`children`+`notes` both 0) → component renders nothing
@@ -123,13 +129,22 @@ function isNoteActive(slug: string): boolean {
         if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
           return (
             <li class="folder-tree__item folder-tree__item--leaf-category">
-              <a
-                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
-                href={`/${child.path}/`}
-                aria-current={active ? "page" : undefined}
-              >
-                {child.name}
-              </a>
+              <span class="folder-tree__row">
+                <span
+                  class="folder-tree__chevron folder-tree__chevron--placeholder"
+                  aria-hidden="true"
+                ></span>
+                <a
+                  class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                  href={`/${child.path}/`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {child.name}
+                </a>
+                {child.noteCount > 0 && (
+                  <span class="folder-tree__count" aria-hidden="true">{child.noteCount}</span>
+                )}
+              </span>
             </li>
           );
         }
@@ -145,6 +160,9 @@ function isNoteActive(slug: string): boolean {
                 >
                   {child.name}
                 </a>
+                {child.noteCount > 0 && (
+                  <span class="folder-tree__count" aria-hidden="true">{child.noteCount}</span>
+                )}
               </summary>
               <Astro.self
                 root={props.root}
@@ -184,13 +202,22 @@ function isNoteActive(slug: string): boolean {
       if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
         return (
           <li class="folder-tree__item folder-tree__item--leaf-category">
-            <a
-              class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
-              href={`/${child.path}/`}
-              aria-current={active ? "page" : undefined}
-            >
-              {child.name}
-            </a>
+            <span class="folder-tree__row">
+              <span
+                class="folder-tree__chevron folder-tree__chevron--placeholder"
+                aria-hidden="true"
+              ></span>
+              <a
+                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                href={`/${child.path}/`}
+                aria-current={active ? "page" : undefined}
+              >
+                {child.name}
+              </a>
+              {child.noteCount > 0 && (
+                <span class="folder-tree__count" aria-hidden="true">{child.noteCount}</span>
+              )}
+            </span>
           </li>
         );
       }
@@ -206,6 +233,9 @@ function isNoteActive(slug: string): boolean {
               >
                 {child.name}
               </a>
+              {child.noteCount > 0 && (
+                <span class="folder-tree__count" aria-hidden="true">{child.noteCount}</span>
+              )}
             </summary>
             <Astro.self
               root={props.root}

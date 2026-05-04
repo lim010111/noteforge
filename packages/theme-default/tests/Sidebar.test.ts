@@ -133,9 +133,11 @@ function buildFixture(): FolderNode {
             path: 'AI/Claude',
             children: [],
             notes: [{ slug: 'AI/Claude/agents', title: 'agents' }],
+            noteCount: 1,
           },
         ],
         notes: [],
+        noteCount: 1,
       },
       {
         name: 'posts',
@@ -145,9 +147,11 @@ function buildFixture(): FolderNode {
           { slug: 'posts/a', title: 'a' },
           { slug: 'posts/b', title: 'b' },
         ],
+        noteCount: 2,
       },
     ],
     notes: [{ slug: 'about', title: 'about' }],
+    noteCount: 4,
   };
 }
 
@@ -239,7 +243,13 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
   });
 
   it('(5) empty tree (root.children=[] && root.notes=[]) → no <nav>, no folder-tree markup', async () => {
-    const empty: FolderNode = { name: '', path: '', children: [], notes: [] };
+    const empty: FolderNode = {
+      name: '',
+      path: '',
+      children: [],
+      notes: [],
+      noteCount: 0,
+    };
     const html = await renderTree({
       root: empty,
       slotCount: CATEGORY_ACCENT_SLOT_COUNT,
@@ -337,6 +347,7 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
           body: 'DO_NOT_LEAK_BANANA_6f3c1',
         },
       ],
+      noteCount: 1,
     };
     const sneakyHtml = await renderTree({
       root: sneakyTree,
@@ -377,5 +388,124 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
       '<aside> must NOT carry role="tree" — we do not implement keyboard arrow handlers',
     ).not.toMatch(/\brole="tree"/);
     expect(html).not.toMatch(/\brole="treeitem"/);
+  });
+
+  /**
+   * Mixed fixture for the v0.71 count-badge / leaf-category alignment tests.
+   *
+   *   PEFT/                     (no notes of its own; one child LoRA)
+   *     └ LoRA  (1 note)        → leaf-category
+   *   news/                     (3 notes, no children) → leaf-category
+   *
+   * `hideLeafNotes: true` so:
+   *   - PEFT renders as <details> (has child); subtree count = 1
+   *   - LoRA renders as leaf-category; subtree count = 1
+   *   - news renders as leaf-category; subtree count = 3
+   */
+  function buildCountFixture(): FolderNode {
+    return {
+      name: '',
+      path: '',
+      children: [
+        {
+          name: 'PEFT',
+          path: 'peft',
+          children: [
+            {
+              name: 'LoRA',
+              path: 'peft/lora',
+              children: [],
+              notes: [{ slug: 'peft/lora/lora-란', title: 'LoRA 란' }],
+              noteCount: 1,
+            },
+          ],
+          notes: [],
+          noteCount: 1,
+        },
+        {
+          name: 'news',
+          path: 'news',
+          children: [],
+          notes: [
+            { slug: 'news/a', title: 'a' },
+            { slug: 'news/b', title: 'b' },
+            { slug: 'news/c', title: 'c' },
+          ],
+          noteCount: 3,
+        },
+      ],
+      notes: [],
+      noteCount: 4,
+    };
+  }
+
+  it('(11) noteCount > 0 emits a folder-tree__count badge; 0 emits none', async () => {
+    const html = await renderTree({
+      root: buildCountFixture(),
+      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      hideLeafNotes: true,
+    });
+    // PEFT is a <details> — count badge sits inside <summary>.
+    expect(
+      html,
+      'PEFT subtree count (1) must surface as a folder-tree__count span',
+    ).toMatch(/<span\s[^>]*\bclass="folder-tree__count"[^>]*>1<\/span>/);
+    // news is a leaf-category — count badge sits inside the row span.
+    expect(
+      html,
+      'news subtree count (3) must surface as a folder-tree__count span',
+    ).toMatch(/<span\s[^>]*\bclass="folder-tree__count"[^>]*>3<\/span>/);
+    // Two count badges total: PEFT(1), LoRA(1), news(3) → three "count" spans.
+    expect(
+      countMatches(html, /\bclass="folder-tree__count"/g),
+      'every node with noteCount > 0 (PEFT, LoRA, news) gets a badge',
+    ).toBe(3);
+
+    // 0-count nodes (root.notes empty in this fixture) get no badge: the empty
+    // tree case is the right baseline — render nothing, surface no count.
+    const empty: FolderNode = {
+      name: '',
+      path: '',
+      children: [],
+      notes: [],
+      noteCount: 0,
+    };
+    const emptyHtml = await renderTree({
+      root: empty,
+      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      hideLeafNotes: true,
+    });
+    expect(
+      emptyHtml,
+      'empty tree must not emit a count badge',
+    ).not.toMatch(/folder-tree__count/);
+  });
+
+  it('(12) leaf-category aligns with details rows via a chevron placeholder', async () => {
+    const html = await renderTree({
+      root: buildCountFixture(),
+      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+      hideLeafNotes: true,
+    });
+    // Both leaf-category nodes (LoRA, news) get a placeholder chevron span so
+    // their name lines up with sibling <details> rows that carry a real
+    // chevron. The placeholder shares the .folder-tree__chevron class so the
+    // 1.25rem reservation is identical.
+    expect(
+      countMatches(html, /\bclass="folder-tree__chevron folder-tree__chevron--placeholder"/g),
+      'every leaf-category gets a chevron placeholder (LoRA, news = 2)',
+    ).toBe(2);
+    // The placeholder must be hidden from a11y — the row already has the
+    // <a> link as the focusable target.
+    expect(
+      html,
+      'placeholder chevrons are aria-hidden so screen readers skip them',
+    ).toMatch(/folder-tree__chevron--placeholder[^>]*\baria-hidden="true"/);
+    // The leaf-category <li> wraps its row in a folder-tree__row span (vs.
+    // the <summary> branch). This is what guarantees the same flex layout.
+    expect(
+      countMatches(html, /\bclass="folder-tree__row"/g),
+      'leaf-category rows use folder-tree__row to mirror summary layout',
+    ).toBe(2);
   });
 });

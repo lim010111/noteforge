@@ -54,9 +54,11 @@ function buildSidebarTree(): FolderNode {
             path: 'AI/Claude',
             children: [],
             notes: [{ slug: 'AI/Claude/agents', title: 'agents' }],
+            noteCount: 1,
           },
         ],
         notes: [],
+        noteCount: 1,
       },
       {
         name: 'posts',
@@ -66,9 +68,11 @@ function buildSidebarTree(): FolderNode {
           { slug: 'posts/a', title: 'a' },
           { slug: 'posts/b', title: 'b' },
         ],
+        noteCount: 2,
       },
     ],
     notes: [{ slug: 'about', title: 'about' }],
+    noteCount: 4,
   };
 }
 

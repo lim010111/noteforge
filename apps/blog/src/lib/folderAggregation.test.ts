@@ -66,6 +66,7 @@ describe('buildFolderTree — empty input', () => {
       path: '',
       children: [],
       notes: [],
+      noteCount: 0,
     });
   });
 });
@@ -321,6 +322,40 @@ describe('buildFolderTree — thumbnail fallback', () => {
         thumbnail: '/attachments/thumb.png',
       },
     ]);
+  });
+});
+
+describe('buildFolderTree — noteCount annotation (v0.71)', () => {
+  it('sums self + descendants on every node, including root', () => {
+    // 3-depth fixture: AI/Claude/agents, AI/Claude/opus, news/foo.
+    //   root.noteCount = 3 (AI:2 + news:1)
+    //   AI.noteCount = 2 (AI/Claude:2)
+    //   AI/Claude.noteCount = 2
+    //   news.noteCount = 1
+    const tree = buildFolderTree([
+      makeEntry('AI/Claude/agents', { title: 'agents' }),
+      makeEntry('AI/Claude/opus', { title: 'opus' }),
+      makeEntry('news/foo', { title: 'foo' }),
+    ]);
+    expect(tree.noteCount).toBe(3);
+    const ai = tree.children.find((c) => c.name === 'AI')!;
+    expect(ai.noteCount).toBe(2);
+    const claude = ai.children[0]!;
+    expect(claude.path).toBe('AI/Claude');
+    expect(claude.noteCount).toBe(2);
+    const news = tree.children.find((c) => c.name === 'news')!;
+    expect(news.noteCount).toBe(1);
+  });
+
+  it('counts root-level notes against root.noteCount', () => {
+    const tree = buildFolderTree([
+      makeEntry('about', { title: 'About' }),
+      makeEntry('posts/foo', { title: 'foo' }),
+    ]);
+    // 1 root note + 1 in posts = 2.
+    expect(tree.noteCount).toBe(2);
+    const posts = tree.children[0]!;
+    expect(posts.noteCount).toBe(1);
   });
 });
 
@@ -652,6 +687,7 @@ describe('buildCategoryTree — empty input', () => {
       path: '',
       children: [],
       notes: [],
+      noteCount: 0,
     });
   });
 });
@@ -811,6 +847,55 @@ describe('buildCategoryTree — leaf slug invariant', () => {
     const essay = tree.children[0]!;
     const y2026 = essay.children[0]!;
     expect(y2026.notes[0]?.slug).toBe('temp_drafts/2026/일기');
+  });
+});
+
+describe('buildCategoryTree — noteCount annotation (v0.71)', () => {
+  it('PEFT/LoRA single note → root=1, PEFT=1, LoRA=1', () => {
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+    ]);
+    expect(tree.noteCount).toBe(1);
+    const peft = tree.children[0]!;
+    expect(peft.path).toBe('peft');
+    expect(peft.noteCount).toBe(1);
+    const lora = peft.children[0]!;
+    expect(lora.path).toBe('peft/lora');
+    expect(lora.noteCount).toBe(1);
+  });
+
+  it('multi-category mix — every node equals self + descendant total', () => {
+    // PEFT/LoRA (1), PEFT/AdaLoRA (1), PEFT itself (1 — bare 'PEFT'), RAG (1)
+    //   → root=4
+    //   → PEFT=3 (self 1 + LoRA 1 + AdaLoRA 1)
+    //   → LoRA=1, AdaLoRA=1, RAG=1
+    const tree = buildCategoryTree([
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT/LoRA' } }),
+      makeEntry('b', { title: 'B', frontmatter: { category: 'PEFT/AdaLoRA' } }),
+      makeEntry('c', { title: 'C', frontmatter: { category: 'PEFT' } }),
+      makeEntry('d', { title: 'D', frontmatter: { category: 'RAG' } }),
+    ]);
+    expect(tree.noteCount).toBe(4);
+    const peft = tree.children.find((c) => c.path === 'peft')!;
+    expect(peft.noteCount).toBe(3);
+    const lora = peft.children.find((c) => c.path === 'peft/lora')!;
+    expect(lora.noteCount).toBe(1);
+    const adalora = peft.children.find((c) => c.path === 'peft/adalora')!;
+    expect(adalora.noteCount).toBe(1);
+    const rag = tree.children.find((c) => c.path === 'rag')!;
+    expect(rag.noteCount).toBe(1);
+  });
+
+  it('uncategorised notes count toward root.noteCount only', () => {
+    const tree = buildCategoryTree([
+      makeEntry('orphan', { title: 'Orphan' }),
+      makeEntry('a', { title: 'A', frontmatter: { category: 'PEFT' } }),
+    ]);
+    // root has 1 direct note + 1 in PEFT = 2 total.
+    expect(tree.noteCount).toBe(2);
+    expect(tree.notes).toHaveLength(1);
+    const peft = tree.children[0]!;
+    expect(peft.noteCount).toBe(1);
   });
 });
 
