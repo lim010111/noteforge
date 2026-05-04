@@ -26,11 +26,10 @@ node scripts/validate-context-paths.mjs
 
 ## Non-obvious
 - **반드시**: 각 phase step 은 원자적·idempotent 가정. step 도중 실패 시 git revert 로 자동 rollback.
-- **주의**: validate-context-paths 는 score.py 의 `RE_PATH_REF` 와 동일 정규식 — AI-readiness E1 회귀 방지 게이트. CLAUDE.md / AGENTS.md 짝 byte-identical 도 강제.
+- **주의**: validate-context-paths 는 CLAUDE.md / AGENTS.md 안의 markdown link 타겟 존재 여부와 두 파일 짝의 byte-identical 동기화를 강제하는 회귀 게이트.
 - **Note:** `vendor:*` 스크립트는 `pnpm vendor:assets` 묶음에서 호출. apps/blog dev / build 가 prerun 으로 자동 실행.
 - `/harness` 슬래시 커맨드는 execute.py 에 인자를 전달.
 
 ## 관련 (Related)
-- evals 시드: [evals/README.md](../evals/README.md)
+- evals placeholder: [evals/README.md](../evals/README.md)
 - CI 게이트: [github actions ci workflow](../.github/workflows/ci.yml)
-- Agent 스케폴딩(phases / AI-readiness 보드): `archive/agent-scaffolding-pre-v0.8` 브랜치 (공개 main 미포함)
