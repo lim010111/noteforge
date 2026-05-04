@@ -25,7 +25,7 @@
 **공개 이슈 트래커 대신 비공개 채널을 사용해주세요.**
 
 1. 1순위 — GitHub의 private vulnerability reporting:
-   <https://github.com/lim010111/obsidian-blog/security/advisories/new>
+   <https://github.com/lim010111/noteforge/security/advisories/new>
 2. GitHub 계정이 없거나 위 채널을 사용할 수 없는 경우, 메인테이너에게 직접 연락하시면 비공개 채널을 안내해드립니다.
 
 리포트에는 가능하면 다음을 포함해주세요.

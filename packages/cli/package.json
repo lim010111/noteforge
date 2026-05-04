@@ -22,12 +22,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lim010111/obsidian-blog.git",
+    "url": "git+https://github.com/lim010111/noteforge.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/lim010111/obsidian-blog#readme",
+  "homepage": "https://github.com/lim010111/noteforge#readme",
   "bugs": {
-    "url": "https://github.com/lim010111/obsidian-blog/issues"
+    "url": "https://github.com/lim010111/noteforge/issues"
   },
   "scripts": {
     "build": "tsup",

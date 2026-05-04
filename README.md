@@ -1,4 +1,4 @@
-<!-- repo: lim010111/obsidian-blog -->
+<!-- repo: lim010111/noteforge -->
 
 # noteforge
 
@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
-[![GitHub release](https://img.shields.io/github/v/release/lim010111/obsidian-blog?include_prereleases&sort=semver)](https://github.com/lim010111/obsidian-blog/releases)
+[![GitHub release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
 **Languages**: English · [한국어](./README.ko.md)
 
@@ -17,7 +17,7 @@
 ## Quick start
 
 ```bash
-git clone https://github.com/lim010111/obsidian-blog my-blog && cd my-blog
+git clone https://github.com/lim010111/noteforge my-blog && cd my-blog
 pnpm install
 cp .env.example .env        # OBPUB_VAULT_PATH=<absolute path to your vault>
 pnpm --filter blog dev      # http://localhost:4321

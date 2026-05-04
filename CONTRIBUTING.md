@@ -79,7 +79,7 @@ PR을 열기 전 다음을 확인하세요:
 
 ## 이슈 리포팅
 
-- 일반 버그/기능 요청: [GitHub Issues](https://github.com/lim010111/obsidian-blog/issues)에 등록해주세요.
+- 일반 버그/기능 요청: [GitHub Issues](https://github.com/lim010111/noteforge/issues)에 등록해주세요.
 - **프라이버시 누출 가능성**이 의심되는 케이스는 공개 이슈가 아니라 [`SECURITY.md`](./SECURITY.md)에 안내된 비공개 채널로 보고해주세요. 합성 fixture로 재현 가능한 케이스만 본문에 포함하고, 실제 vault 데이터는 절대 첨부하지 마세요.
 
 ## 행동 강령
