@@ -1,45 +1,60 @@
 <!-- repo: lim010111/obsidian-blog -->
 
-# Obsidian-Publish-OSS
+# noteforge
 
-> Obsidian vault 를 선택적으로 공개하는 정적 블로그 SSG. **Privacy-first**: 표시하지 않은 것은 존재조차 드러내지 않는다.
+> Privacy-first Astro SSG for selective Obsidian vault publishing. **What you do not mark, does not exist.**
 
-`public: true` frontmatter 또는 본문 어디든 `#public` 태그가 있는 노트만 발행한다. 기본값 = 비공개 (Quartz 의 opt-out 기본값과 정반대). Threat model · 책임 범위는 [docs/PRD.md](./docs/PRD.md).
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
+[![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
+[![GitHub release](https://img.shields.io/github/v/release/lim010111/obsidian-blog?include_prereleases&sort=semver)](https://github.com/lim010111/obsidian-blog/releases)
 
-## 빠른 시작
+**Languages**: English · [한국어](./README.ko.md)
+
+`noteforge` publishes only the notes you opt in to: those with `public: true` in frontmatter or a `#public` tag anywhere in the body. The default is **private** — the opposite of Quartz's opt-out default. Threat model and scope: [docs/PRD.md](./docs/PRD.md).
+
+## Quick start
 
 ```bash
-git clone <this-repo> my-blog && cd my-blog
+git clone https://github.com/lim010111/obsidian-blog my-blog && cd my-blog
 pnpm install
 cp .env.example .env        # OBPUB_VAULT_PATH=<your vault absolute path>
 pnpm --filter blog dev      # http://localhost:4321
 pnpm --filter blog build    # apps/blog/dist + audit
 ```
 
-## 노트 공개
+## Publishing a note
 
-frontmatter `public: true` 또는 본문 어딘가에 `#public` 태그 — 둘 중 **하나만** 있어도 공개, 없으면 비공개.
+Set frontmatter `public: true` **or** include a `#public` tag anywhere in the body — either is enough. With neither, the note never reaches the build output.
 
-특정 노트의 판정 이유 확인:
+Inspect the publish verdict for any file:
 
 ```bash
 pnpm obpub status packages/core/tests/fixtures/vault-mixed/public-note.md
 # → public-note.md → PUBLIC (reason: frontmatter public: true)
 ```
 
-## 문서
+## Privacy contract
 
-- [docs/PRD.md](./docs/PRD.md) — Threat model · 책임 / 비책임 범위
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — 모듈 / 파이프라인 / 의존 그래프
-- [docs/DEPLOY.md](./docs/DEPLOY.md) — Cloudflare Pages · GitHub Pages · 다른 정적 호스트
-- [docs/UI_GUIDE.md](./docs/UI_GUIDE.md) — 디자인 토큰 / 레이아웃 가이드
-- [CHANGELOG.md](./CHANGELOG.md) — 릴리스 노트
-- [CLAUDE.md](./CLAUDE.md) / [AGENTS.md](./AGENTS.md) — agent 컨텍스트 (모듈별 동일 짝 존재)
+The `private/**` folder is a tripwire: notes inside it stay private even with `public: true` (override requires `unsafeAllowPrivateFolder: true`). Frontmatter is filtered through an allowlist (`title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `thumbnail`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`, `category`) — fields outside it never reach the rendered HTML. `%%...%%` Obsidian comments are stripped at the discovery phase. See [docs/PRD.md](./docs/PRD.md) and [SECURITY.md](./SECURITY.md) for the full threat model.
 
-## 라이선스
+## Documentation
 
-MIT. vault 콘텐츠는 저장 / 전송 / 분석 / 텔레메트리 어디로도 가지 않는다.
+- [docs/PRD.md](./docs/PRD.md) — Threat model, scope
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — Modules, pipeline, dependency graph
+- [docs/DEPLOY.md](./docs/DEPLOY.md) — Cloudflare Pages, GitHub Pages, and other static hosts
+- [docs/UI_GUIDE.md](./docs/UI_GUIDE.md) — Design tokens and layout guide
+- [docs/adr/](./docs/adr/) — Architecture decision records
+- [CHANGELOG.md](./CHANGELOG.md) — Release notes
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — Dev workflow, TDD, PR checklist
+- [SECURITY.md](./SECURITY.md) — Vulnerability reporting
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — Contributor Covenant v2.1
 
-## 상태
+## Status
 
-**v0.3.0** — 사이드바 · 폴더 트리 · 홈 레일 · 아이덴티티 (Pre-release). v0.2 의 editorial-technical 골격 위에 navigational spine 을 얹은 단계. 상세 변경 내역은 [CHANGELOG.md](./CHANGELOG.md).
+**v0.71** — leaf-category sidebar alignment + casing preservation (pre-release). Built on the v0.7 categories nav mode and v0.6 TOC layer. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+
+## License
+
+[MIT](./LICENSE). Vault content is never stored, transmitted, analyzed, or telemetered by this project.
