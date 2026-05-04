@@ -53,11 +53,14 @@ type Props = FolderTreeProps & {
 };
 
 function shouldRenderAsLeafLink(child: FolderNode, hideLeafNotes: boolean): boolean {
-  // A category whose children list is empty AND whose own notes are being
-  // hidden produces a `<details>` with nothing inside — visual noise. In
-  // that case we render the row as a single link instead so the sidebar
-  // stays compact and the user can still navigate to the category index.
-  return hideLeafNotes && child.children.length === 0 && child.notes.length === 0;
+  // When leaf notes are hidden, a `<details>` only earns its chevron if it
+  // has child *categories* to expand into. The note count is irrelevant
+  // because notes never render in the sidebar in that mode — they live on
+  // the category index page instead. So we downgrade to a single link
+  // whenever a category has no sub-categories, including the "last parent"
+  // case (notes only, no children) which would otherwise show a chevron
+  // that opens to nothing.
+  return hideLeafNotes && child.children.length === 0;
 }
 
 const props = Astro.props as Props;
