@@ -17,14 +17,17 @@
  */
 import type { NoteProps } from "./Note.types";
 import DevImagePicker from "./DevImagePicker.astro";
+import { heroBackgroundCss } from "../lib/heroBackground";
 
 const { note } = Astro.props as NoteProps;
 const showDevImagePicker =
   import.meta.env.DEV && note.slug !== undefined && note.sourcePath !== undefined;
+const heroBg = heroBackgroundCss(note.heroImage);
+const showHero = heroBg !== undefined;
 ---
 <article class="prose w-full mx-auto max-w-[var(--measure-prose)]">
   <header
-    class={`note-header not-prose${note.heroImage ? " note-header--with-hero" : ""}`}
+    class={`note-header not-prose${showHero ? " note-header--with-hero" : ""}`}
   >
     {showDevImagePicker && (
       <DevImagePicker
@@ -35,11 +38,11 @@ const showDevImagePicker =
         sourcePath={note.sourcePath!}
       />
     )}
-    {note.heroImage && (
+    {showHero && (
       <div
         class="note-header__hero"
         aria-hidden="true"
-        style={`background-image: url('${note.heroImage}')`}
+        style={`--hero-bg: ${heroBg}`}
       />
     )}
     <h1>{note.title}</h1>
