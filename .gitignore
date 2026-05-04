@@ -42,11 +42,3 @@ private
 # (~63 MB). The woff2 outputs under apps/blog/public/fonts/ are committed;
 # scripts/vendor-fonts.mjs only needs the zip to regenerate them.
 apps/blog/public/fonts/Noto_Sans_KR.zip
-
-# agent-only scaffolding (kept on archive/agent-scaffolding-pre-v0.8 branch).
-# The public main branch deliberately ships without these so the OSS repo is
-# not cluttered with internal step metadata, scratch dev contexts, or AI
-# readiness reports that can leak local paths and branch names.
-phases/
-docs/dev_contexts/
-docs/ai-readiness-*
