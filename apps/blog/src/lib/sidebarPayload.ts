@@ -6,7 +6,7 @@ import type { FolderNode } from '@noteforge/theme-default';
 import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default/lib/categoryAccent.ts';
 import { filterPublishable, type NotesEntry } from './viewModels.ts';
 import { buildCategoryTree, buildFolderTree } from './folderAggregation.ts';
-import obpubConfig from '../../obsidian-blog.config.ts';
+import obpubConfig from '../../noteforge.config.ts';
 
 export type NavMode = 'folder' | 'category';
 

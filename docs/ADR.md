@@ -85,7 +85,7 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 ---
 
 ### ADR-010: Vault는 레포 외부 절대경로로 참조
-**결정**: vault 파일은 이 레포에 포함하지 않음. `apps/blog/obsidian-blog.config.ts`에서 절대경로로 지정.
+**결정**: vault 파일은 이 레포에 포함하지 않음. `apps/blog/noteforge.config.ts`에서 절대경로로 지정.
 **이유**:
 - 이 레포의 git 이력에 private 노트가 실수로 포함되는 사고를 원천 차단.
 - 다른 사용자가 자기 vault를 연결하는 패턴이 동일 (도구성).

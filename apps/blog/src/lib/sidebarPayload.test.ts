@@ -12,7 +12,7 @@ const siteMock = vi.hoisted(() => ({
   nickname: undefined as string | undefined,
 }));
 
-vi.mock('../../obsidian-blog.config.ts', () => ({
+vi.mock('../../noteforge.config.ts', () => ({
   default: {
     site: {
       title: 'shine notes',

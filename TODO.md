@@ -53,7 +53,7 @@
 
 | 결정 | 채택값 | 근거 |
 |---|---|---|
-| About 컨텐츠 소스 | `obsidian-blog.config.ts`의 `site.about` | 기존 `site.social` 자리와 동일. 런타임 설정 UI 도입 회피 |
+| About 컨텐츠 소스 | `noteforge.config.ts`의 `site.about` | 기존 `site.social` 자리와 동일. 런타임 설정 UI 도입 회피 |
 | About 마크다운 파싱 | 미도입, 구조화 필드 (`headline`/`bio[]`/`highlights[]`) | 정적 출력 계약 + 표현력 부족 시 후속 PR |
 | 기존 `/tags`, `/graph` 라우트 | 페이지·기능 유지, nav만 제거 | 노트 태그 칩 동작 유지, 회귀 면 0 |
 | Categories 레이아웃 | flat (descendant 평탄화) | 최상위 폴더 = vault 카테고리. 깊이 변동 흡수, 사용자 멘탈 모델 단순 |

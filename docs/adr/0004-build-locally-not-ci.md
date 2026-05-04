@@ -4,7 +4,7 @@
 Accepted · 2025-Q4
 
 ## Context
-정적 사이트 SSG 의 일반적 패턴은 GitHub Actions / Cloudflare Pages 의 *서버* 빌드다. 하지만 이 프로젝트는 vault 가 레포 밖에 있다 — `apps/blog/obsidian-blog.config.ts` 의 `vaults[0].path` 는 사용자의 로컬 절대 경로 (`/Users/.../Obsidian` 같은) 다. 이 경로는 GitHub Actions runner 에 존재하지 않는다.
+정적 사이트 SSG 의 일반적 패턴은 GitHub Actions / Cloudflare Pages 의 *서버* 빌드다. 하지만 이 프로젝트는 vault 가 레포 밖에 있다 — `apps/blog/noteforge.config.ts` 의 `vaults[0].path` 는 사용자의 로컬 절대 경로 (`/Users/.../Obsidian` 같은) 다. 이 경로는 GitHub Actions runner 에 존재하지 않는다.
 
 선택지:
 
@@ -26,4 +26,4 @@ Accepted · 2025-Q4
 ## Related
 - [docs/DEPLOY.md](../DEPLOY.md) §9 — 호스트별 업로드 명령.
 - CI 구성: [.github/workflows/ci.yml](../../.github/workflows/ci.yml).
-- env 검증: `apps/blog/obsidian-blog.config.ts` 가 `OBPUB_VAULT_PATH` 부재 시 빌드 거부.
+- env 검증: `apps/blog/noteforge.config.ts` 가 `OBPUB_VAULT_PATH` 부재 시 빌드 거부.

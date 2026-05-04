@@ -1,5 +1,5 @@
 import { runCorePipeline, type PipelineResult } from '@noteforge/core/pipeline';
-import obpubConfig from '../../obsidian-blog.config.ts';
+import obpubConfig from '../../noteforge.config.ts';
 
 let cached: Promise<PipelineResult> | undefined;
 

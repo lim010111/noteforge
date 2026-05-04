@@ -67,10 +67,10 @@ In this mode, your vault's folder layout is used directly for both the sidebar a
 
 ![Obsidian file explorer showing the vault folder hierarchy `tools` > `cli` > "pnpm 워크스페이스 정리"](./docs/assets/folder-mode-obsidian_example.png)
 
-To switch to this mode, set it explicitly in `obsidian-blog.config.ts`:
+To switch to this mode, set it explicitly in `noteforge.config.ts`:
 
 ```ts
-// obsidian-blog.config.ts
+// noteforge.config.ts
 export default defineConfig({
   // ...
   nav: { mode: 'folder' },

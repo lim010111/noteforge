@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # apps/blog/obsidian-blog.config.ts refuses to load without this. The
+      # apps/blog/noteforge.config.ts refuses to load without this. The
       # value only needs to satisfy the non-empty check — typecheck/lint/test
       # do not read vault files. Adding `pnpm --filter blog build` to CI later
       # will require pointing this at a fixture vault checked into the repo.

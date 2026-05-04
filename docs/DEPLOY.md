@@ -32,7 +32,7 @@ wrangler pages deploy apps/blog/dist --project-name=noteforge
 ```
 
 - 첫 실행 시 동일 이름의 프로젝트가 Cloudflare 계정에 없으면 wrangler가 자동 생성한다 (Wrangler v3+).
-- 이름 충돌이 발생하면 다른 이름으로 재시도하고, `apps/blog/wrangler.toml`의 `name`과 `apps/blog/obsidian-blog.config.ts`의 `site.url`을 함께 갱신한다.
+- 이름 충돌이 발생하면 다른 이름으로 재시도하고, `apps/blog/wrangler.toml`의 `name`과 `apps/blog/noteforge.config.ts`의 `site.url`을 함께 갱신한다.
 - 배포 완료 후 출력되는 URL: `https://noteforge.pages.dev`.
 
 ## 4. 누출 검증
@@ -57,16 +57,16 @@ node packages/cli/dist/bin.js audit apps/blog/dist
 1. Cloudflare Pages dashboard → 프로젝트 선택 → **Custom domains**.
 2. 도메인 추가 → Cloudflare DNS에 안내된 CNAME 레코드 등록.
 3. 도메인 활성화(SSL 발급 완료) 확인.
-4. `apps/blog/obsidian-blog.config.ts`의 `site.url`을 새 도메인으로 갱신.
+4. `apps/blog/noteforge.config.ts`의 `site.url`을 새 도메인으로 갱신.
 5. `pnpm --filter blog build && wrangler pages deploy apps/blog/dist --project-name=noteforge` 재실행.
 
 이 단계를 거치지 않으면 canonical URL과 OG meta가 이전 도메인을 가리켜 일관성이 깨진다.
 
 ## 7. 왜 GitHub Actions 자동 배포를 지원하지 않는가
 
-`apps/blog/obsidian-blog.config.ts`의 `vaults[0].path`는 사용자 머신의 절대 경로(예: `/mnt/c/Users/.../Obsidian`)다. GitHub Actions runner에는 이 경로가 존재하지 않으므로 빌드 자체가 실패한다.
+`apps/blog/noteforge.config.ts`의 `vaults[0].path`는 사용자 머신의 절대 경로(예: `/mnt/c/Users/.../Obsidian`)다. GitHub Actions runner에는 이 경로가 존재하지 않으므로 빌드 자체가 실패한다.
 
-OSS fork 사용자는 자기 머신에서 위 절차로 빌드·배포해야 하며, fork 직후 가장 먼저 편집할 파일은 `apps/blog/obsidian-blog.config.ts`의 `vaults[0].path`다.
+OSS fork 사용자는 자기 머신에서 위 절차로 빌드·배포해야 하며, fork 직후 가장 먼저 편집할 파일은 `apps/blog/noteforge.config.ts`의 `vaults[0].path`다.
 
 CI(`.github/workflows/ci.yml`)는 typecheck / lint / test / CLI 빌드까지만 수행한다.
 

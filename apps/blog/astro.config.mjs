@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { obpub } from '@noteforge/astro';
-import obpubConfig from './obsidian-blog.config.ts';
+import obpubConfig from './noteforge.config.ts';
 
 // markdown.{shikiConfig,rehypePlugins} apply to author-written .astro/.mdx
 // pages only — vault notes flow through @noteforge/core, which pre-renders

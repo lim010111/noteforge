@@ -55,7 +55,7 @@ function forwardedArgsFor(
 program
   .command('status <file>')
   .description('Show whether a note is PUBLIC or PRIVATE and why')
-  .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
+  .option('-c, --config <path>', 'path to noteforge.config.ts')
   .option('--json', 'emit machine-readable JSON instead of a human line')
   .action(async (file: string, opts: { config?: string; json?: boolean }) => {
     const config = await loadConfig({ configPath: opts.config });
@@ -67,7 +67,7 @@ program
 program
   .command('audit')
   .description('Scan dist/ for privacy leaks')
-  .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
+  .option('-c, --config <path>', 'path to noteforge.config.ts')
   .option('-d, --dist <path>', 'path to dist directory (default: <config-dir>/dist)')
   .option('--strict', 'fail on weak signals (authored title mentions, etc.)')
   .option('--json', 'emit machine-readable JSON instead of human-formatted lines')
@@ -101,7 +101,7 @@ program
 program
   .command('dev')
   .description('Run Astro dev server with HMR')
-  .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
+  .option('-c, --config <path>', 'path to noteforge.config.ts')
   .allowUnknownOption(true)
   .allowExcessArguments(true)
   .action(async (opts: { config?: string }) => {
@@ -115,7 +115,7 @@ program
 program
   .command('build')
   .description('Build the static site and run privacy audit')
-  .option('-c, --config <path>', 'path to obsidian-blog.config.ts')
+  .option('-c, --config <path>', 'path to noteforge.config.ts')
   .option('--no-audit', 'skip post-build audit')
   .option('--strict', 'pass --strict to the audit step')
   .allowUnknownOption(true)

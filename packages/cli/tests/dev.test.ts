@@ -57,13 +57,13 @@ describe('runDev', () => {
 
   it('passes configPath through to loadConfig', async () => {
     await runDev({
-      configPath: '/abs/path/to/obsidian-blog.config.ts',
+      configPath: '/abs/path/to/noteforge.config.ts',
       extraArgs: [],
     });
 
     const mocked = loadConfig as MockedFunction<typeof loadConfig>;
     expect(mocked).toHaveBeenCalledWith({
-      configPath: '/abs/path/to/obsidian-blog.config.ts',
+      configPath: '/abs/path/to/noteforge.config.ts',
     });
   });
 

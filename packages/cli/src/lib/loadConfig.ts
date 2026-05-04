@@ -9,6 +9,11 @@ import {
 } from '@noteforge/core/config';
 
 const CONFIG_BASENAMES = [
+  'noteforge.config.ts',
+  'noteforge.config.mjs',
+  'noteforge.config.js',
+];
+const LEGACY_CONFIG_BASENAMES = [
   'obsidian-blog.config.ts',
   'obsidian-blog.config.mjs',
   'obsidian-blog.config.js',
@@ -59,7 +64,7 @@ async function resolveLoaded(
 
   process.stderr.write(
     `obpub: no config found, falling back to defaults at ${cwd}\n` +
-      `       hint: pass --config <path> or create obsidian-blog.config.ts in the project root\n`,
+      `       hint: pass --config <path> or create noteforge.config.ts in the project root\n`,
   );
   return {
     config: defineConfig({
@@ -91,7 +96,7 @@ export async function assertVaultPathsExist(
     } catch (cause) {
       throw new ObpubConfigError(
         `vault path does not exist: ${abs} (vault id: ${vault.id}). ` +
-          `Update vaults[].path in your obsidian-blog.config.ts.`,
+          `Update vaults[].path in your noteforge.config.ts.`,
         { configPath: opts.configPath, cause },
       );
     }
@@ -111,6 +116,16 @@ async function findConfigUpwards(start: string): Promise<string | null> {
     for (const name of CONFIG_BASENAMES) {
       const candidate = path.join(dir, name);
       if (await fileExists(candidate)) return candidate;
+    }
+    for (const name of LEGACY_CONFIG_BASENAMES) {
+      const candidate = path.join(dir, name);
+      if (await fileExists(candidate)) {
+        const replacement = name.replace('obsidian-blog', 'noteforge');
+        process.stderr.write(
+          `obpub: '${name}' is deprecated; rename to '${replacement}'. Legacy name will be removed in the next minor release.\n`,
+        );
+        return candidate;
+      }
     }
     if (dir === root) return null;
     dir = path.dirname(dir);

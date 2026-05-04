@@ -65,7 +65,7 @@ describe('assertVaultPathsExist', () => {
 describe('loadConfigWithPath — config-file errors carry configPath', () => {
   it('rewraps a missing-vault-path failure as ObpubConfigError with configPath', async () => {
     const ghost = path.join(sandbox, 'no-such-vault');
-    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    const cfgPath = path.join(sandbox, 'noteforge.config.mjs');
     await fs.writeFile(
       cfgPath,
       `export default {
@@ -89,7 +89,7 @@ describe('loadConfigWithPath — config-file errors carry configPath', () => {
   });
 
   it('rewraps a syntax-broken config as ObpubConfigError with configPath', async () => {
-    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    const cfgPath = path.join(sandbox, 'noteforge.config.mjs');
     await fs.writeFile(cfgPath, 'this is not ; valid javascript ===\n', 'utf8');
 
     let caught: ObpubConfigError | undefined;
@@ -104,7 +104,7 @@ describe('loadConfigWithPath — config-file errors carry configPath', () => {
   });
 
   it('rewraps "no default export" as ObpubConfigError with configPath', async () => {
-    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    const cfgPath = path.join(sandbox, 'noteforge.config.mjs');
     await fs.writeFile(cfgPath, 'export const notDefault = 1;\n', 'utf8');
 
     let caught: ObpubConfigError | undefined;
@@ -143,5 +143,43 @@ describe('loadConfigWithPath — fallback diagnostics', () => {
     const all = writes.join('');
     expect(all).toContain('no config found');
     expect(all).toContain('--config');
+  });
+});
+
+describe('loadConfigWithPath — legacy filename backwards-compat', () => {
+  it('still loads obsidian-blog.config.mjs and emits a deprecation warning to stderr', async () => {
+    const vaultDir = path.join(sandbox, 'vault');
+    await fs.mkdir(vaultDir, { recursive: true });
+
+    const cfgPath = path.join(sandbox, 'obsidian-blog.config.mjs');
+    await fs.writeFile(
+      cfgPath,
+      `export default {
+  site: { title: 't', url: 'https://e.test', author: 'a' },
+  vaults: [{ id: 'main', path: ${JSON.stringify(vaultDir)} }],
+};
+`,
+      'utf8',
+    );
+
+    const writes: string[] = [];
+    const spy = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation((chunk: string | Uint8Array): boolean => {
+        writes.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+        return true;
+      });
+
+    try {
+      const loaded = await loadConfigWithPath({ cwd: sandbox });
+      expect(loaded.configPath).toBe(cfgPath);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const all = writes.join('');
+    expect(all).toContain('deprecated');
+    expect(all).toContain('obsidian-blog.config.mjs');
+    expect(all).toContain('noteforge.config.mjs');
   });
 });

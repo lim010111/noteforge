@@ -1,6 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { obpubLoader } from '@noteforge/astro';
-import obpubConfig from '../obsidian-blog.config.ts';
+import obpubConfig from '../noteforge.config.ts';
 
 const noteSchema = z
   .object({

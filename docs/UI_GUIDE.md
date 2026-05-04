@@ -373,7 +373,7 @@ v0.3는 새 spacing 토큰을 도입하지 않는다 — 폴더 indent는 `--spa
 )}
 ```
 
-**아이덴티티 입력의 출처와 검증**: site-level 설정은 `apps/blog/obsidian-blog.config.ts`의 `site.avatar` / `site.nickname` / `site.handle` 필드로 받는다. step 2가 `siteSchema`(Zod)에 다음 검증을 추가한다.
+**아이덴티티 입력의 출처와 검증**: site-level 설정은 `apps/blog/noteforge.config.ts`의 `site.avatar` / `site.nickname` / `site.handle` 필드로 받는다. step 2가 `siteSchema`(Zod)에 다음 검증을 추가한다.
 
 - `site.avatar`는 **외부 호스트 거부** — `http://`, `https://`, `//`, `data:`로 시작하는 값은 모두 reject. 허용되는 형태는 `/`(앱 public 루트 상대 경로)나 vault 내부 첨부 경로뿐. *이유*: 외부 호스트 이미지는 referrer / IP 누출 경로가 되며, privacy-first 계약을 fork 사용자가 부지불식간에 깨뜨리는 가장 흔한 경로다(폰트 self-host 정책과 같은 결).
 - `site.nickname`은 빈 문자열을 허용하지 않는다(빈 문자열은 누락과 동일하게 처리되어 블록 미렌더).

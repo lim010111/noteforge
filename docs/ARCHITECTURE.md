@@ -41,7 +41,7 @@ obsidian_blog/
 └── apps/
     └── blog/                       # 도그푸드 사이트
         ├── astro.config.mjs
-        ├── obsidian-blog.config.ts # vault 절대경로, 테마, 정책
+        ├── noteforge.config.ts # vault 절대경로, 테마, 정책
         └── src/
             ├── content.config.ts
             └── pages/{index,[...slug],graph,api/graph.json}.astro
