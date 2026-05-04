@@ -6,10 +6,11 @@
  * modulo `slotCount`. The result is 1-indexed so callers can interpolate
  * the slot directly into a CSS variable name (`var(--color-accent-cat-${n})`).
  *
- * SSOT for the slot count: `phases/step10-v03-sidebar-redesign/design/TOKENS.md`
- * (5 slots in v0.3). `tokens.css` defines `--color-accent-cat-1..5`. The
- * exported `CATEGORY_ACCENT_SLOT_COUNT` constant is the single source of truth
- * in code — `apps/blog`'s sidebar payload imports it instead of hard-coding 5.
+ * Slot count is anchored here in code (5 slots since v0.3). `tokens.css`
+ * defines `--color-accent-cat-1..5`; `docs/UI_GUIDE.md` §3 ("v0.3 chromatic
+ * 확장") is the human-readable mirror. The exported
+ * `CATEGORY_ACCENT_SLOT_COUNT` constant is the single source of truth in
+ * code — `apps/blog`'s sidebar payload imports it instead of hard-coding 5.
  *
  * `null` is returned for empty input segments and non-positive `slotCount`,
  * so callers can fall back to the primary accent without a separate guard.

@@ -104,7 +104,7 @@ privacy-first. 한 가지 책임을 잘 하는 도구. "기본값이 새는 쪽"
 - (1) **토큰 손대지 않고 컴포넌트 레이아웃만 개편** — 사이드바 추가만으로는 트리/레일이 여전히 단색이라 *vault의 모양*이 색으로는 안 읽힘. 시각 임팩트 부족.
 - (2) **멀티 브랜드 색 시스템 도입(보라/인디고/시안 같은 cool 가족 추가)** — v0.2 안티패턴 §"보라/인디고 브랜드 색상" 행을 정면 위반. 거부.
 - (3) **slot ceiling 6+ + per-슬롯 hover/soft 변종 풀세트** — hue 영역이 warm 가족 밖으로 밀려나거나, 호출부가 per-카테고리 surface 시스템을 합성할 수 있어 multi-brand 시각으로 변질될 위험. 5슬롯 + flat tier로 막는다.
-**트레이드오프**: 토큰 추가는 fork 사용자가 테마를 커스터마이즈할 때 학습 비용이 늘어남(액센트가 *primary action* / *secondary identity* / *5 카테고리 슬롯*으로 분기). 완화책으로 `docs/UI_GUIDE.md` §3·§4-5에서 슬롯 의미를 vault-agnostic 언어로(슬롯 인덱스는 의미 중립, 매핑은 결정론적 해시) 명문화한다. WCAG AA 검증은 모든 신규 토큰에 대해 페이지/사이드바 양쪽 배경 대비로 두 번 수행(`phases/step10-v03-sidebar-redesign/design/TOKENS.md`).
+**트레이드오프**: 토큰 추가는 fork 사용자가 테마를 커스터마이즈할 때 학습 비용이 늘어남(액센트가 *primary action* / *secondary identity* / *5 카테고리 슬롯*으로 분기). 완화책으로 `docs/UI_GUIDE.md` §3·§4-5에서 슬롯 의미를 vault-agnostic 언어로(슬롯 인덱스는 의미 중립, 매핑은 결정론적 해시) 명문화한다. WCAG AA 검증은 모든 신규 토큰에 대해 페이지/사이드바 양쪽 배경 대비로 두 번 수행했고, 최종 hex/대비 값은 `packages/theme-default/src/styles/tokens.css`의 인라인 주석에 보존되어 있다.
 
 ---
 

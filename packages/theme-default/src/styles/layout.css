@@ -1,6 +1,6 @@
 /*
  * Layout chrome — site header, main, footer, mobile menu, theme toggle.
- * v0.2 SSOT: phases/step9-design-overhaul/design/COMPONENTS.md (`BaseLayout`).
+ * Visual contract: docs/UI_GUIDE.md §7 ("BaseLayout").
  *
  * All values reference tokens.css variables. Mobile menu is JS-less via
  * <details>/<summary>; only the theme-toggle button needs a small inline

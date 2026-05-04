@@ -64,4 +64,4 @@ pnpm obpub audit [--strict]          # 빌드 산출물 독립 검증
 - **canary**: fixture에 심어둔 누출 감지용 고유 문자열.
 
 ## Agent 운용
-이 프로젝트는 AI agent (Claude Code · Codex CLI) 가 작업하는 것을 가정한다. agent log / eval 결과는 [evals/agent-results.json](./evals/agent-results.json) 에 누적되고, AI-readiness 점수 보드는 [docs/ai-readiness-score.json](./docs/ai-readiness-score.json) 에 기록된다. 모든 디렉터리의 `CLAUDE.md` 는 동일 내용 `AGENTS.md` 와 짝을 이뤄야 하며 검증은 `pnpm validate:context-paths` 가 수행한다.
+이 프로젝트는 AI agent (Claude Code · Codex CLI) 가 작업하는 것을 가정한다. agent log / eval 결과는 [evals/agent-results.json](./evals/agent-results.json) 에 누적된다. 내부 AI-readiness 보드와 phase 메타데이터는 `archive/agent-scaffolding-pre-v0.8` 브랜치에만 보존되어 있다(공개 main 에는 미포함). 모든 디렉터리의 `CLAUDE.md` 는 동일 내용 `AGENTS.md` 와 짝을 이뤄야 하며 검증은 `pnpm validate:context-paths` 가 수행한다.
