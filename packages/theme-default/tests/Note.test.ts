@@ -160,11 +160,18 @@ describe('Note', () => {
     ).toMatch(/<a\s[^>]*\bclass="heading-anchor"/);
   });
 
-  it('(10) heroImage renders an aria-hidden overlay div with background-image; absent heroImage emits no overlay', async () => {
+  it('(10) heroImage renders an aria-hidden overlay div whose URL is fed via the --hero-bg custom property; absent heroImage emits no overlay', async () => {
     // The hero is decorative — `aria-hidden="true"` is part of the contract
     // because screen readers should pass over it and head straight to the
     // <h1>. Without that attribute, AT users would hear an empty announcement
     // for a presentational div.
+    //
+    // Since v0.8 the URL is templated into a CSS custom property (`--hero-bg`)
+    // instead of a full `background-image:` declaration. The actual
+    // `background-image: var(--hero-bg)` rule lives in prose.css. This keeps
+    // the user-supplied portion of the inline style to a single token (the
+    // url() expression itself), so a future regression in attribute escaping
+    // cannot inject an unrelated CSS declaration.
     const withHero = await render({
       title: 'T',
       tags: [],
@@ -177,10 +184,14 @@ describe('Note', () => {
     ).toMatch(/<header\s[^>]*\bclass="[^"]*\bnote-header--with-hero\b/);
     expect(
       withHero,
-      'overlay element must carry `note-header__hero` + `aria-hidden="true"` + the background-image inline style — three bits, all required for the visual contract',
+      'overlay element must carry `note-header__hero` + `aria-hidden="true"` + the --hero-bg custom property in inline style — three bits, all required for the visual contract',
     ).toMatch(
-      /<div\s[^>]*\bclass="note-header__hero"[^>]*\baria-hidden="true"[^>]*\bstyle="[^"]*background-image:\s*url\('\/attachments\/hero\.png'\)/,
+      /<div\s[^>]*\bclass="note-header__hero"[^>]*\baria-hidden="true"[^>]*\bstyle="[^"]*--hero-bg:\s*url\('\/attachments\/hero\.png'\)/,
     );
+    expect(
+      withHero,
+      'inline style must NOT contain a literal `background-image:` declaration — that channel was retired in v0.8 in favor of the custom property',
+    ).not.toMatch(/style="[^"]*background-image:/);
 
     const withoutHero = await render({ title: 'T', tags: [], body: '' });
     expect(
@@ -191,6 +202,42 @@ describe('Note', () => {
       withoutHero,
       'absent heroImage must not flip the with-hero modifier — that would activate hero CSS over an empty layer',
     ).not.toMatch(/note-header--with-hero/);
+  });
+
+  it('(13) malicious heroImage payloads cannot break out of the inline url() context', async () => {
+    // Defense-in-depth. The privacy pipeline already filters heroImage through
+    // resolvePublicImageFrontmatter — anything that reaches this component
+    // should already be a publishable URL. But the renderer is a hostile-
+    // input boundary: if a future regression upstream lets a quote or
+    // parenthesis through, the renderer must still refuse it.
+    //
+    // Note: Astro escapes attribute values for HTML, so a single quote
+    // becomes `&#39;`. But once HTML attribute escaping is undone by the
+    // browser parser, the resulting CSS string would still contain the
+    // unescaped quote and could close the url(). The fix is to refuse the
+    // value upstream of HTML escaping — heroBackgroundCss returns undefined
+    // for any payload containing breakout characters, and the component
+    // suppresses the entire overlay when the helper rejects.
+    const payloads = [
+      "/attachments/hero.png'); background:url('http://evil/",
+      '/attachments/he"ro.png',
+      'javascript:alert(1)',
+      'data:image/png;base64,iVBORw0KGgo=',
+    ];
+    for (const heroImage of payloads) {
+      const html = await render({ title: 'T', tags: [], body: '', heroImage });
+      expect(html, `payload "${heroImage}" must not produce a hero overlay element`).not.toMatch(
+        /class="note-header__hero"/,
+      );
+      expect(
+        html,
+        `payload "${heroImage}" must not produce any background-related inline style`,
+      ).not.toMatch(/style="[^"]*(?:background-image|--hero-bg)/);
+      expect(
+        html,
+        `payload "${heroImage}" must not flip the with-hero modifier`,
+      ).not.toMatch(/note-header--with-hero/);
+    }
   });
 
   it('(11) dev image picker renders only when slug/sourcePath are present and receives public image candidates', async () => {
