@@ -25,6 +25,7 @@ import {
   renderMdastToHtmlWithHeadings,
   type NoteHeading,
 } from './render/htmlFromMdast.ts';
+import { resolvePublicImageFrontmatter } from './privacy/imageFrontmatterResolver.ts';
 
 export type { NoteHeading } from './render/htmlFromMdast.ts';
 
@@ -709,7 +710,7 @@ function sanitizePublicImageFrontmatter(
   attachmentClosure: ReadonlySet<string>,
 ): void {
   for (const key of ['cover', 'thumbnail'] as const) {
-    const value = resolvePublicImageFrontmatterValue(
+    const value = resolvePublicImageFrontmatter(
       frontmatter[key],
       attachmentClosure,
     );
@@ -719,19 +720,6 @@ function sanitizePublicImageFrontmatter(
       frontmatter[key] = value;
     }
   }
-}
-
-function resolvePublicImageFrontmatterValue(
-  value: unknown,
-  attachmentClosure: ReadonlySet<string>,
-): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const cleaned = value.trim();
-  if (/^https?:\/\//i.test(cleaned)) return cleaned;
-  if (!cleaned.startsWith('/')) return undefined;
-  if (!cleaned.startsWith('/attachments/')) return cleaned;
-  const id = cleaned.slice('/attachments/'.length);
-  return attachmentClosure.has(id) ? cleaned : undefined;
 }
 
 function cloneTree(tree: Root | undefined): Root {
