@@ -81,7 +81,7 @@ This is handy when your vault is already organized the way you want the site to 
 
 The two examples above — `category: tools/cli` in frontmatter and a `tools/cli/` folder in the vault — describe the same destination. Both render to the same sidebar tree and URLs on the published blog:
 
-![noteforge blog with CATEGORIES sidebar showing `tools` > `cli`, and a "cli" landing page listing "pnpm 워크스페이스 정리" with breadcrumb HOME / TOOLS / CLI](./blog_example.png)
+![noteforge blog with CATEGORIES sidebar showing `tools` > `cli`, and a "cli" landing page listing "pnpm 워크스페이스 정리" with breadcrumb HOME / TOOLS / CLI](./image.png)
 
 ## How privacy is enforced
 
