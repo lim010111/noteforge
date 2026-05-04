@@ -33,8 +33,9 @@ const MARKDOWN_EXT_RE = /\.(md|markdown)$/i;
  *   - mode 'category': derive as `<frontmatter.category>/<filename>`; falls back
  *     to filename-only when category is missing
  *
- * The returned slug is normalized (lowercased, spaces→dashes, .md stripped) but preserves
- * non-ASCII characters (Korean/Japanese/etc.). URL-encoding happens at render time.
+ * The returned slug is normalized (lowercased, .md stripped, internal whitespace collapsed
+ * to single spaces) but preserves spaces and non-ASCII characters (Korean/Japanese/etc.).
+ * Spaces in slugs surface as `%20` in URLs at HTTP transport time.
  */
 export function computeSlug(input: SlugInput, options?: SlugOptions): string {
   const permalink = input.frontmatter['permalink'];
@@ -81,10 +82,15 @@ function fromCategory(rawCategory: unknown, relativePath: string): string {
 }
 
 export function slugifySegment(segment: string): string {
+  // Whitespace is preserved (collapsed to a single space) so user-facing
+  // filenames like `LoRA 란.md` keep their spacing in URLs (`/lora 란/`,
+  // surfaced as `%20` over HTTP). Earlier behaviour replaced `\s+` with `-`,
+  // which mangled multi-word note titles. Trim handles surrounding whitespace
+  // explicitly; the internal collapse only normalises runs of whitespace.
   return segment
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, '-')
+    .replace(/\s+/g, ' ')
     .replace(/^-+/, '')
     .replace(/-+$/, '');
 }

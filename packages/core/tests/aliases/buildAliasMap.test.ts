@@ -48,10 +48,10 @@ describe('buildAliasRedirects', () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it('lowercases and dashes whitespace in alias', () => {
+  it('lowercases and preserves whitespace in alias', () => {
     const result = buildAliasRedirects([n('projects/foo', ['Old Name'])]);
     expect(result.redirects).toEqual([
-      { from: 'old-name', to: 'projects/foo', noteId: 'projects/foo' },
+      { from: 'old name', to: 'projects/foo', noteId: 'projects/foo' },
     ]);
     expect(result.warnings).toEqual([]);
   });
@@ -59,7 +59,7 @@ describe('buildAliasRedirects', () => {
   it('preserves slashes between alias segments while slugifying each segment', () => {
     const result = buildAliasRedirects([n('projects/foo', ['Old/Path Name'])]);
     expect(result.redirects).toEqual([
-      { from: 'old/path-name', to: 'projects/foo', noteId: 'projects/foo' },
+      { from: 'old/path name', to: 'projects/foo', noteId: 'projects/foo' },
     ]);
     expect(result.warnings).toEqual([]);
   });

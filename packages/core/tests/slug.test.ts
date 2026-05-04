@@ -67,26 +67,26 @@ describe('computeSlug', () => {
       );
     });
 
-    it('replaces spaces with dashes within a segment', () => {
-      expect(computeSlug(input({ relativePath: 'Hello World.md' }))).toBe('hello-world');
+    it('preserves spaces within a segment', () => {
+      expect(computeSlug(input({ relativePath: 'Hello World.md' }))).toBe('hello world');
     });
 
-    it('handles spaces in folder names', () => {
+    it('preserves spaces in folder names', () => {
       expect(computeSlug(input({ relativePath: 'My Projects/First Post.md' }))).toBe(
-        'my-projects/first-post',
+        'my projects/first post',
       );
     });
 
-    it('collapses consecutive spaces to a single dash', () => {
-      expect(computeSlug(input({ relativePath: 'Hello   World.md' }))).toBe('hello-world');
+    it('collapses consecutive spaces to a single space', () => {
+      expect(computeSlug(input({ relativePath: 'Hello   World.md' }))).toBe('hello world');
     });
 
     it('preserves Korean characters by default', () => {
-      expect(computeSlug(input({ relativePath: '한글 노트.md' }))).toBe('한글-노트');
+      expect(computeSlug(input({ relativePath: '한글 노트.md' }))).toBe('한글 노트');
     });
 
     it('preserves Korean in nested folders', () => {
-      expect(computeSlug(input({ relativePath: '프로젝트/첫 글.md' }))).toBe('프로젝트/첫-글');
+      expect(computeSlug(input({ relativePath: '프로젝트/첫 글.md' }))).toBe('프로젝트/첫 글');
     });
 
     it('strips leading ./', () => {
@@ -97,12 +97,16 @@ describe('computeSlug', () => {
       expect(computeSlug(input({ relativePath: 'foo.markdown' }))).toBe('foo');
     });
 
-    it('trims trailing dashes from segments', () => {
+    it('trims trailing whitespace from segments', () => {
       expect(computeSlug(input({ relativePath: 'Hello .md' }))).toBe('hello');
     });
 
-    it('removes leading dashes from segments', () => {
+    it('trims leading whitespace from segments', () => {
       expect(computeSlug(input({ relativePath: ' Hello.md' }))).toBe('hello');
+    });
+
+    it('trims and collapses surrounding/internal whitespace together', () => {
+      expect(computeSlug(input({ relativePath: '  Hello   World  .md' }))).toBe('hello world');
     });
   });
 
@@ -116,7 +120,7 @@ describe('computeSlug', () => {
           }),
           { mode: 'category' },
         ),
-      ).toBe('peft/lora/lora-란');
+      ).toBe('peft/lora/lora 란');
     });
 
     it('uses filename only when category is missing (no vault-path leak)', () => {
@@ -173,7 +177,7 @@ describe('computeSlug', () => {
           }),
           { mode: 'category' },
         ),
-      ).toBe('에세이/2026/첫-글');
+      ).toBe('에세이/2026/첫 글');
     });
 
     it('permalink wins over category mode', () => {
@@ -209,7 +213,7 @@ describe('computeSlug', () => {
           }),
           { mode: 'category' },
         ),
-      ).toBe('ai/final-post');
+      ).toBe('ai/final post');
     });
   });
 

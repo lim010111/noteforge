@@ -182,7 +182,8 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
       expect(
         k.startsWith('private/') ||
           k.startsWith('private-') ||
-          k === 'private-secret' ||
+          k.startsWith('private ') ||
+          k === 'private secret' ||
           k === 'family-photos' ||
           k === 'Private Secret' ||
           k === 'private/family-photos' ||

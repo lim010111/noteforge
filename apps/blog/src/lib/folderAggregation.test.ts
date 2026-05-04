@@ -801,14 +801,14 @@ describe('buildCategoryIndexViewModel', () => {
 
   it('childNotes use entry.id slug for href (already category-prefixed upstream)', () => {
     const tree = buildCategoryTree([
-      makeEntry('peft/lora/lora-란', {
+      makeEntry('peft/lora/lora 란', {
         title: 'LoRA 란',
         frontmatter: { category: 'PEFT/LoRA' },
       }),
     ]);
     const vm = buildCategoryIndexViewModel(tree, 'peft/lora');
     expect(vm!.childNotes).toEqual([
-      { title: 'LoRA 란', href: '/peft/lora/lora-란/' },
+      { title: 'LoRA 란', href: '/peft/lora/lora 란/' },
     ]);
   });
 
