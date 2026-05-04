@@ -26,6 +26,7 @@
 import type { Loader } from 'astro/loaders';
 import { runCorePipeline, type NoteHeading } from '@noteforge/core/pipeline';
 import type { ObpubConfig } from '@noteforge/core/config';
+import { resolvePublicImageFrontmatter } from '@noteforge/core';
 
 interface NoteEntryData extends Record<string, unknown> {
   kind: 'note';
@@ -186,16 +187,3 @@ export function obpubLoader(config: ObpubConfig): Loader {
   };
 }
 
-function resolvePublicImageFrontmatter(
-  value: unknown,
-  attachmentClosure: ReadonlySet<string>,
-): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const cleaned = value.trim();
-  if (/^https?:\/\//i.test(cleaned)) return cleaned;
-  if (!cleaned.startsWith('/')) return undefined;
-  if (!cleaned.startsWith('/attachments/')) return cleaned;
-  const id = cleaned.slice('/attachments/'.length);
-  if (attachmentClosure.has(id)) return cleaned;
-  return undefined;
-}
