@@ -1,9 +1,17 @@
 {
   "name": "@noteforge/cli",
-  "version": "0.0.0",
+  "version": "0.8.0",
   "private": true,
   "license": "MIT",
+  "author": "woohyun (https://github.com/lim010111)",
   "description": "CLI (obpub dev/build/audit/status) for noteforge.",
+  "keywords": [
+    "obsidian",
+    "cli",
+    "static-site-generator",
+    "privacy",
+    "noteforge"
+  ],
   "type": "module",
   "bin": {
     "obpub": "./dist/bin.js"

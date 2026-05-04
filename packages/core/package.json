@@ -1,9 +1,17 @@
 {
   "name": "@noteforge/core",
-  "version": "0.0.0",
+  "version": "0.8.0",
   "private": true,
   "license": "MIT",
+  "author": "woohyun (https://github.com/lim010111)",
   "description": "Framework-independent privacy pipeline for noteforge.",
+  "keywords": [
+    "obsidian",
+    "privacy",
+    "markdown",
+    "mdast",
+    "noteforge"
+  ],
   "type": "module",
   "repository": {
     "type": "git",

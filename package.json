@@ -1,9 +1,26 @@
 {
   "name": "noteforge",
-  "version": "0.0.0",
+  "version": "0.8.0",
   "private": true,
   "license": "MIT",
+  "author": "woohyun (https://github.com/lim010111)",
   "description": "Monorepo root for noteforge — privacy-first Astro SSG for selective Obsidian vault publishing.",
+  "keywords": [
+    "obsidian",
+    "astro",
+    "static-site-generator",
+    "privacy",
+    "blog",
+    "markdown"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lim010111/obsidian-blog.git"
+  },
+  "homepage": "https://github.com/lim010111/obsidian-blog#readme",
+  "bugs": {
+    "url": "https://github.com/lim010111/obsidian-blog/issues"
+  },
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.6.0"

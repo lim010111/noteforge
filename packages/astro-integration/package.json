@@ -1,9 +1,17 @@
 {
   "name": "@noteforge/astro",
-  "version": "0.0.0",
+  "version": "0.8.0",
   "private": true,
   "license": "MIT",
+  "author": "woohyun (https://github.com/lim010111)",
   "description": "Astro integration (Content Layer loader + chokidar watcher) for noteforge.",
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "obsidian",
+    "content-layer",
+    "noteforge"
+  ],
   "type": "module",
   "repository": {
     "type": "git",
