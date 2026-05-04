@@ -2,6 +2,8 @@
 
 이 디렉터리는 AI agent (Claude Code, Codex CLI) 가 이 레포에서 *얼마나 잘 작업하는지* 를 정량적으로 추적한다. AI-readiness 점수가 메타-수준이라면 evals 는 task-수준 — 실제 회귀를 잡는 last-line-of-defense.
 
+> **Status (v0.8.0):** 시드 task markdown 들과 본 README 는 자리잡혀 있지만 자동화 harness 는 아직 미작성. [`agent-results.json`](./agent-results.json) 의 `results: []` 빈 배열은 의도된 placeholder 다 — privacy regression telemetry harness 가 별도 사이클에서 들어오면 그때부터 실제 entry 가 누적된다.
+
 ## 구성
 
 - [tasks/](./tasks/) — 한 task = 한 markdown 파일. 입력 / 기대 출력 / pass 조건 명시.
