@@ -55,7 +55,7 @@ The note above lands in the `tools` group in the sidebar, and its URL becomes `/
 
 For nested categories, separate levels with a slash (`/`). For example, `category: tools/cli` places the note under a `tools > cli` tree in the sidebar, with the URL `/tools/cli/...`.
 
-![Obsidian editor showing a note "pnpm 워크스페이스 정리" with frontmatter `tags: - public` and `category: tools/cli`](./category-mode-obsidian_example.png)
+![Obsidian editor showing a note "pnpm 워크스페이스 정리" with frontmatter `tags: - public` and `category: tools/cli`](./docs/assets/category-mode-obsidian_example.png)
 
 The note can live anywhere inside your vault — the `category` field is what decides its place on the site.
 
@@ -65,7 +65,7 @@ Notes without a `category` field are gathered into an **Uncategorized** group pi
 
 In this mode, your vault's folder layout is used directly for both the sidebar and the URL. There's no need to add a `category` field to each note — your on-disk folder hierarchy becomes the site's category tree as-is.
 
-![Obsidian file explorer showing the vault folder hierarchy `tools` > `cli` > "pnpm 워크스페이스 정리"](./folder-mode-obsidian_example.png)
+![Obsidian file explorer showing the vault folder hierarchy `tools` > `cli` > "pnpm 워크스페이스 정리"](./docs/assets/folder-mode-obsidian_example.png)
 
 To switch to this mode, set it explicitly in `obsidian-blog.config.ts`:
 
@@ -81,7 +81,7 @@ This is handy when your vault is already organized the way you want the site to 
 
 The two examples above — `category: tools/cli` in frontmatter and a `tools/cli/` folder in the vault — describe the same destination. Both render to the same sidebar tree and URLs on the published blog:
 
-![noteforge blog with CATEGORIES sidebar showing `tools` > `cli`, and a "cli" landing page listing "pnpm 워크스페이스 정리" with breadcrumb HOME / TOOLS / CLI](./image.png)
+![noteforge blog with CATEGORIES sidebar showing `tools` > `cli`, and a "cli" landing page listing "pnpm 워크스페이스 정리" with breadcrumb HOME / TOOLS / CLI](./docs/assets/blog-categories-overview.png)
 
 ## How privacy is enforced
 
