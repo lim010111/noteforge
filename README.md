@@ -10,7 +10,7 @@
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
 [![GitHub release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
-**Languages**: English · [한국어](./README.ko.md)
+**Languages**: English · [한국어](./README.ko.md) · [简体中文](./README.zh.md)
 
 `noteforge` only publishes the notes you explicitly opt in — anything with `public: true` in its frontmatter, or a `#public` tag somewhere in the body. Everything else stays out of the build entirely. This is the opposite of Quartz's opt-out default: nothing leaves your vault unless you say it can. For the full threat model and what this project deliberately doesn't try to cover, see [docs/PRD.md](./docs/PRD.md).
 

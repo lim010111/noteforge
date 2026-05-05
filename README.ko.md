@@ -10,7 +10,7 @@
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
 [![GitHub release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
-**언어**: [English](./README.md) · 한국어
+**언어**: [English](./README.md) · 한국어 · [简体中文](./README.zh.md)
 
 frontmatter에 `public: true`를 적었거나 본문 어디든 `#public` 태그가 들어 있는 노트만 발행됩니다. 그 외에는 모두 비공개로 남습니다. opt-out 방식인 Quartz와 달리, 사용자가 명시적으로 허용한 노트만 공개되는 opt-in 모델을 따릅니다. 위협 모델과 프로젝트 범위는 [docs/PRD.md](./docs/PRD.md)에서 확인하실 수 있습니다.
 
