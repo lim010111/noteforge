@@ -40,20 +40,29 @@ if (typeof vaultPath !== 'string' || vaultPath.length === 0) {
 }
 
 export default defineConfig({
+  // Public identity injected into HTML <head>, sitemap, RSS, and OG meta.
+  // Edit these before your first deploy — leaving the demo values ships the upstream identity.
   site: {
     title: 'shine notes',
     url: 'https://noteforge.pages.dev',
     author: 'shine',
+    // avatar: '/avatar.png',     // Optional. Must live under apps/blog/public/; external URLs are rejected.
+    // nickname: 'shine',         // Optional. Display name; falls back to `author`.
     social: {
+      // Supported keys: `github` (URL), `email`. Both optional.
       github: 'https://github.com/lim010111',
     },
+    // about: { headline: '...', bio: ['...'], highlights: ['...'] }, // Optional, powers the About page.
   },
+  // Single vault entry (MVP enforces max 1). `path` comes from OBPUB_VAULT_PATH.
   vaults: [
     {
-      id: 'shine',
+      id: 'shine',                              // Internal identifier; safe to leave as-is.
       path: vaultPath,
-      urlPrefix: '/',
-      theme: '@noteforge/theme-default',
+      urlPrefix: '/',                           // Path prefix prepended to every published URL. Default '/'.
+      theme: '@noteforge/theme-default',        // Workspace package name; the only theme shipped today.
+      // Vault-relative globs skipped before any privacy decision (faster builds).
+      // Distinct from the `private/**` tripwire — `ignore` removes the file from consideration entirely.
       ignore: [
         'Templates/**',
         'Excalidraw/**',
@@ -63,8 +72,19 @@ export default defineConfig({
       ],
     },
   ],
+  // Opt-in publishing rules. Defaults — requireExplicitOptIn: true, publicTag: 'public', frontmatterKey: 'public'.
   publishing: {
     requireExplicitOptIn: true,
   },
+  // How [[Note]] links to private targets render. Currently only 'strip-to-text' is supported by the schema.
   privateLinkBehavior: 'strip-to-text',
+
+  // --- Optional advanced toggles (uncomment to override defaults) ---
+  // nav: { mode: 'folder' },                        // default 'category'. 'folder' uses the vault folder hierarchy as the sidebar tree.
+  // unsafeAllowPrivateFolder: true,                 // Override the private/** tripwire. Do NOT enable unless you know what you are doing.
+  // attachments: {                                  // Public attachment closure. uploadDir cannot live under private/** without the override above.
+  //   uploadDir: 'attachments',
+  //   uploadMaxBytes: 10 * 1024 * 1024,
+  // },
+  // graph: { enabled: true, includePrivateAsAnonymousNodes: false }, // Future graph view; private nodes may appear anonymized.
 });
