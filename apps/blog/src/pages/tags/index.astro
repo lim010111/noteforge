@@ -15,6 +15,6 @@ const canonicalUrl = ensureTrailingSlash(
 );
 const sidebar = buildSidebarPayload(all, undefined, obpubConfig.nav.mode);
 ---
-<BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
+<BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <TagList taglist={{ tags: summaries }} />
 </BaseLayout>

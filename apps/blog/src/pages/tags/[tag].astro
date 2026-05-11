@@ -32,6 +32,6 @@ const sidebar = buildSidebarPayload(
   obpubConfig.nav.mode,
 );
 ---
-<BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar} social={obpubConfig.site.social}>
+<BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <TagPage tagpage={{ tag, entries }} />
 </BaseLayout>
