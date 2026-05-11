@@ -1,6 +1,9 @@
 import * as path from 'node:path';
-import { runCorePipeline, type PipelineResult } from '@noteforge/core/pipeline';
-import type { ObpubConfig } from '@noteforge/core/config';
+import {
+  runCorePipeline,
+  type ObpubConfig,
+  type PipelineResult,
+} from '@noteforge/core';
 import {
   runAuditWithMetrics,
   type AuditInput,

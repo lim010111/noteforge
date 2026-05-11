@@ -20,7 +20,7 @@
  * privacy contract:
  *   - Both copy paths consult ONLY `result.attachmentClosure`. Attachments
  *     referenced exclusively from private notes never enter the closure
- *     upstream (`packages/core/src/privacy/attachmentFilter.ts`), so neither
+ *     upstream (`packages/core/src/privacy/attachmentClosure.ts`), so neither
  *     the dev middleware nor the build copier can ever surface them.
  *   - The dev middleware re-checks closure membership for every request and
  *     refuses anything not in the set, so a user typing a known private
@@ -49,8 +49,7 @@ import { createReadStream } from 'node:fs';
 import * as nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
-import type { ObpubConfig } from '@noteforge/core/config';
-import { runCorePipeline } from '@noteforge/core/pipeline';
+import { runCorePipeline, type ObpubConfig } from '@noteforge/core';
 import { remarkWikilink, type RemarkWikilinkOptions } from './remarkWikilink.ts';
 import { createWatcher, type Watcher, type WatcherEvent } from './watcher.ts';
 import {

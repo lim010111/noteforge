@@ -13,7 +13,7 @@
  * `<aside>` cannot land in the DOM.
  */
 import type { TableOfContentsProps } from "./TableOfContents.types.ts";
-import type { NoteHeading } from "@noteforge/core/pipeline";
+import type { NoteHeading } from "@noteforge/core";
 
 const { headings, title = "목차", maxDepth = 3 } = Astro.props as TableOfContentsProps;
 

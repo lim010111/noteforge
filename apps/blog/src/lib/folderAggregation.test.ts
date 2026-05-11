@@ -1,9 +1,12 @@
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { defineConfig } from '@noteforge/core/config';
-import { runCorePipeline, type PipelineResult } from '@noteforge/core/pipeline';
-import { isPublishable } from '@noteforge/core/privacy/publishable';
+import {
+  defineConfig,
+  isPublishable,
+  runCorePipeline,
+  type PipelineResult,
+} from '@noteforge/core';
 import {
   assertNoAliasCollisions,
   assertNoFolderCollisions,

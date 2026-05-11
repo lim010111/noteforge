@@ -1,6 +1,6 @@
 import * as nodeFs from 'node:fs/promises';
 import * as nodePath from 'node:path';
-import type { ObpubConfig } from '@noteforge/core/config';
+import type { ObpubConfig } from '@noteforge/core';
 import {
   isInside,
   isSafeSlug,

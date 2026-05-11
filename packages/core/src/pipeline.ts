@@ -1,44 +1,62 @@
 /**
- * Phase A→C composition helper. Reads a vault from disk, applies the full privacy
- * pipeline, and returns a structured result that downstream adapters
- * (`@noteforge/astro` loader, audit CLI) can consume.
+ * Phase A→C composition helper. Calls the indexer + per-note renderer in
+ * sequence, threads cross-note state (graph, alias map, attachment closure,
+ * private-title audit set) through both, and returns the structured
+ * `PipelineResult` that downstream adapters (`@noteforge/astro` loader, audit
+ * CLI) consume.
  *
- * Framework-free: imports only `@noteforge/core` internals + `mdast-util-from-markdown`,
- * `mdast-util-to-hast`, `hast-util-to-html`. No Astro or browser symbols.
+ * Shape after the v0.x deepening:
+ *
+ *   1. `buildVaultIndex(input)`                   ─ Phase A: discovery (one-shot)
+ *   2. classify all notes → `publicSlugs`         ─ Phase B
+ *   3. linkRewriter pass over every public note   ─ Phase C, cross-note (must
+ *      precede transclusion so embeds pull in already-rewritten subtrees)
+ *   4. `renderPublicNote(...)` for each public    ─ Phase C, per-note: transclude →
+ *      slug; emits the RAW RenderedNote               serialize → frontmatter/tag filter.
+ *      (image surfaces NOT yet closure-gated)         Refs collected here feed the closure.
+ *   5. cross-note attachment refs from private    ─ closure inputs
+ *      notes via `collectAttachmentRefs`
+ *   6. graph build + public subgraph              ─ cross-note ops
+ *   7. `buildAttachmentClosure(...)`              ─ cross-note decision
+ *   8. `applyAttachmentClosure(rendered, ...)`    ─ single owner of image/frontmatter
+ *      per public slug + glob tag blocklist          gating; materializes the final maps
+ *   9. alias redirects (publishable only)         ─ cross-note op
+ *  10. compose `PipelineResult`
  *
  * privacy-first contract:
  *   - the public/private verdict is decided exclusively in `privacy/classify`.
- *     This file never re-derives `isPublic` from frontmatter or tags.
- *   - every downstream privacy stage (linkRewriter, transclude, frontmatterFilter,
- *     tagBlocklist, attachmentFilter) is driven by the classify output.
+ *     Neither this orchestrator nor the indexer nor the per-note renderer
+ *     re-derive it.
+ *   - every privacy stage (linkRewriter, transclude inside renderPublicNote,
+ *     frontmatter allowlist, attachment closure, alias filter, audit set) is
+ *     driven by the classify output.
+ *   - attachment closure decisions (`collectAttachmentRefs`,
+ *     `buildAttachmentClosure`, `applyAttachmentClosure`) live in one module
+ *     — `privacy/attachmentClosure.ts`. The orchestrator calls; it does not
+ *     re-implement.
  */
 
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import picomatch from 'picomatch';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { mathFromMarkdown } from 'mdast-util-math';
 import { math as mathSyntax } from 'micromark-extension-math';
+import * as path from 'node:path';
 import type { Root } from 'mdast';
-
-import {
-  renderMdastToHtmlWithHeadings,
-  type NoteHeading,
-} from './render/htmlFromMdast.ts';
-import { resolvePublicImageFrontmatter } from './privacy/imageFrontmatterResolver.ts';
-
-export type { NoteHeading } from './render/htmlFromMdast.ts';
 
 import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
-import { parseNote } from './discover/parseNote.ts';
-import { walkVault } from './discover/walk.ts';
 import {
+  renderPublicNote,
+  type NoteHeading,
+  type RenderedNote,
+} from './render/renderPublicNote.ts';
+import {
+  applyAttachmentClosure,
   buildAttachmentClosure,
+  collectAttachmentRefs,
   type AttachmentRef,
-} from './privacy/attachmentFilter.ts';
+} from './privacy/attachmentClosure.ts';
 import { classify } from './privacy/classify.ts';
-import { filterFrontmatter } from './privacy/frontmatterFilter.ts';
 import {
   buildGraph,
   filterToPublicSubgraph,
@@ -46,16 +64,15 @@ import {
   type GraphNode,
 } from './privacy/graph.ts';
 import { rewriteWikilinks } from './privacy/linkRewriter.ts';
-import { expandTransclusions } from './privacy/transclude.ts';
 import {
-  buildWikilinkIndex,
   parseWikilinkTarget,
   resolveWikilink,
-  type IndexedNote,
   type WikilinkIndex,
 } from './resolve/wikilink.ts';
-import { computeSlug } from './slug.ts';
+import { buildVaultIndex } from './vaultIndex/buildVaultIndex.ts';
 import type { ParsedNote } from './types.ts';
+
+export type { NoteHeading } from './render/renderPublicNote.ts';
 
 /**
  * Lift a `$$expr$$` that occupies its own line into the fenced-block form
@@ -100,68 +117,20 @@ export interface PublicGraph {
 }
 
 export interface PipelineResult {
-  /** All parsed notes (public + private). Private notes are kept for leak detection. */
   notes: ParsedNote[];
-  /** Slugs of notes classified as public. */
   publicSlugs: Set<string>;
-  /** Rendered HTML per public slug, after linkRewriter + transclude + serialization. */
   renderedHtml: Map<string, string>;
-  /**
-   * Structured h2/h3/h4 list per public slug, collected from the SAME hast pass
-   * that produced `renderedHtml`. Private transclusion subtrees were already
-   * removed by `expandTransclusions` before collection, so headings inside
-   * private content cannot leak through this channel — same surface area as
-   * `renderedHtml`. Empty array (or absent map entry) for notes with no h2-h4.
-   */
   noteHeadings: Map<string, readonly NoteHeading[]>;
-  /**
-   * Allowlist-filtered frontmatter per public slug. `cover`/`thumbnail` values
-   * are additionally gated against the public attachment closure before they
-   * enter this adapter-facing side channel.
-   */
   publicFrontmatter: Map<string, Record<string, unknown>>;
-  /** Blocklist-filtered tag list per public slug. */
   publicTags: Map<string, string[]>;
-  /** Public subgraph — both nodes and edge endpoints are guaranteed public. */
   publicGraph: PublicGraph;
-  /** Vault-relative paths of attachments included in the public closure. */
   attachmentClosure: Set<string>;
-  /**
-   * First image URL per public slug, used by the theme to render a hero
-   * background on the note header.
-   *
-   * privacy contract: `/attachments/<id>` URLs are validated against
-   * `attachmentClosure` before they enter this map — an image whose source is
-   * referenced only by a private note never reaches downstream consumers.
-   * Absolute http(s):// URLs pass through verbatim (the network leak risk is
-   * the author's choice and matches the `<img src>` they wrote). Other relative
-   * URLs (paths the wikilink/attachment matcher could not normalise) are
-   * intentionally dropped — surfacing a broken hero is worse than no hero.
-   */
   firstImage: Map<string, string>;
-  /**
-   * Document-order image candidates per public slug, after the same privacy
-   * gate as `firstImage`. Used by dev-only picker UI; private-only attachments
-   * must never enter this side channel.
-   */
   embeddedImages: Map<string, readonly string[]>;
-  /** Slug → vault-relative source markdown path. Dev tooling uses this to edit frontmatter. */
   sourcePathBySlug: Map<string, string>;
-  /**
-   * Title-shaped strings of every private note (frontmatter `title` and the bare
-   * filename, both included). Audit consumers scan rendered HTML for these to detect
-   * leaked private-note mentions.
-   */
   privateNoteTitles: Set<string>;
-  /** Vault-relative paths of all discovered attachments (public + private). */
   allAttachments: Set<string>;
-  /**
-   * Redirects from frontmatter `aliases` to canonical slugs. Built only from the
-   * publishable subset, so private-note aliases never appear here. Adapters consume
-   * this to emit alias routes; the canonical slug is `to`.
-   */
   aliasRedirects: readonly AliasRedirect[];
-  /** Structured diagnostics (tripwire hits, unresolved links, etc.). */
   warnings: PipelineWarning[];
 }
 
@@ -173,36 +142,24 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     throw new Error('runCorePipeline: config has no vault');
   }
 
-  // ── Phase A — Discovery ────────────────────────────────────────────────────
-  // The walker must yield notes under tripwire paths (e.g. `private/**`) so that
-  // `classify` can observe their public marker and emit the tripwire warning.
-  // Truly-ignored directories (`.obsidian`, `.trash`) stay in `walkIgnore`.
+  // ── Phase A — Discovery (delegated to VaultIndex) ─────────────────────────
   const classifyRule = getClassifyRule(config, vault.id);
-  const walkIgnore = stripTripwireFromIgnore(vault.ignore, classifyRule.tripwirePaths);
-
-  const notes = await discoverNotes(vault.path, vault.id, walkIgnore);
-  const attachments = await discoverAttachments(
-    vault.path,
-    stripUploadDirFromIgnore(walkIgnore, config.attachments.uploadDir),
-    config.attachments.allowedExtensions,
+  const noteIgnore = stripTripwireFromIgnore(vault.ignore, classifyRule.tripwirePaths);
+  const attachmentIgnore = stripUploadDirFromIgnore(
+    noteIgnore,
+    config.attachments.uploadDir,
   );
 
-  const slugByRelPath = new Map<string, string>();
-  const slugMode = config.nav.mode;
-  for (const n of notes) {
-    slugByRelPath.set(
-      n.relativePath,
-      computeSlug(
-        { frontmatter: n.frontmatter, relativePath: n.relativePath },
-        { mode: slugMode },
-      ),
-    );
-  }
+  const vaultIndex = await buildVaultIndex({
+    vaultPath: vault.path,
+    vaultId: vault.id,
+    noteIgnore,
+    attachmentIgnore,
+    attachmentExtensions: config.attachments.allowedExtensions,
+    slugMode: config.nav.mode,
+  });
 
-  const indexedNotes = toIndexedNotes(notes, slugByRelPath);
-  const wikilinkIndex = buildWikilinkIndex(indexedNotes);
-  const attachmentByBasenameLower = indexAttachmentsByBasename(attachments);
-  const attachmentIds = new Set(attachments);
+  const { notes, slugByRelPath, indexedNotes, wikilinkIndex, attachments } = vaultIndex;
 
   // ── Phase B — Classification ───────────────────────────────────────────────
   const warnings: PipelineWarning[] = [];
@@ -227,16 +184,14 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     if (ok) publicSlugs.add(slug);
   }
 
-  // ── Phase C — Graph + link/transclude rewrite + HTML serialization ─────────
-
-  // Build an mdast for every note (public + private).
-  // Public notes will have linkRewriter applied in place below.
-  // Private note mdasts are never rendered; we only keep them to compute full-graph edges
-  // when needed. (We actually collect edges by regex-scanning the raw body, so private
-  // mdasts are unused in practice — but keeping the data shape symmetric is cheap.)
+  // ── Phase C — linkRewriter pass (cross-note) ──────────────────────────────
+  // Build an mdast for every public note and apply rewriteWikilinks in place.
+  // Transclusion below depends on these being already-rewritten so embedded
+  // wikilinks don't leak as raw `[[...]]` text.
   const rewrittenMdastBySlug = new Map<string, Root>();
-  const notesBySlug = new Map<string, ParsedNote>();
   const sourcePathBySlug = new Map<string, string>();
+  const notesBySlug = new Map<string, typeof notes[number]>();
+
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined) continue;
@@ -244,9 +199,8 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     sourcePathBySlug.set(slug, n.relativePath);
     if (publicSlugs.has(slug)) {
       // micromark-extension-math + mdast-util-math turn `$x$` into `inlineMath`
-      // and `$$x$$` into `math` mdast nodes; without them the dollar-sign
-      // syntax flowed through as plain text and reached the rendered HTML
-      // unchanged. KaTeX SSR is applied later in renderMdastToHtml.
+      // and `$$x$$` into `math` mdast nodes. Without them dollar-sign syntax
+      // flows through as plain text. KaTeX SSR runs later inside renderPublicNote.
       rewrittenMdastBySlug.set(
         slug,
         fromMarkdown(promoteSingleLineDisplayMath(n.body), {
@@ -257,7 +211,6 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     }
   }
 
-  // Apply linkRewriter to each public note (mutates in place).
   for (const slug of publicSlugs) {
     const note = notesBySlug.get(slug);
     const tree = rewrittenMdastBySlug.get(slug);
@@ -272,108 +225,53 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     });
   }
 
-  // Apply transclude to each public note. `mdastFor` must return a fresh copy each
-  // invocation because transclude walks and mutates the synthetic tree — sharing
-  // subtrees would let an embed's recursion corrupt the source note's own render.
+  // ── Phase C — per-note render via renderPublicNote ────────────────────────
+  // Each call returns html + headings + filtered frontmatter/tags + RAW image
+  // URLs + this note's attachment refs. We hold on to each note's raw
+  // RenderedNote so the closure post-pass below can apply the cross-note
+  // attachment closure once it has been built.
+  const rawRenderedBySlug = new Map<string, RenderedNote>();
   const attachmentRefs: AttachmentRef[] = [];
+
   for (const slug of publicSlugs) {
     const note = notesBySlug.get(slug);
     const tree = rewrittenMdastBySlug.get(slug);
     if (note === undefined || tree === undefined) continue;
 
-    expandTransclusions({
-      tree,
-      sourceId: slug,
-      sourceFile: note.relativePath,
-      resolve: (raw) => resolveForEmbed(raw, wikilinkIndex, attachmentByBasenameLower),
-      isPublic: (id) => publicSlugs.has(id),
-      mdastFor: (id) => cloneTree(rewrittenMdastBySlug.get(id)),
-      attachmentUrlFor: (id) => `/attachments/${id}`,
+    const rendered = renderPublicNote({
+      rewrittenMdast: tree,
+      note,
+      slug,
+      vaultIndex,
+      publicSlugs,
+      // Targets transcluded into this note must already have linkRewriter
+      // applied — they live in our pre-built map.
+      getRewrittenMdast: (id) => rewrittenMdastBySlug.get(id),
+      frontmatterAllowlist: config.publishing.frontmatterAllowlist,
+      // renderPublicNote takes a literal tag blocklist; we still apply
+      // picomatch-glob blocking in the closure post-pass below.
+      tagBlocklist: [],
+      gateTag: classifyRule.publicTag,
     });
 
-    // Collect attachment references from this note's raw body (before rewrites
-    // consumed/transformed them). We scan raw markdown because attachmentFilter is a
-    // pure set computation and doesn't care about rendered positions — only
-    // which (note, attachment) pairs existed.
-    for (const ref of collectAttachmentRefs(
-      note.body,
-      slug,
-      attachmentByBasenameLower,
-    )) {
-      attachmentRefs.push(ref);
-    }
-    for (const ref of collectFrontmatterAttachmentRefs(
-      note.frontmatter,
-      slug,
-      attachmentIds,
-    )) {
-      attachmentRefs.push(ref);
-    }
+    rawRenderedBySlug.set(slug, rendered);
+    for (const ref of rendered.attachmentRefs) attachmentRefs.push(ref);
   }
 
-  // Also collect attachment refs from private notes so the closure correctly excludes
-  // attachments referenced ONLY by private notes.
+  // ── Phase C — private notes' attachment refs (cross-note glue) ────────────
+  // Closure must exclude attachments referenced ONLY by private notes — so we
+  // collect their refs too. The per-note scan lives in
+  // `privacy/attachmentClosure.ts` so this loop and the public-note path share
+  // one implementation.
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
     if (slug === undefined || publicSlugs.has(slug)) continue;
-    for (const ref of collectAttachmentRefs(n.body, slug, attachmentByBasenameLower)) {
-      attachmentRefs.push(ref);
-    }
-    for (const ref of collectFrontmatterAttachmentRefs(
-      n.frontmatter,
-      slug,
-      attachmentIds,
-    )) {
+    for (const ref of collectAttachmentRefs(n, vaultIndex, slug)) {
       attachmentRefs.push(ref);
     }
   }
 
-  // Serialize public mdasts to HTML — heading anchors are applied here so the
-  // HTML reaching every adapter (Astro loader, audit CLI) carries them.
-  // The same hast pass collects h2-h4 into `noteHeadings` for the theme's TOC;
-  // collecting from the post-transclude tree means private headings can never
-  // enter this channel.
-  const renderedHtml = new Map<string, string>();
-  const noteHeadings = new Map<string, readonly NoteHeading[]>();
-  for (const slug of publicSlugs) {
-    const tree = rewrittenMdastBySlug.get(slug);
-    if (tree === undefined) continue;
-    const { html, headings } = renderMdastToHtmlWithHeadings(tree);
-    renderedHtml.set(slug, html);
-    if (headings.length > 0) noteHeadings.set(slug, headings);
-  }
-
-  // Frontmatter allowlist + tag blocklist per public note.
-  const publicFrontmatter = new Map<string, Record<string, unknown>>();
-  const publicTags = new Map<string, string[]>();
-  const isBlockedTag =
-    config.publishing.tagBlocklist.length > 0
-      ? picomatch(config.publishing.tagBlocklist as string[])
-      : (): boolean => false;
-  // The publish-gate tag (and its `/...` subtags) is the marker that opts a
-  // note INTO publication — its presence on every public note is a structural
-  // tautology, so surfacing it in tag chips / tag pages / tag indexes adds
-  // zero reader value and would make every note look like it shares a tag
-  // with every other note. Strip it here, alongside the user-configured
-  // tagBlocklist, so all adapters/themes/audits see the same cleaned set.
-  const gateTag = classifyRule.publicTag;
-  const isGateTag = (t: string): boolean =>
-    t === gateTag || t.startsWith(`${gateTag}/`);
-
-  for (const slug of publicSlugs) {
-    const note = notesBySlug.get(slug);
-    if (note === undefined) continue;
-    publicFrontmatter.set(
-      slug,
-      filterFrontmatter(note.frontmatter, config.publishing.frontmatterAllowlist),
-    );
-    publicTags.set(
-      slug,
-      note.tags.filter((t) => !isBlockedTag(t) && !isGateTag(t)),
-    );
-  }
-
-  // Full graph → public subgraph.
+  // ── Cross-note ops: graph, closure, alias map, audit set ──────────────────
   const graphNodes: GraphNode[] = [];
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
@@ -395,7 +293,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
       n.body,
       fromSlug,
       wikilinkIndex,
-      attachmentByBasenameLower,
+      vaultIndex.attachmentByBasenameLower,
     )) {
       graphEdges.push(edge);
     }
@@ -404,47 +302,55 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   const fullGraph = buildGraph(graphNodes, graphEdges);
   const pubGraph = filterToPublicSubgraph(fullGraph);
 
-  // Attachment closure.
   const closure = buildAttachmentClosure({
     publicNoteIds: publicSlugs,
     allReferences: attachmentRefs,
     allowedExtensions: config.attachments.allowedExtensions,
   });
-  for (const frontmatter of publicFrontmatter.values()) {
-    sanitizePublicImageFrontmatter(frontmatter, closure.included);
-  }
 
-  // First-image extraction per public slug. Walked AFTER linkRewriter +
-  // expandTransclusions so wikilink-embedded `![[image.png]]` references have
-  // already been normalised into mdast `image` nodes with `/attachments/<id>`
-  // urls. The closure check below ensures a private-only attachment cannot ride
-  // the hero channel out to dist (privacy first: same gate as the image's own
-  // <img src>; the hero just consumes a side-channel from the same closure).
+  // ── Closure post-pass: apply the cross-note closure to each raw render ────
+  // `applyAttachmentClosure` is the single owner of "this URL/frontmatter
+  // field survives the closure". The picomatch-glob tag blocklist that
+  // `renderPublicNote` intentionally doesn't depend on is also applied here.
+  const renderedHtml = new Map<string, string>();
+  const noteHeadings = new Map<string, readonly NoteHeading[]>();
+  const publicFrontmatter = new Map<string, Record<string, unknown>>();
+  const publicTags = new Map<string, string[]>();
   const firstImage = new Map<string, string>();
   const embeddedImages = new Map<string, readonly string[]>();
+
+  const tagBlocklistMatcher =
+    config.publishing.tagBlocklist.length > 0
+      ? picomatch(config.publishing.tagBlocklist as string[])
+      : (): boolean => false;
+
   for (const slug of publicSlugs) {
-    const tree = rewrittenMdastBySlug.get(slug);
-    if (tree === undefined) continue;
-    const urls = findAllImageUrls(tree).filter((url) =>
-      isPublicImageUrl(url, closure.included),
-    );
-    if (urls.length === 0) continue;
-    embeddedImages.set(slug, urls);
-    firstImage.set(slug, urls[0]!);
+    const raw = rawRenderedBySlug.get(slug);
+    if (raw === undefined) continue;
+    const gated = applyAttachmentClosure(raw, closure.included);
+
+    renderedHtml.set(slug, gated.html);
+    if (gated.headings.length > 0) {
+      noteHeadings.set(slug, gated.headings);
+    }
+    publicFrontmatter.set(slug, gated.frontmatter);
+    publicTags.set(slug, gated.tags.filter((t) => !tagBlocklistMatcher(t)));
+    if (gated.embeddedImages.length > 0) {
+      embeddedImages.set(slug, gated.embeddedImages);
+    }
+    if (gated.firstImage !== undefined) {
+      firstImage.set(slug, gated.firstImage);
+    }
   }
 
-  // Alias redirects from frontmatter `aliases`. Built only from the publishable
-  // subset — private notes' aliases must never reach an adapter (single privacy
-  // funnel: classify → publishable filter → buildAliasRedirects).
+  // ── Alias redirects from publishable subset ───────────────────────────────
   const publishableIndexed = indexedNotes.filter((n) => publicSlugs.has(n.id));
   const aliasResult = buildAliasRedirects(publishableIndexed);
   for (const message of aliasResult.warnings) {
     warnings.push({ code: 'ALIAS_WARNING', message });
   }
 
-  // Private note titles + bare filenames — surfaced for downstream audit so that
-  // independent dist scanners can detect leaked private mentions without re-running
-  // classification (privacy-first: classify once, consume everywhere).
+  // ── Audit: private note titles + bare filenames ───────────────────────────
   const privateNoteTitles = new Set<string>();
   for (const n of notes) {
     const slug = slugByRelPath.get(n.relativePath);
@@ -462,7 +368,7 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
   }
 
   return {
-    notes,
+    notes: [...notes],
     publicSlugs,
     renderedHtml,
     noteHeadings,
@@ -480,98 +386,10 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     allAttachments: new Set(attachments),
     aliasRedirects: aliasResult.redirects,
     warnings,
-  };
+  } as PipelineResult;
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
-
-async function discoverNotes(
-  root: string,
-  vaultId: string,
-  ignore: readonly string[],
-): Promise<ParsedNote[]> {
-  const out: ParsedNote[] = [];
-  for await (const entry of walkVault({ root, ignore, extensions: ['.md'] })) {
-    const content = await fs.readFile(entry.path, 'utf8');
-    out.push(
-      parseNote({
-        path: entry.path,
-        vaultId,
-        relativePath: entry.relativePath,
-        content,
-      }),
-    );
-  }
-  return out;
-}
-
-async function discoverAttachments(
-  root: string,
-  ignore: readonly string[],
-  allowedExtensions: readonly string[],
-): Promise<string[]> {
-  const out: string[] = [];
-  for await (const entry of walkVault({
-    root,
-    ignore,
-    extensions: allowedExtensions,
-  })) {
-    out.push(entry.relativePath);
-  }
-  return out;
-}
-
-function toIndexedNotes(
-  notes: readonly ParsedNote[],
-  slugByRelPath: ReadonlyMap<string, string>,
-): IndexedNote[] {
-  const indexed: IndexedNote[] = [];
-  for (const n of notes) {
-    const slug = slugByRelPath.get(n.relativePath);
-    if (slug === undefined) continue;
-    const basename = path.posix.basename(n.relativePath).replace(MD_EXT_RE, '');
-
-    const aliasSet = new Set<string>();
-    const rawAliases = n.frontmatter['aliases'];
-    if (Array.isArray(rawAliases)) {
-      for (const a of rawAliases) {
-        if (typeof a === 'string') {
-          const cleaned = a.trim().toLowerCase();
-          if (cleaned.length > 0) aliasSet.add(cleaned);
-        }
-      }
-    } else if (typeof rawAliases === 'string') {
-      const cleaned = rawAliases.trim().toLowerCase();
-      if (cleaned.length > 0) aliasSet.add(cleaned);
-    }
-    // Title becomes an implicit lookup alias so Obsidian-style wikilinks written in
-    // title-case (e.g. `[[Another Public]]`) resolve to kebab-case filenames
-    // (`another-public.md`). Without this, title↔filename mismatches wouldn't resolve.
-    const title = n.frontmatter['title'];
-    if (typeof title === 'string') {
-      const cleaned = title.trim().toLowerCase();
-      if (cleaned.length > 0) aliasSet.add(cleaned);
-    }
-
-    indexed.push({
-      id: slug,
-      relativePath: n.relativePath,
-      basename,
-      aliases: [...aliasSet],
-    });
-  }
-  return indexed;
-}
-
-function indexAttachmentsByBasename(
-  attachments: readonly string[],
-): ReadonlyMap<string, string> {
-  const out = new Map<string, string>();
-  for (const rel of attachments) {
-    out.set(path.posix.basename(rel).toLowerCase(), rel);
-  }
-  return out;
-}
 
 function resolveForLink(
   raw: string,
@@ -582,61 +400,6 @@ function resolveForLink(
     return { resolved: true, targetId: res.note.id };
   }
   return { resolved: false };
-}
-
-function resolveForEmbed(
-  raw: string,
-  index: WikilinkIndex,
-  attachmentByBasenameLower: ReadonlyMap<string, string>,
-): { resolved: boolean; targetId?: string; kind: 'note' | 'attachment' } {
-  const parsed = parseWikilinkTarget(raw);
-  const targetLower = parsed.target.toLowerCase();
-  const attachmentId = attachmentByBasenameLower.get(targetLower);
-  if (attachmentId !== undefined) {
-    return { resolved: true, targetId: attachmentId, kind: 'attachment' };
-  }
-  const res = resolveWikilink(raw, index);
-  if (res.resolved && res.note !== undefined) {
-    return { resolved: true, targetId: res.note.id, kind: 'note' };
-  }
-  return { resolved: false, kind: 'note' };
-}
-
-function collectAttachmentRefs(
-  body: string,
-  sourceSlug: string,
-  attachmentByBasenameLower: ReadonlyMap<string, string>,
-): AttachmentRef[] {
-  const out: AttachmentRef[] = [];
-  const re = /!\[\[([^[\]]*)\]\]/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(body)) !== null) {
-    const parsed = parseWikilinkTarget(m[1] ?? '');
-    const id = attachmentByBasenameLower.get(parsed.target.toLowerCase());
-    if (id !== undefined) {
-      out.push({ id, sourceNoteId: sourceSlug });
-    }
-  }
-  return out;
-}
-
-function collectFrontmatterAttachmentRefs(
-  frontmatter: Record<string, unknown>,
-  sourceSlug: string,
-  attachmentIds: ReadonlySet<string>,
-): AttachmentRef[] {
-  const out: AttachmentRef[] = [];
-  for (const key of ['cover', 'thumbnail'] as const) {
-    const value = frontmatter[key];
-    if (typeof value !== 'string') continue;
-    const cleaned = value.trim();
-    if (!cleaned.startsWith('/attachments/')) continue;
-    const id = cleaned.slice('/attachments/'.length);
-    if (attachmentIds.has(id)) {
-      out.push({ id, sourceNoteId: sourceSlug });
-    }
-  }
-  return out;
 }
 
 function extractEdges(
@@ -661,7 +424,6 @@ function extractEdges(
   while ((m = embedRe.exec(body)) !== null) {
     const raw = m[1] ?? '';
     const parsed = parseWikilinkTarget(raw);
-    // Attachments are not graph edges (they are file closures, not note edges).
     if (attachmentByBasenameLower.has(parsed.target.toLowerCase())) continue;
     const res = resolveWikilink(raw, index);
     if (res.resolved && res.note !== undefined) {
@@ -669,62 +431,6 @@ function extractEdges(
     }
   }
   return out;
-}
-
-/**
- * Document-order `image` node URLs in an mdast tree. Walks pre-order
- * depth-first so the candidate picker matches the order a reader sees.
- */
-function findAllImageUrls(tree: Root): string[] {
-  interface ImageLike {
-    type: string;
-    url?: string;
-    children?: ImageLike[];
-  }
-  const out: string[] = [];
-  function walk(node: ImageLike): void {
-    if (node.type === 'image' && typeof node.url === 'string') {
-      out.push(node.url);
-    }
-    if (Array.isArray(node.children)) {
-      for (const child of node.children) {
-        walk(child);
-      }
-    }
-  }
-  walk(tree as unknown as ImageLike);
-  return out;
-}
-
-function isPublicImageUrl(url: string, attachmentClosure: ReadonlySet<string>): boolean {
-  if (/^https?:\/\//i.test(url)) return true;
-  if (url.startsWith('/attachments/')) {
-    const id = url.slice('/attachments/'.length);
-    return attachmentClosure.has(id);
-  }
-  return false;
-}
-
-function sanitizePublicImageFrontmatter(
-  frontmatter: Record<string, unknown>,
-  attachmentClosure: ReadonlySet<string>,
-): void {
-  for (const key of ['cover', 'thumbnail'] as const) {
-    const value = resolvePublicImageFrontmatter(
-      frontmatter[key],
-      attachmentClosure,
-    );
-    if (value === undefined) {
-      delete frontmatter[key];
-    } else {
-      frontmatter[key] = value;
-    }
-  }
-}
-
-function cloneTree(tree: Root | undefined): Root {
-  if (tree === undefined) return { type: 'root', children: [] } as unknown as Root;
-  return structuredClone(tree);
 }
 
 function headingToAnchor(heading: string): string {

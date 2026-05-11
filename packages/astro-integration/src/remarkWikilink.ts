@@ -11,7 +11,7 @@
  */
 
 import type { Root } from 'mdast';
-import { rewriteWikilinks } from '@noteforge/core/privacy/linkRewriter';
+import { rewriteWikilinks } from '@noteforge/core';
 
 export interface RemarkWikilinkOptions {
   /** core의 resolveWikilink 래퍼. integration/loader가 vault 인덱스를 클로저로 주입. */

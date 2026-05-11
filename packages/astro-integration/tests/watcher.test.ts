@@ -18,7 +18,7 @@
 
 import { EventEmitter } from 'node:events';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core';
 import {
   createWatcher,
   type ChokidarLike,

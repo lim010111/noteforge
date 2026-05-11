@@ -67,7 +67,7 @@ This note is now public.
 To check why a specific note will (or won't) be published, use the status command. The path can be relative to your shell or absolute:
 
 ```bash
-pnpm obpub status "$OBPUB_VAULT_PATH/path/to/your-note.md"
+pnpm obpub status "${OBPUB_VAULT_PATH}/path/to/your-note.md"
 # → your-note.md → PUBLIC (reason: frontmatter public: true)
 ```
 

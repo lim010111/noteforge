@@ -19,7 +19,7 @@
  *   - `body`    is sanitized HTML — link-rewrite, transclude expansion, and the
  *               `%%comment%%` strip have already run in `@noteforge/core/privacy`.
  */
-import type { NoteHeading } from '@noteforge/core/pipeline';
+import type { NoteHeading } from '@noteforge/core';
 
 export interface NoteViewModel {
   /** Public slug, used by dev-only authoring tools. */

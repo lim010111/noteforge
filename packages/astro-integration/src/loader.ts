@@ -24,9 +24,12 @@
  */
 
 import type { Loader } from 'astro/loaders';
-import { runCorePipeline, type NoteHeading } from '@noteforge/core/pipeline';
-import type { ObpubConfig } from '@noteforge/core/config';
-import { resolvePublicImageFrontmatter } from '@noteforge/core';
+import {
+  runCorePipeline,
+  resolvePublicImageFrontmatter,
+  type NoteHeading,
+  type ObpubConfig,
+} from '@noteforge/core';
 
 interface NoteEntryData extends Record<string, unknown> {
   kind: 'note';
