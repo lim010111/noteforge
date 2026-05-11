@@ -1,5 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
-import { isPublishable } from '@noteforge/core/privacy/publishable';
+import { isPublishable } from '@noteforge/core';
 import type {
   BacklinkEntry,
   BacklinksViewModel,

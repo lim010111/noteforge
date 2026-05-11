@@ -11,7 +11,7 @@
  *   - unresolved target     → embed node removed. Warning emitted.
  *   - attachment target     → replaced with an inline mdast `image` node whose url comes
  *                             from `attachmentUrlFor`. Attachment public/private filtering
- *                             is the caller's responsibility (see attachmentFilter step).
+ *                             is the caller's responsibility (see attachmentClosure step).
  *   - block-reference `^id` → out of scope for v0.1; treated as unresolved.
  *
  * Cycle / depth safety:

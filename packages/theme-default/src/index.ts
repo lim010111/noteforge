@@ -22,7 +22,7 @@ export type {
 } from './components/Graph.layout.ts';
 export { computeCircularLayout } from './components/Graph.layout.ts';
 export type { NoteProps, NoteViewModel } from './components/Note.types.ts';
-export type { NoteHeading } from '@noteforge/core/pipeline';
+export type { NoteHeading } from '@noteforge/core';
 export { default as TableOfContents } from './components/TableOfContents.astro';
 export type { TableOfContentsProps } from './components/TableOfContents.types.ts';
 export type { DevImagePickerProps } from './components/DevImagePicker.types.ts';

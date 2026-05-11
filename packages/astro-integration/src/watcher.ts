@@ -2,48 +2,40 @@
  * Framework-independent vault watcher for the Astro integration's dev path.
  *
  * Responsibilities:
- *   1. At start(): walk the vault, parse each note, seed the dep-graph with the
- *      forward/reverse edges implied by each note's outgoing [[wiki]] and ![[embed]]
- *      links. We do NOT run the privacy pipeline here — the loader owns that.
- *   2. On chokidar file events: re-parse the changed file, update the dep-graph,
- *      and accumulate a coalesced invalidation set keyed by slug. Affected slugs
- *      for an unlink are snapshotted BEFORE removeNote so former dependents still
- *      learn to re-render without the torn-down link.
+ *   1. At start(): seed the indexer via `index.primeFromVault()` and start
+ *      chokidar — the indexer owns the vault state (parse + slug + wikilink
+ *      index + reverse-edge bookkeeping). The watcher is the chokidar adapter.
+ *   2. On chokidar events: forward to `index.upsert()` / `index.remove()` and
+ *      snapshot `index.dependentsOf(slug)` to compute the affected-slugs set.
+ *      For unlinks, the snapshot MUST be taken BEFORE `index.remove()` —
+ *      removing first tears down reverse edges and would leave former
+ *      dependents out of the affected set.
  *   3. Debounce onInvalidate with a configurable timer (default 200ms) so that
  *      editor-driven bursts (save-on-type, multi-file renames) collapse to one
  *      render cycle in the Astro integration above.
  *
  * Privacy contract:
  *   - This module never inspects public/private markers. The verdict lives in
- *     `packages/core/src/privacy/classify.ts`; re-deriving it here would split
- *     the rule across two paths (watcher + loader) and is the most common origin
- *     of leak regressions.
- *   - Wikilink parsing/resolution is delegated to `@noteforge/core/resolve/wikilink`.
- *     We scan the raw body for `[[...]]` and `![[...]]`, then resolve via the
- *     shared index so the watcher stays consistent with the loader's view.
+ *     `packages/core/src/privacy/classify.ts`; the indexer doesn't classify
+ *     either, so the watcher cannot accidentally re-derive the rule.
+ *
+ * Single cross-package import:
+ *   - Only `createIncrementalVaultIndex` from `@noteforge/core`. All vault
+ *     parsing/indexing/edge-tracking lives behind that one seam.
  *
  * Chokidar is injected via `chokidarFactory` so tests can supply an in-memory
  * EventEmitter without booting filesystem watches.
  */
 
-import matter from 'gray-matter';
 import * as pathMod from 'node:path';
 import * as fsPromises from 'node:fs/promises';
 import picomatch from 'picomatch';
 
-import type { ObpubConfig } from '@noteforge/core/config';
-import { walkVault } from '../../core/src/discover/walk.ts';
-import { parseNote } from '../../core/src/discover/parseNote.ts';
-import { computeSlug } from '../../core/src/slug.ts';
 import {
-  buildWikilinkIndex,
-  resolveWikilink,
-  type IndexedNote,
-  type WikilinkIndex,
-} from '../../core/src/resolve/wikilink.ts';
-import type { ParsedNote } from '../../core/src/types.ts';
-
-import { createDepGraph, type DepGraph } from './depGraph.ts';
+  createIncrementalVaultIndex,
+  type IncrementalVaultIndex,
+  type ObpubConfig,
+} from '@noteforge/core';
 
 export type WatcherEventKind = 'update' | 'remove';
 
@@ -97,82 +89,31 @@ interface PendingEntry {
 }
 
 const MD_EXT_RE = /\.(md|markdown)$/i;
-const LINK_RE = /(?<!!)\[\[([^[\]]*)\]\]/g;
-const EMBED_RE = /!\[\[([^[\]]*)\]\]/g;
-const LARGE_VAULT_THRESHOLD = 5000;
 
 export function createWatcher(options: WatcherOptions): Watcher {
   const debounceMs = options.debounceMs ?? 200;
-  const readFile = options.readFile ?? ((p: string) => fsPromises.readFile(p, 'utf8') as Promise<string>);
+  const readFile =
+    options.readFile ??
+    ((p: string) => fsPromises.readFile(p, 'utf8') as Promise<string>);
   const chokidarFactory = options.chokidarFactory ?? defaultChokidarFactory;
-  const isIgnored = options.ignore.length > 0
-    ? picomatch(options.ignore as string[], { dot: true })
-    : (): boolean => false;
+  const isIgnored =
+    options.ignore.length > 0
+      ? picomatch(options.ignore as string[], { dot: true })
+      : (): boolean => false;
 
-  const depGraph: DepGraph = createDepGraph();
-  const slugByRelPath = new Map<string, string>();
-  const relPathBySlug = new Map<string, string>();
-  const indexedBySlug = new Map<string, IndexedNote>();
-  let wikilinkIndex: WikilinkIndex = buildWikilinkIndex([]);
+  const index: IncrementalVaultIndex = createIncrementalVaultIndex({
+    vaultPath: options.vaultPath,
+    vaultId: options.vaultId,
+    noteIgnore: options.ignore,
+    slugMode: options.config.nav.mode,
+    readFile,
+    onWarning: (msg: string) => options.onWarning?.(msg),
+  });
 
   const pending = new Map<string, PendingEntry>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let chokidarInstance: ChokidarLike | undefined;
   let stopped = false;
-
-  async function loadNote(absPath: string, rel: string): Promise<ParsedNote | undefined> {
-    let content: string;
-    try {
-      content = await readFile(absPath);
-    } catch (err) {
-      options.onWarning?.(`[obpub:watcher] read failed for ${rel}: ${errMsg(err)}`);
-      return undefined;
-    }
-    // Pre-validate YAML: parseNote silently recovers from malformed frontmatter
-    // (to keep one-off typos from failing a whole build). The watcher, however,
-    // must know when recovery happened so it can SKIP emitting an invalidation
-    // for a slug whose parsed shape is uncertain.
-    try {
-      matter(content);
-    } catch (err) {
-      options.onWarning?.(`[obpub:watcher] frontmatter parse failed for ${rel}: ${errMsg(err)}`);
-      return undefined;
-    }
-    return parseNote({
-      path: absPath,
-      vaultId: options.vaultId,
-      relativePath: rel,
-      content,
-    });
-  }
-
-  function upsertIndexedNote(note: ParsedNote, slug: string): void {
-    const prevSlug = slugByRelPath.get(note.relativePath);
-    if (prevSlug !== undefined && prevSlug !== slug) {
-      indexedBySlug.delete(prevSlug);
-      relPathBySlug.delete(prevSlug);
-    }
-    slugByRelPath.set(note.relativePath, slug);
-    relPathBySlug.set(slug, note.relativePath);
-    indexedBySlug.set(slug, toIndexedNote(note, slug));
-    wikilinkIndex = buildWikilinkIndex([...indexedBySlug.values()]);
-  }
-
-  function deleteIndexedNote(rel: string, slug: string): void {
-    slugByRelPath.delete(rel);
-    relPathBySlug.delete(slug);
-    indexedBySlug.delete(slug);
-    wikilinkIndex = buildWikilinkIndex([...indexedBySlug.values()]);
-  }
-
-  function resolvedTargets(body: string): string[] {
-    const out = new Set<string>();
-    for (const raw of extractWikilinkRaws(body)) {
-      const res = resolveWikilink(raw, wikilinkIndex);
-      if (res.resolved && res.note !== undefined) out.add(res.note.id);
-    }
-    return [...out];
-  }
 
   function mergePending(slug: string, kind: WatcherEventKind, affected: Set<string>): void {
     const existing = pending.get(slug);
@@ -222,21 +163,12 @@ export function createWatcher(options: WatcherOptions): Watcher {
     if (!isMarkdown(rel)) return;
     if (isIgnored(rel)) return;
 
-    const note = await loadNote(absPath, rel);
-    if (note === undefined) return;
+    const slug = await index.upsert(absPath, rel);
     if (stopped) return;
-
-    const slug = computeSlug(
-      { frontmatter: note.frontmatter, relativePath: rel },
-      { mode: options.config.nav.mode },
-    );
-    upsertIndexedNote(note, slug);
-
-    const targets = resolvedTargets(note.body);
-    depGraph.setDeps(slug, targets);
+    if (slug === undefined) return; // read or parse failure — already warned
 
     const affected = new Set<string>([slug]);
-    for (const d of depGraph.dependentsOf(slug)) affected.add(d);
+    for (const d of index.dependentsOf(slug)) affected.add(d);
 
     mergePending(slug, 'update', affected);
     armTimer();
@@ -249,59 +181,30 @@ export function createWatcher(options: WatcherOptions): Watcher {
     if (!isMarkdown(rel)) return;
     if (isIgnored(rel)) return;
 
-    const slug = slugByRelPath.get(rel);
-    if (slug === undefined) return;
-
-    // CRITICAL: snapshot dependents BEFORE removeNote — removing first would
+    // CRITICAL: snapshot dependents BEFORE remove — removing first would
     // tear down the reverse edges and leave affectedSlugs = {slug} only,
     // so former dependents would never learn that their link target vanished.
-    const dependents = depGraph.dependentsOf(slug);
+    // We don't yet know the slug here; remove() returns it after teardown.
+    // To preserve the pre-remove dependents, query before calling remove.
+    // Since the indexer's `remove` accepts a relative path (not a slug), we
+    // need the slug-from-rel mapping ahead of time — read it from the snapshot.
+    const snapshot = index.snapshot();
+    const slug = snapshot.slugByRelPath.get(rel);
+    if (slug === undefined) return;
+
+    const dependents = index.dependentsOf(slug);
     const affected = new Set<string>([slug]);
     for (const d of dependents) affected.add(d);
 
-    depGraph.removeNote(slug);
-    deleteIndexedNote(rel, slug);
+    index.remove(rel);
 
     mergePending(slug, 'remove', affected);
     armTimer();
   }
 
-  async function primeFromVault(): Promise<void> {
-    const walkIgnore = [...options.ignore];
-    const freshNotes: ParsedNote[] = [];
-    for await (const entry of walkVault({ root: options.vaultPath, ignore: walkIgnore })) {
-      const note = await loadNote(entry.path, entry.relativePath);
-      if (note === undefined) continue;
-      const slug = computeSlug(
-        {
-          frontmatter: note.frontmatter,
-          relativePath: entry.relativePath,
-        },
-        { mode: options.config.nav.mode },
-      );
-      slugByRelPath.set(entry.relativePath, slug);
-      relPathBySlug.set(slug, entry.relativePath);
-      indexedBySlug.set(slug, toIndexedNote(note, slug));
-      freshNotes.push(note);
-    }
-    wikilinkIndex = buildWikilinkIndex([...indexedBySlug.values()]);
-
-    if (indexedBySlug.size > LARGE_VAULT_THRESHOLD) {
-      options.onWarning?.(
-        `[obpub:watcher] vault has ${indexedBySlug.size} notes — wikilink index is rebuilt on every change. Expect slow HMR above ~5k notes.`,
-      );
-    }
-
-    for (const note of freshNotes) {
-      const slug = slugByRelPath.get(note.relativePath);
-      if (slug === undefined) continue;
-      depGraph.setDeps(slug, resolvedTargets(note.body));
-    }
-  }
-
   return {
     async start(): Promise<void> {
-      await primeFromVault();
+      await index.primeFromVault();
       const baseOpts: Record<string, unknown> = {
         ignored: [...options.ignore],
         ignoreInitial: true,
@@ -339,52 +242,6 @@ export function createWatcher(options: WatcherOptions): Watcher {
       if (instance !== undefined) await instance.close();
     },
   };
-}
-
-// ── helpers ─────────────────────────────────────────────────────────────────
-
-function toIndexedNote(note: ParsedNote, slug: string): IndexedNote {
-  const basename = pathMod.posix
-    .basename(note.relativePath)
-    .replace(MD_EXT_RE, '');
-  const aliasSet = new Set<string>();
-  const raw = note.frontmatter['aliases'];
-  if (Array.isArray(raw)) {
-    for (const a of raw) {
-      if (typeof a === 'string') {
-        const t = a.trim().toLowerCase();
-        if (t.length > 0) aliasSet.add(t);
-      }
-    }
-  } else if (typeof raw === 'string') {
-    const t = raw.trim().toLowerCase();
-    if (t.length > 0) aliasSet.add(t);
-  }
-  const title = note.frontmatter['title'];
-  if (typeof title === 'string') {
-    const t = title.trim().toLowerCase();
-    if (t.length > 0) aliasSet.add(t);
-  }
-  return {
-    id: slug,
-    relativePath: note.relativePath,
-    basename,
-    aliases: [...aliasSet],
-  };
-}
-
-function extractWikilinkRaws(body: string): string[] {
-  const out: string[] = [];
-  let m: RegExpExecArray | null;
-  LINK_RE.lastIndex = 0;
-  while ((m = LINK_RE.exec(body)) !== null) {
-    out.push(m[1] ?? '');
-  }
-  EMBED_RE.lastIndex = 0;
-  while ((m = EMBED_RE.exec(body)) !== null) {
-    out.push(m[1] ?? '');
-  }
-  return out;
 }
 
 function errMsg(err: unknown): string {

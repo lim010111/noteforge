@@ -2,7 +2,7 @@ import type {
   FolderIndexViewModel,
   FolderNode,
 } from '@noteforge/theme-default';
-import { slugifySegment } from '@noteforge/core/slug';
+import { slugifySegment } from '@noteforge/core';
 // Deep-import the slot helper so value-level resolution does not pull in the
 // barrel's `.astro` re-exports (Vitest's default project lacks the Astro Vite
 // plugin needed to parse `.astro`). Type-only imports from the barrel above

@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from '@noteforge/core/config';
+import { defineConfig } from '@noteforge/core';
 
 /**
  * Vault path is loaded from the `OBPUB_VAULT_PATH` environment variable so

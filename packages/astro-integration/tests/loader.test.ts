@@ -16,7 +16,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Loader } from 'astro/loaders';
-import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core';
 import { obpubLoader } from '../src/loader.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

@@ -1,8 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { parseNote } from '@noteforge/core/discover/parseNote';
-import { classify } from '@noteforge/core/privacy/classify';
-import { getClassifyRule, ObpubConfigError, type ObpubConfig } from '@noteforge/core/config';
+import {
+  classify,
+  getClassifyRule,
+  ObpubConfigError,
+  parseNote,
+  type ObpubConfig,
+} from '@noteforge/core';
 import { ObpubInputError } from '../lib/errors.ts';
 
 export interface StatusResult {

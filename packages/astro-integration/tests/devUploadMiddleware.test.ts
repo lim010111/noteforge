@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
+import { defineConfig, type ObpubConfig } from '@noteforge/core';
 import {
   createDevUploadMiddleware,
   type DevUploadFileSystem,

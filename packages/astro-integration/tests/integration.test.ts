@@ -26,8 +26,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { AstroIntegration } from 'astro';
-import { defineConfig, type ObpubConfig } from '@noteforge/core/config';
-import type { PipelineResult } from '@noteforge/core/pipeline';
+import { defineConfig, type ObpubConfig, type PipelineResult } from '@noteforge/core';
 import { obpub } from '../src/integration.ts';
 import { remarkWikilink } from '../src/remarkWikilink.ts';
 import {

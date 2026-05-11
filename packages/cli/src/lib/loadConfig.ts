@@ -6,7 +6,7 @@ import {
   ObpubConfigError,
   type ObpubConfig,
   type ObpubConfigInput,
-} from '@noteforge/core/config';
+} from '@noteforge/core';
 
 const CONFIG_BASENAMES = [
   'noteforge.config.ts',

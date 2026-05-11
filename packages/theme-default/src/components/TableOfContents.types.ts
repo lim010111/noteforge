@@ -6,7 +6,7 @@
  * filter mdast tree at the same hast pass that produces rendered HTML. It is
  * not frontmatter; it does not need an allowlist entry.
  */
-import type { NoteHeading } from '@noteforge/core/pipeline';
+import type { NoteHeading } from '@noteforge/core';
 
 export interface TableOfContentsProps {
   /** Headings collected by core. Pass through verbatim — do not re-derive. */
