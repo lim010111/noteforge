@@ -10,6 +10,7 @@ import { buildCategoryTree, buildFolderTree } from './folderAggregation.ts';
 const siteMock = vi.hoisted(() => ({
   avatar: undefined as string | undefined,
   nickname: undefined as string | undefined,
+  social: undefined as { github?: string } | undefined,
 }));
 
 vi.mock('../../noteforge.config.ts', () => ({
@@ -23,6 +24,9 @@ vi.mock('../../noteforge.config.ts', () => ({
       },
       get nickname() {
         return siteMock.nickname;
+      },
+      get social() {
+        return siteMock.social;
       },
     },
   },
@@ -55,6 +59,7 @@ function makeEntry(id: string, data: NoteEntryDataInput = {}): NoteEntry {
 afterEach(() => {
   siteMock.avatar = undefined;
   siteMock.nickname = undefined;
+  siteMock.social = undefined;
 });
 
 describe('buildSidebarPayload — payload shape', () => {
@@ -114,6 +119,44 @@ describe('buildSidebarPayload — site identity propagation', () => {
     ]);
     expect(payload.avatarSrc).toBe('/avatar.png');
     expect(payload.nickname).toBe('shine');
+  });
+
+  it('omits github when site.social is undefined', () => {
+    siteMock.social = undefined;
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.github).toBeUndefined();
+    expect('github' in payload).toBe(false);
+  });
+
+  it('omits github when site.social.github is undefined (social object set but channel empty)', () => {
+    siteMock.social = {};
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.github).toBeUndefined();
+    expect('github' in payload).toBe(false);
+  });
+
+  it('preserves the empty-string github sentinel verbatim (stub onboarding state must reach ProfileBlock)', () => {
+    siteMock.social = { github: '' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    // The '' sentinel is the only signal that opts the sidebar GitHub icon
+    // into "needs setup" mode. Collapsing it to undefined would silently
+    // demote the onboarding affordance to "off".
+    expect(payload.github).toBe('');
+    expect('github' in payload).toBe(true);
+  });
+
+  it('passes a live github URL through verbatim', () => {
+    siteMock.social = { github: 'https://github.com/example' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.github).toBe('https://github.com/example');
   });
 });
 

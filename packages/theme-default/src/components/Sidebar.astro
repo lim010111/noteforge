@@ -1,18 +1,19 @@
 ---
 /**
- * Sidebar — composition of AvatarBlock + FolderTree inside a single <aside>.
+ * Sidebar — composition of ProfileBlock + FolderTree inside a single <aside>.
  *
  * Container only. Layout (lg+ grid column / `< lg` <details> drawer body) is
  * BaseLayout's job (step 5). This component just emits the inner content
  * with `aria-label="사이트 내비게이션"` so AT users can announce the region.
  *
- * Privacy contract: every input is already publicly-visible-only. AvatarBlock
- * omits itself on incomplete identity; FolderTree omits itself on empty trees.
- * The <aside> wrapper renders unconditionally — its presence is not a leak
- * signal because the site always *has* navigation (just possibly empty).
+ * Privacy contract: every input is already publicly-visible-only. ProfileBlock
+ * omits itself when avatar/nickname/github are all missing; FolderTree omits
+ * itself on empty trees. The <aside> wrapper renders unconditionally — its
+ * presence is not a leak signal because the site always *has* navigation
+ * (just possibly empty).
  */
 import type { SidebarProps } from "./Sidebar.types";
-import AvatarBlock from "./AvatarBlock.astro";
+import ProfileBlock from "./ProfileBlock.astro";
 import FolderTree from "./FolderTree.astro";
 
 const {
@@ -21,12 +22,13 @@ const {
   activeFolderPath,
   avatarSrc,
   nickname,
+  github,
   slotCount,
   hideLeafNotes,
 } = Astro.props as SidebarProps;
 ---
 <aside class="sidebar" aria-label="사이트 내비게이션">
-  <AvatarBlock avatarSrc={avatarSrc} nickname={nickname} />
+  <ProfileBlock avatarSrc={avatarSrc} nickname={nickname} github={github} />
   <FolderTree
     root={folderTree}
     activeSlug={activeSlug}

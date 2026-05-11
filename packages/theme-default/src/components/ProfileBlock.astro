@@ -1,0 +1,63 @@
+---
+/**
+ * ProfileBlock — sidebar identity section (successor to AvatarBlock).
+ *
+ * Render matrix (privacy contract):
+ *   - all three of avatarSrc / nickname / github missing → renders nothing
+ *     (no wrapper, no whitespace). An empty card discloses "the author
+ *     opted not to set any of these" — refused on principle.
+ *   - avatarSrc present → 96px circular portrait, wrapped in `<a href="/about/">`
+ *     so a click navigates to the detailed About page. The link is the single
+ *     entry point to `/about/` now that the header About link is gone.
+ *   - nickname or github present → a horizontal name-row below the avatar:
+ *     name on the left, inline `<SocialLinks github>` on the right.
+ *
+ * Why `<SocialLinks>` (and not an inline SVG):
+ *   The three-state (off / "needs setup" stub / live anchor) logic and the
+ *   stub onboarding `<script>` already live there. Duplicating them in this
+ *   component would split the source of truth for the icon's contract and
+ *   risk drift. The minor cost is a `<span class="social-links" role="list">`
+ *   wrapper around a single icon — ARIA-valid, semantically harmless.
+ *
+ * Why email isn't threaded:
+ *   The sidebar's social slot is GitHub-only by spec. The mail icon stays on
+ *   `/about/` (where AboutPage renders its own SocialLinks with the full
+ *   `identity.social` object). Threading email here would creep the surface.
+ *
+ * Visuals (radius / spacing / colour) come from `components.css` via the
+ * `.profile-block*` BEM classes — no Tailwind, no inline hex.
+ */
+import type { ProfileBlockProps } from "./ProfileBlock.types";
+import SocialLinks from "./SocialLinks.astro";
+
+const { avatarSrc, nickname, github } = Astro.props as ProfileBlockProps;
+const hasAvatar = typeof avatarSrc === "string" && avatarSrc.length > 0;
+const hasNickname = typeof nickname === "string" && nickname.length > 0;
+const hasGithub = typeof github === "string"; // '' is the stub sentinel — still renders
+const renders = hasAvatar || hasNickname || hasGithub;
+---
+{renders && (
+  <div class="profile-block">
+    {hasAvatar && (
+      <a href="/about/" class="profile-block__avatar-link" aria-label="About">
+        <img
+          class="profile-block__image"
+          src={avatarSrc}
+          alt={hasNickname ? nickname : ""}
+          width="96"
+          height="96"
+          loading="eager"
+          decoding="async"
+        />
+      </a>
+    )}
+    {(hasNickname || hasGithub) && (
+      <div class="profile-block__name-row">
+        {hasNickname && (
+          <span class="profile-block__nickname">{nickname}</span>
+        )}
+        {hasGithub && <SocialLinks github={github} />}
+      </div>
+    )}
+  </div>
+)}

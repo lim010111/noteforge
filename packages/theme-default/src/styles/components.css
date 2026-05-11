@@ -290,36 +290,55 @@
   height: 100%;
 }
 
-/* ---------- AvatarBlock (v0.3) ---------- */
+/* ---------- ProfileBlock (sidebar identity, replaces AvatarBlock) ---------- */
 
-.avatar-block {
+.profile-block {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-5) var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
+  text-align: center;
 }
-.avatar-block__image {
-  width: 4rem;
-  height: 4rem;
-  /* `--radius-lg` (8px) is the largest radius the v0.3 scale exposes; design
-     calls for a circular crop but the box-radius scale stops at 8 deliberately
-     (no `rounded-full` token). The avatar is a square image; visual roundness
-     is achieved with `border-radius: 50%` here as a one-off expression of
-     "circular avatar" rather than via a token. */
+.profile-block__avatar-link {
+  display: inline-block;
+  line-height: 0;
+  border-radius: 50%;
+}
+.profile-block__image {
+  width: 6rem;
+  height: 6rem;
+  /* Box-radius scale stops at `--radius-lg` (8px) deliberately. Circular crop
+     is a one-off expression here rather than a token addition. */
   border-radius: 50%;
   border: 1px solid var(--color-border);
   object-fit: cover;
   display: block;
 }
-.avatar-block__nickname {
+.profile-block__name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.profile-block__nickname {
   font-family: var(--font-sans);
   font-size: var(--text-h4);
   font-weight: var(--weight-h4);
   line-height: var(--lh-h4);
   letter-spacing: var(--ls-h4);
   color: var(--color-text-heading);
+}
+/* The header's `.icon-button` is sized for a header bar; in the sidebar's
+   name-row we want the GitHub icon to share an optical baseline with the
+   nickname caption, so shrink the hitbox here. */
+.profile-block .icon-button {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.profile-block .icon-button svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 /* ---------- FolderTree (v0.3) ---------- */

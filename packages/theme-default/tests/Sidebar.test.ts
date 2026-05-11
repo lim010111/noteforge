@@ -1,8 +1,8 @@
 /**
- * Container-API tests for `<Sidebar />` (and the FolderTree / AvatarBlock
+ * Container-API tests for `<Sidebar />` (and the FolderTree / ProfileBlock
  * compositions it owns).
  *
- * Why these eight assertions:
+ * Why these assertions:
  *   - DOM nesting (1)             : guards the recursive markup contract — every
  *                                   folder is a <details> with a sibling <a>
  *                                   for the name and a nested <ul> for kids.
@@ -24,9 +24,9 @@
  *                                   is a leak signal. The wrapper must be
  *                                   omitted entirely when there are no public
  *                                   children.
- *   - empty AvatarBlock silent (6) : same principle for identity. Missing both
- *                                   avatar and nickname → no card, no
- *                                   placeholder. (privacy-adjacent.)
+ *   - empty ProfileBlock silent (6): same principle for identity. Missing all
+ *                                   three of avatar / nickname / github → no
+ *                                   card, no placeholder. (privacy-adjacent.)
  *   - category-accent determinism (7): the same first-segment must map to the
  *                                   same `--color-accent-cat-N` slot every
  *                                   render — anything else makes the tree
@@ -37,16 +37,21 @@
  *                                   from a hypothetical private branch.
  *                                   `DO_NOT_LEAK_BANANA_6f3c1` must be 0 in
  *                                   the rendered HTML.
+ *   - ProfileBlock avatar link (13): avatar wraps in `<a href="/about/">` so
+ *                                   the screenshot's single entry-point
+ *                                   contract holds.
+ *   - ProfileBlock github states (14): three-state contract (off / stub / live)
+ *                                   threads through from props to DOM.
  */
 
 import { describe, expect, it } from 'vitest';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import Sidebar from '../src/components/Sidebar.astro';
 import FolderTree from '../src/components/FolderTree.astro';
-import AvatarBlock from '../src/components/AvatarBlock.astro';
+import ProfileBlock from '../src/components/ProfileBlock.astro';
 import type { SidebarProps } from '../src/components/Sidebar.types';
 import type { FolderTreeProps } from '../src/components/FolderTree.types';
-import type { AvatarBlockProps } from '../src/components/AvatarBlock.types';
+import type { ProfileBlockProps } from '../src/components/ProfileBlock.types';
 import type { FolderNode } from '../src/lib/folderTree.types';
 import { CATEGORY_ACCENT_SLOT_COUNT } from '../src/lib/categoryAccent';
 
@@ -64,9 +69,9 @@ async function renderTree(props: FolderTreeProps): Promise<string> {
   });
 }
 
-async function renderAvatar(props: AvatarBlockProps): Promise<string> {
+async function renderProfile(props: ProfileBlockProps): Promise<string> {
   const container = await AstroContainer.create();
-  return container.renderToString(AvatarBlock as never, {
+  return container.renderToString(ProfileBlock as never, {
     props: props as unknown as Record<string, unknown>,
   });
 }
@@ -155,7 +160,7 @@ function buildFixture(): FolderNode {
   };
 }
 
-describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
+describe('Sidebar (composition + FolderTree + ProfileBlock)', () => {
   it('(1) DOM nesting matches the input tree — folders as <details>, notes as <a>', async () => {
     const html = await renderSidebar({
       folderTree: buildFixture(),
@@ -268,25 +273,34 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
     ).not.toMatch(/Folder tree/);
   });
 
-  it('(6) AvatarBlock silent when both avatarSrc and nickname are missing', async () => {
-    const html = await renderAvatar({});
+  it('(6) ProfileBlock silent when all three of avatarSrc / nickname / github are missing', async () => {
+    const html = await renderProfile({});
     expect(
       countMatches(html, /<img\b/g),
       'no <img> when avatarSrc is missing',
     ).toBe(0);
     expect(
       countMatches(html, /<div\b/g),
-      'no wrapper <div> when both fields are missing — empty card is a leak signal',
+      'no wrapper <div> when all three inputs are missing — empty card is a leak signal',
     ).toBe(0);
 
-    // Sanity: avatarSrc only → image renders; nickname only → text renders.
-    const avatarOnly = await renderAvatar({ avatarSrc: '/avatar.webp' });
+    // Sanity: avatarSrc only → image (wrapped in /about/ link) renders, no name-row.
+    const avatarOnly = await renderProfile({ avatarSrc: '/avatar.webp' });
     expect(avatarOnly).toMatch(/<img\s/);
-    expect(avatarOnly).not.toMatch(/avatar-block__nickname/);
+    expect(avatarOnly).not.toMatch(/profile-block__nickname/);
+    expect(avatarOnly).not.toMatch(/profile-block__name-row/);
 
-    const nameOnly = await renderAvatar({ nickname: 'limwoohyun' });
+    // nickname only → text renders, no <img>, no SocialLinks.
+    const nameOnly = await renderProfile({ nickname: 'limwoohyun' });
     expect(nameOnly).not.toMatch(/<img\s/);
     expect(nameOnly).toMatch(/limwoohyun/);
+    expect(nameOnly).not.toMatch(/social-links/);
+
+    // github stub only → name-row renders with the stub button, no <img>, no name.
+    const stubOnly = await renderProfile({ github: '' });
+    expect(stubOnly).not.toMatch(/<img\s/);
+    expect(stubOnly).not.toMatch(/profile-block__nickname/);
+    expect(stubOnly).toMatch(/data-social-stub="github"/);
   });
 
   it('(7) v0.5 — folder-tree no longer emits the category-accent dot', async () => {
@@ -507,5 +521,71 @@ describe('Sidebar (composition + FolderTree + AvatarBlock)', () => {
       countMatches(html, /\bclass="folder-tree__row"/g),
       'leaf-category rows use folder-tree__row to mirror summary layout',
     ).toBe(2);
+  });
+
+  it('(13) ProfileBlock avatar wraps in <a href="/about/"> — single entry point to the detailed About page', async () => {
+    const html = await renderProfile({
+      avatarSrc: '/avatar.webp',
+      nickname: 'limwoohyun',
+    });
+    // The avatar <img> must live inside an <a> wrapper that carries both
+    // class="profile-block__avatar-link" and href="/about/". Astro is free to
+    // emit attributes in any order, so we match each attribute independently
+    // inside the same opening tag rather than imposing a specific sequence.
+    const avatarLinkOpenTag = html.match(
+      /<a\b[^>]*\bclass="profile-block__avatar-link"[^>]*>/,
+    );
+    expect(
+      avatarLinkOpenTag,
+      'an <a> tag carrying class="profile-block__avatar-link" must exist',
+    ).not.toBeNull();
+    expect(
+      avatarLinkOpenTag![0]!,
+      'the avatar-link <a> tag must include href="/about/" — single entry point to the detailed About page',
+    ).toMatch(/\bhref="\/about\/"/);
+    expect(
+      avatarLinkOpenTag![0]!,
+      'the avatar-link <a> tag must carry aria-label="About" so AT users hear the destination, not the avatar alt',
+    ).toMatch(/\baria-label="About"/);
+    // The <img> must follow immediately inside the wrapper (no other element
+    // between the opening <a> and the <img>).
+    expect(
+      html,
+      'the avatar <img> must sit directly inside the avatar-link wrapper',
+    ).toMatch(/<a\b[^>]*\bclass="profile-block__avatar-link"[^>]*>\s*<img\b/);
+  });
+
+  it('(14) ProfileBlock github three-state contract flows through to the DOM (off / stub / live)', async () => {
+    // off — github omitted from props: no GitHub markup at all.
+    const off = await renderProfile({
+      avatarSrc: '/avatar.webp',
+      nickname: 'limwoohyun',
+    });
+    expect(off, 'github omitted ⇒ no SocialLinks wrapper').not.toMatch(
+      /class="social-links"/,
+    );
+    expect(off).not.toMatch(/data-social-stub="github"/);
+    expect(off).not.toMatch(/href="https:\/\/github\.com/);
+
+    // stub — empty string sentinel: <button data-social-stub="github"> appears,
+    // no live <a> to github.com.
+    const stub = await renderProfile({
+      avatarSrc: '/avatar.webp',
+      nickname: 'limwoohyun',
+      github: '',
+    });
+    expect(stub).toMatch(/data-social-stub="github"/);
+    expect(stub).not.toMatch(/<a\s[^>]*\bhref="https:\/\/github\.com/);
+
+    // live — non-empty URL: a real <a target="_blank"> shows up, no stub button.
+    const live = await renderProfile({
+      avatarSrc: '/avatar.webp',
+      nickname: 'limwoohyun',
+      github: 'https://github.com/example',
+    });
+    expect(live).toMatch(
+      /<a\s[^>]*\bhref="https:\/\/github\.com\/example"[^>]*\btarget="_blank"/,
+    );
+    expect(live).not.toMatch(/data-social-stub="github"/);
   });
 });

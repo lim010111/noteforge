@@ -24,6 +24,14 @@ export interface SidebarProps {
   avatarSrc?: string;
   /** Author display name. */
   nickname?: string;
+  /**
+   * Optional GitHub channel for the ProfileBlock's inline social icon.
+   * Three-state contract (mirrors `SocialLinksProps.github`):
+   *   - `undefined` → icon hidden
+   *   - `''`        → "needs setup" stub icon (onboarding affordance)
+   *   - `<url>`     → live outbound anchor
+   */
+  github?: string;
   /** Number of `--color-accent-cat-N` slots (typically `CATEGORY_ACCENT_SLOT_COUNT`). */
   slotCount: number;
   /**

@@ -241,18 +241,56 @@ describe('BaseLayout', () => {
     ).toMatch(/<nav[^>]*\baria-label="[^"]+"/);
   });
 
-  it('(11a) primary nav links target trailing-slash routes (matches site trailingSlash:"always")', async () => {
+  it('(11a) primary nav links target trailing-slash routes; About link is no longer in the header nav (moved to ProfileBlock avatar)', async () => {
     const html = await render({ title: 'T' });
-    for (const href of ['/categories/', '/about/']) {
-      expect(
-        html,
-        `nav link to ${href} must include the trailing slash — without it Astro's trailingSlash:"always" policy serves a 404 redirect prompt instead of the page`,
-      ).toMatch(new RegExp(`<a\\s[^>]*\\bhref="${href.replace(/\//g, '\\/')}"`));
-    }
+    // The Categories link must still target the trailing-slash route. About
+    // no longer lives in the primary nav — the sidebar ProfileBlock's avatar
+    // is the single entry point now.
     expect(
       html,
-      'no internal nav link should target a slashless category/about path',
-    ).not.toMatch(/<a\s[^>]*\bhref="\/(categories|about)"/);
+      'Categories link must include the trailing slash — Astro\'s trailingSlash:"always" rejects slashless variants',
+    ).toMatch(/<a\s[^>]*\bhref="\/categories\/"/);
+    expect(
+      html,
+      'no internal nav link should target a slashless category path',
+    ).not.toMatch(/<a\s[^>]*\bhref="\/categories"(?!\/)/);
+
+    // Scope the "no About link" check to the primary <nav class="site-nav">
+    // and the mobile drawer <nav class="mobile-menu__nav"> — outside those
+    // regions an /about/ link may legitimately appear (e.g. the sidebar's
+    // ProfileBlock avatar-link wrapper when avatar is set).
+    const siteNavMatch = html.match(
+      /<nav[^>]*\bclass="site-nav"[^>]*>([\s\S]*?)<\/nav>/,
+    );
+    expect(siteNavMatch, 'primary <nav class="site-nav"> must exist').not.toBeNull();
+    expect(
+      siteNavMatch![1]!,
+      'About link must be removed from primary nav — the sidebar avatar is now the single entry point',
+    ).not.toMatch(/\bhref="\/about\/"/);
+
+    const mobileNavMatch = html.match(
+      /<nav[^>]*\bclass="mobile-menu__nav"[^>]*>([\s\S]*?)<\/nav>/,
+    );
+    expect(mobileNavMatch, 'mobile <nav class="mobile-menu__nav"> must exist').not.toBeNull();
+    expect(
+      mobileNavMatch![1]!,
+      'About link must also be removed from the mobile drawer nav',
+    ).not.toMatch(/\bhref="\/about\/"/);
+  });
+
+  it('(11b) header carries no SocialLinks markup — GitHub icon was moved to the sidebar ProfileBlock', async () => {
+    const html = await render({ title: 'T' });
+    const headerMatch = html.match(/<header[^>]*>([\s\S]*?)<\/header>/);
+    expect(headerMatch, 'BaseLayout must render a <header> region').not.toBeNull();
+    const headerInner = headerMatch![1]!;
+    expect(
+      headerInner,
+      'no <span class="social-links"> in the header — the GitHub icon now lives inside the sidebar ProfileBlock',
+    ).not.toMatch(/class="social-links"/);
+    expect(
+      headerInner,
+      'no GitHub stub button in the header — the stub also moved to the sidebar',
+    ).not.toMatch(/data-social-stub="github"/);
   });
 
   it('(12) inlines themeInitScript inside <head> (FOUC prevention runs before <body> paints)', async () => {

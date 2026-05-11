@@ -24,6 +24,16 @@ export interface SidebarPayload {
   activeFolderPath?: string;
   avatarSrc?: string;
   nickname?: string;
+  /**
+   * GitHub channel for the sidebar ProfileBlock's inline social icon.
+   * Three-state contract (mirrors `socialSchema.github`):
+   *   - omitted from payload → icon hidden
+   *   - `''`                 → "needs setup" stub
+   *   - `<url>`              → live anchor
+   * The empty-string sentinel must be preserved (do NOT collapse to
+   * `undefined`) — it powers the first-run onboarding affordance.
+   */
+  github?: string;
   slotCount: number;
   /**
    * Set to true when the sidebar should display only categories. In
@@ -81,9 +91,13 @@ export function buildSidebarPayload(
     payload.activeFolderPath = options.activeFolderPath;
   }
 
-  const { avatar, nickname } = obpubConfig.site;
+  const { avatar, nickname, social } = obpubConfig.site;
   if (avatar !== undefined) payload.avatarSrc = avatar;
   if (nickname !== undefined) payload.nickname = nickname;
+  // `typeof === 'string'` keeps the empty-string sentinel (`''`) intact so the
+  // ProfileBlock's stub icon stays reachable; `length > 0` would silently
+  // collapse the onboarding state to "off".
+  if (typeof social?.github === 'string') payload.github = social.github;
 
   return payload;
 }

@@ -8,7 +8,6 @@
  * that the caller has already filtered.
  */
 import type { SidebarProps } from '../components/Sidebar.types.ts';
-import type { SocialLinksProps } from '../components/SocialLinks.types.ts';
 import type { TableOfContentsProps } from '../components/TableOfContents.types.ts';
 
 export interface BaseLayoutProps {
@@ -33,12 +32,6 @@ export interface BaseLayoutProps {
    * (static output) and avoid the JS sync that DOM duplication usually demands.
    */
   sidebar?: SidebarProps;
-  /**
-   * Opt-in social channels rendered inside `.header-actions`, before the
-   * theme toggle. Presence-based: omit to render nothing. Mirrors the Zod
-   * `socialSchema` in `@noteforge/core/config`.
-   */
-  social?: SocialLinksProps;
   /**
    * Optional Table of Contents payload. When provided, the layout adds a
    * sticky right rail at xl+ widths (combinable with `sidebar`); when omitted

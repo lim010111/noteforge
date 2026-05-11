@@ -44,8 +44,8 @@ export type {
 export type { FolderNode } from './lib/folderTree.types.ts';
 export { default as Sidebar } from './components/Sidebar.astro';
 export type { SidebarProps } from './components/Sidebar.types.ts';
-export { default as AvatarBlock } from './components/AvatarBlock.astro';
-export type { AvatarBlockProps } from './components/AvatarBlock.types.ts';
+export { default as ProfileBlock } from './components/ProfileBlock.astro';
+export type { ProfileBlockProps } from './components/ProfileBlock.types.ts';
 export { default as FolderTree } from './components/FolderTree.astro';
 export type { FolderTreeProps } from './components/FolderTree.types.ts';
 export { default as SocialLinks } from './components/SocialLinks.astro';

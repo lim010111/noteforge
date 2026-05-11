@@ -2,7 +2,6 @@
 import type { BaseLayoutProps } from "./BaseLayout.types";
 import { themeInitScript } from "../scripts/theme-init.ts";
 import Sidebar from "../components/Sidebar.astro";
-import SocialLinks from "../components/SocialLinks.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import "../styles/base.css";
 
@@ -14,7 +13,6 @@ const {
   ogType = "website",
   siteName,
   sidebar,
-  social,
   tableOfContents,
 } = Astro.props as BaseLayoutProps;
 const hasSidebar = sidebar !== undefined;
@@ -68,11 +66,9 @@ const shellClasses = [
           <ul role="list">
             <li><a href="/">Home</a></li>
             <li><a href="/categories/">Categories</a></li>
-            <li><a href="/about/">About</a></li>
           </ul>
         </nav>
         <div class="header-actions">
-          <SocialLinks {...(social ?? {})} />
           <button id="theme-toggle" type="button" class="icon-button" aria-label="테마 전환">
             {/* Sun + moon: CSS swaps the visible one based on data-theme / prefers-color-scheme. */}
             <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -98,7 +94,6 @@ const shellClasses = [
                 <ul role="list">
                   <li><a href="/">Home</a></li>
                   <li><a href="/categories/">Categories</a></li>
-                  <li><a href="/about/">About</a></li>
                 </ul>
               </nav>
               {hasSidebar && (
