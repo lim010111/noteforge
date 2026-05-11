@@ -4,7 +4,18 @@
 
 ## [Unreleased]
 
-(아직 없음)
+### Added
+
+- **Obsidian Callouts** — `> [!type] Title\n> body` 구문이 평범한 `<blockquote>` 대신 `<div class="callout callout-{kind}">` (또는 foldable 변형은 `<details>` + `<summary>`) 로 렌더된다. Obsidian 공식 13 종(`note`, `abstract`, `info`, `todo`, `tip`, `success`, `question`, `warning`, `failure`, `danger`, `bug`, `example`, `quote`) 과 모든 별칭(`summary`/`tldr`, `hint`/`important`, `check`/`done`, `help`/`faq`, `caution`/`attention`, `fail`/`missing`, `error`, `cite`) 지원. 알려지지 않은 타입은 Obsidian 동작과 동일하게 `note` 스타일로 폴백하면서 사용자 철자를 타이틀로 노출. foldable `+`/`-` 변형은 추가 JS 없이 `<details>` 로 동작. 중첩 callout + 본문 wikilink/transclusion 도 정상 처리.
+- **Callout 색상 토큰** (`@noteforge/theme-default`): 4 그룹 팔레트(`--color-callout-{note,success,warning,danger}-{bg,border,icon}`) — editorial-technical 디자인 방향 유지를 위해 13 종을 색상 4 그룹으로 묶었다. 라이트/다크 양쪽 모두 `tokens.css` 의 네 미러(`@theme` / `[data-theme="light"]` / `[data-theme="dark"]` / `prefers-color-scheme: dark`) 에 추가.
+
+### Changed
+
+- **`TODO.md` Backlog** — v0.1 Known limitations 의 "Obsidian Callouts (`> [!note]`) 미지원" 항목 제거. Mermaid 는 여전히 미지원으로 유지.
+
+### Privacy / Security
+
+- callout 노드는 mdast 단계에서 일반 `blockquote` 로 유지하다가 hast 변환 시점(`mdast-util-to-hast` blockquote handler)에 한해 callout 구조로 승격한다. 이 순서 덕분에 `linkRewriter` / `expandTransclusions` 등 기존 privacy 패스가 callout 내부 wikilink/transclusion 도 동일하게 게이트한다. `public-with-callout.md` 신규 fixture 가 wikilink rewriting + private transclusion strip 을 통합 어설션 `[13]` 으로 회귀 가드.
 
 ## [0.8.1] - 2026-05-05
 

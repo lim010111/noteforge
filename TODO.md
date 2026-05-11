@@ -41,7 +41,7 @@
 
 `CHANGELOG §0.1.0 Known limitations` 중 v0.5까지 미해결로 남은 항목 (의도적 후순위).
 
-- Obsidian Callouts (`> [!note]`), Mermaid 미지원 — 현재 inert code block.
+- Mermaid 미지원 — 현재 inert code block.
 - Block reference (`[[Note#^block-id]]`) 미지원 — heading anchor만.
 - RSS, sitemap, OG 이미지(자동 생성), 전문 검색(Pagefind) 없음.
 - `.canvas`, Excalidraw, Dataview 쿼리 실행 미지원.

@@ -176,6 +176,27 @@
      plus a small breathing-space gap so the card doesn't kiss the header. */
   --container-toc-w: 17rem;
   --toc-sticky-top: 3.75rem;
+
+  /* Color — Callouts (v0.6).
+     Four semantic groups instead of one token per Obsidian type. Tighter
+     fidelity to the iron-oxide single-accent ceiling (UI_GUIDE §3) while
+     still letting Obsidian's success/warning/danger axes read at a glance.
+     Mapping: note/info/abstract/tip/quote/example/todo/question → note;
+              success/check/done → success; warning/caution/attention → warning;
+              failure/danger/bug/error → danger. `tip` overrides only --icon
+              to --color-accent in prose.css (no separate token slot). */
+  --color-callout-note-bg: #efeae0;
+  --color-callout-note-border: #c9c1ad;
+  --color-callout-note-icon: #5a5e68;
+  --color-callout-success-bg: #dff0e4;
+  --color-callout-success-border: #0f7a3a;
+  --color-callout-success-icon: #0f7a3a;
+  --color-callout-warning-bg: #f5e6cc;
+  --color-callout-warning-border: #9a5a06;
+  --color-callout-warning-icon: #9a5a06;
+  --color-callout-danger-bg: #f5dada;
+  --color-callout-danger-border: #a51b1b;
+  --color-callout-danger-icon: #a51b1b;
 }
 
 /*
@@ -213,6 +234,19 @@
   --color-accent-cat-4: #7d4f1c;
   --color-accent-cat-5: #3a4d50;
   --color-bg-sidebar: #f4efe5;
+  /* v0.6 callout — light mirror of @theme defaults */
+  --color-callout-note-bg: #efeae0;
+  --color-callout-note-border: #c9c1ad;
+  --color-callout-note-icon: #5a5e68;
+  --color-callout-success-bg: #dff0e4;
+  --color-callout-success-border: #0f7a3a;
+  --color-callout-success-icon: #0f7a3a;
+  --color-callout-warning-bg: #f5e6cc;
+  --color-callout-warning-border: #9a5a06;
+  --color-callout-warning-icon: #9a5a06;
+  --color-callout-danger-bg: #f5dada;
+  --color-callout-danger-border: #a51b1b;
+  --color-callout-danger-icon: #a51b1b;
 }
 
 /* Explicit user toggle: dark pinned, OS preference ignored. */
@@ -247,6 +281,21 @@
   --color-accent-cat-4: #c79866;
   --color-accent-cat-5: #9aabaa;
   --color-bg-sidebar: #13161d;
+  /* v0.6 callout — dark palette. Borders use saturated-but-not-neon hues
+     pulled from existing semantic tokens; backgrounds are deep, low-chroma
+     so body text keeps WCAG AA on top. */
+  --color-callout-note-bg: #1c2030;
+  --color-callout-note-border: #3a4054;
+  --color-callout-note-icon: #9aa0ad;
+  --color-callout-success-bg: #1a2e22;
+  --color-callout-success-border: #5fd599;
+  --color-callout-success-icon: #5fd599;
+  --color-callout-warning-bg: #3a2c14;
+  --color-callout-warning-border: #f0b860;
+  --color-callout-warning-icon: #f0b860;
+  --color-callout-danger-bg: #3a1f1f;
+  --color-callout-danger-border: #f08080;
+  --color-callout-danger-icon: #f08080;
 }
 
 /*
@@ -285,6 +334,19 @@
     --color-accent-cat-4: #c79866;
     --color-accent-cat-5: #9aabaa;
     --color-bg-sidebar: #13161d;
+    /* v0.6 callout — mirrors the explicit dark block above. */
+    --color-callout-note-bg: #1c2030;
+    --color-callout-note-border: #3a4054;
+    --color-callout-note-icon: #9aa0ad;
+    --color-callout-success-bg: #1a2e22;
+    --color-callout-success-border: #5fd599;
+    --color-callout-success-icon: #5fd599;
+    --color-callout-warning-bg: #3a2c14;
+    --color-callout-warning-border: #f0b860;
+    --color-callout-warning-icon: #f0b860;
+    --color-callout-danger-bg: #3a1f1f;
+    --color-callout-danger-border: #f08080;
+    --color-callout-danger-icon: #f08080;
   }
 }
 

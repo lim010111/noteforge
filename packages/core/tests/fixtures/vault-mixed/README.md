@@ -28,12 +28,13 @@
 | `apps/colliding/index.md` | yes (`public: true`) | v0.3 case (d) — 폴더 `apps/` 안의 노트. `apps.md`와의 슬러그 충돌은 라우팅 build-time throw가 잡음 |
 | `public-with-frontmatter-cover.md` | yes (`public: true`) | v0.51 — 본문 임베드 없이 frontmatter `cover`만으로 attachment closure에 들어가는지 검증 |
 | `private/upload-hidden-image.md` | **no** (tripwire) | v0.51 — private 노트의 frontmatter `cover`가 attachment closure에 기여하지 않음을 검증 |
+| `public-with-callout.md` | yes (`public: true`) | v0.8 — Obsidian callout 안에 wikilink + private transclude + foldable variant. callout body가 privacy 파이프라인(linkRewriter / expandTransclusions)을 우회하지 않는지 검증 |
 | `only-public.png` | — | public 노트 첨부. 1×1 PNG (투명 RGBA) |
 | `only-private.png` | — | 어느 공개 노트도 참조하지 않음. attachment closure에 포함되면 안 됨. 1×1 PNG (빨강 RGBA) — 공개본과 바이너리가 다름 |
 | `frontmatter-only-cover.png` | — | v0.51 frontmatter-only cover fixture |
 | `private-frontmatter-cover.png` | — | v0.51 private frontmatter-only cover counter-fixture |
 
-총 **19개 Markdown + 4개 이미지 파일 = 23 파일** + 이 README.
+총 **20개 Markdown + 4개 이미지 파일 = 24 파일** + 이 README.
 
 ## canary 문자열
 
