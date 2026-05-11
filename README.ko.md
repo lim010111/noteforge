@@ -78,16 +78,18 @@ pnpm obpub status "$OBPUB_VAULT_PATH/path/to/your-note.md"
 // apps/blog/noteforge.config.ts
 export default defineConfig({
   site: {
-    title: 'shine notes',                   // ← 본인의 블로그 제목
+    title: 'My Notes',                      // ← 본인의 블로그 제목
     url: 'https://noteforge.pages.dev',     // ← 배포 URL
-    author: 'shine',                        // ← 본인 이름
+    author: 'Your Name',                    // ← 본인 이름
     social: {
-      github: 'https://github.com/lim010111',
+      // '' = "설정 필요" stub (아이콘은 보이고, 클릭하면 어디를 채울지 안내).
+      // 본인 URL 'https://github.com/<your-username>' 로 교체하세요.
+      github: '',
     },
   },
   vaults: [
     {
-      id: 'shine',
+      id: 'primary',
       path: vaultPath,                      // ← OBPUB_VAULT_PATH 에서 주입됨
       ignore: ['Templates/**', 'Excalidraw/**'], // ← 빌드에서 통째로 제외할 폴더
     },

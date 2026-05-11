@@ -78,16 +78,18 @@ pnpm obpub status "$OBPUB_VAULT_PATH/path/to/your-note.md"
 // apps/blog/noteforge.config.ts
 export default defineConfig({
   site: {
-    title: 'shine notes',                   // ← 你的博客标题
+    title: 'My Notes',                      // ← 你的博客标题
     url: 'https://noteforge.pages.dev',     // ← 你部署后的 URL
-    author: 'shine',                        // ← 你的名字
+    author: 'Your Name',                    // ← 你的名字
     social: {
-      github: 'https://github.com/lim010111',
+      // '' = "需要设置" stub（图标可见，点击会提示该填到哪里）。
+      // 把它替换成 'https://github.com/<your-username>' 即可启用真链接。
+      github: '',
     },
   },
   vaults: [
     {
-      id: 'shine',
+      id: 'primary',
       path: vaultPath,                      // ← 来自 OBPUB_VAULT_PATH
       ignore: ['Templates/**', 'Excalidraw/**'], // ← 完全忽略的文件夹
     },
