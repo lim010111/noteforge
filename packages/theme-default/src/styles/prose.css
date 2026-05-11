@@ -128,6 +128,115 @@
   font-style: italic;
 }
 
+/*
+ * Obsidian callouts (`> [!note]` syntax). The renderer (`@noteforge/core`'s
+ * `calloutBlockquoteHandler`) emits a `<div class="callout callout-{kind}">`
+ * — or `<details>` for foldable variants. Style rules below own visual
+ * grouping into four palettes (note / success / warning / danger); icon-only
+ * differentiation does the rest. Mapping table is in tokens.css.
+ *
+ * Resets: callouts re-establish body color + non-italic inside .prose so
+ * the existing blockquote inheritance (italic, muted) does not bleed through.
+ */
+.prose :where(.callout) {
+  margin-block: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-callout-note-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-lg);
+  background: var(--color-callout-note-bg);
+  color: var(--color-text-body);
+  font-style: normal;
+}
+.prose :where(.callout-title) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--color-text-heading);
+  line-height: 1.3;
+  font-style: normal;
+}
+.prose :where(.callout-icon) {
+  flex-shrink: 0;
+  color: var(--color-callout-note-icon);
+}
+.prose :where(.callout-content) {
+  padding-top: var(--space-2);
+}
+.prose :where(.callout-content) > :first-child {
+  margin-top: 0;
+}
+.prose :where(.callout-content) > :last-child {
+  margin-bottom: 0;
+}
+
+/* Foldable variant: <details> + <summary>. Strip the default disclosure
+   triangle (varies wildly per browser) and use a CSS-only chevron that
+   rotates on [open]. No JS. */
+details.callout > summary {
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  padding-right: var(--space-5);
+}
+details.callout > summary::-webkit-details-marker {
+  display: none;
+}
+details.callout > summary::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1.5px solid var(--color-text-muted);
+  border-bottom: 1.5px solid var(--color-text-muted);
+  transform: translateY(-75%) rotate(-45deg);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+details.callout[open] > summary::after {
+  transform: translateY(-25%) rotate(45deg);
+}
+
+/* Type → palette mapping. Keys not listed inherit the .callout defaults
+   (note palette) — this covers info / abstract / todo / question / example
+   / quote without per-type rules. */
+.prose :where(.callout-success) {
+  border-color: var(--color-callout-success-border);
+  background: var(--color-callout-success-bg);
+}
+.prose :where(.callout-success) .callout-icon {
+  color: var(--color-callout-success-icon);
+}
+.prose :where(.callout-warning) {
+  border-color: var(--color-callout-warning-border);
+  background: var(--color-callout-warning-bg);
+}
+.prose :where(.callout-warning) .callout-icon {
+  color: var(--color-callout-warning-icon);
+}
+.prose :where(.callout-failure, .callout-danger, .callout-bug) {
+  border-color: var(--color-callout-danger-border);
+  background: var(--color-callout-danger-bg);
+}
+.prose :where(.callout-failure, .callout-danger, .callout-bug) .callout-icon {
+  color: var(--color-callout-danger-icon);
+}
+/* `tip` keeps the note palette but lifts the icon to the iron-oxide accent —
+   the visual hint that distinguishes it from plain `note` without spending
+   one of the four palette slots. */
+.prose :where(.callout-tip) .callout-icon {
+  color: var(--color-accent);
+}
+/* `quote` is the only kind that keeps the italic body style — it preserves
+   the cited-text reading register that plain blockquotes carry. */
+.prose :where(.callout-quote) .callout-content {
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
 .prose :where(figure) {
   margin-block: var(--space-6);
 }

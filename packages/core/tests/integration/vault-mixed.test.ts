@@ -127,13 +127,15 @@ describe('vault-mixed integration — privacy invariants', () => {
     concatPublicHtml = [...result.renderedHtml.values()].join('\n');
   });
 
-  it('[1] publicSlugs matches the exact expected set of 15 public notes', () => {
+  it('[1] publicSlugs matches the exact expected set of 16 public notes', () => {
     // The set spans the v0.1/v0.2 baseline (8 notes) plus the v0.3 fixture
     // additions: case (a) deep-public branch, case (c) draft+visible mix, and
     // case (d) folder-vs-note slug collision (`apps` note + `apps/colliding/index`
     // sibling). Case (b) `private/secrets/diary` is intentionally absent — the
     // tripwire guard fires below in [12]. v0.5 adds `public-with-math` to
-    // exercise the KaTeX SSR path.
+    // exercise the KaTeX SSR path. v0.8 adds `public-with-callout` so the
+    // privacy walkers (linkRewriter / expandTransclusions) are proven to
+    // descend into callout-shaped blockquotes.
     const expected = new Set([
       'public-note',
       'another-public',
@@ -144,6 +146,7 @@ describe('vault-mixed integration — privacy invariants', () => {
       'public-with-frontmatter-cover',
       'public-with-secret-tag',
       'public-with-math',
+      'public-with-callout',
       'note-with-alias',
       'posts/ai/claude/agents',
       'posts/mix/visible',
@@ -393,5 +396,38 @@ describe('vault-mixed integration — privacy invariants', () => {
     // pipeline silently fell back to text and KaTeX never ran.
     expect(html).not.toContain('$$');
     expect(html).not.toContain('$a^2 + b^2 = c^2$');
+  });
+
+  it('[13] callouts: marker syntax renders as semantic HTML and the linkRewriter / transclude passes descend into callout bodies', () => {
+    // `public-with-callout.md` is structured to prove three things at once
+    // through the same fixture:
+    //   (a) the callout handler runs inside the full pipeline, not just in the
+    //       isolated unit tests — wrapper class + data-callout attribute show
+    //       up in the audited HTML.
+    //   (b) the linkRewriter pass descends into the modified blockquote
+    //       children — a `[[Another Public]]` link inside a callout becomes a
+    //       real <a href> instead of staying as raw wikilink text.
+    //   (c) the transclude pass descends too — `![[Private Secret]]` inside a
+    //       callout is removed from the AST entirely, so canary A cannot leak
+    //       through a callout-shaped channel.
+    const html = result.renderedHtml.get('public-with-callout');
+    expect(html).toBeDefined();
+    // (a) Marker line stripped, wrapper applied with the right kind.
+    expect(html).toContain('class="callout callout-warning"');
+    expect(html).toContain('data-callout="warning"');
+    expect(html).not.toContain('[!warning]');
+    expect(html).not.toContain('[!info]');
+    expect(html).not.toContain('[!example]');
+    // Foldable rendered as <details open> (the `+` variant).
+    expect(html).toMatch(/<details[^>]+class="callout callout-example"[^>]+open/);
+    // (b) Wikilink inside a callout was rewritten by linkRewriter.
+    expect(html).toMatch(/<a [^>]*href="[^"]*another-public[^"]*"/);
+    // (c) Private transclude inside a callout was stripped — canary A and the
+    // private slug must both be absent. The concatPublicHtml assertion above
+    // is the global guard; this is the local one that fails first if a future
+    // change forgets to descend into blockquote children.
+    expect(html!.includes(canaryA)).toBe(false);
+    expect(html).not.toContain('private-secret');
+    expect(html).not.toContain('Private Secret');
   });
 });

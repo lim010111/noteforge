@@ -134,7 +134,8 @@ async function runLoad(
 describe('obpubLoader (Astro Content Layer adapter)', () => {
   // 8 v0.1/v0.2 notes + 5 v0.3 fixture additions (case (a) deep-public branch,
   // case (c) draft+visible mix, case (d) folder-vs-note slug collision) +
-  // v0.5's `public-with-math` + v0.51's frontmatter-only cover fixture.
+  // v0.5's `public-with-math` + v0.51's frontmatter-only cover fixture +
+  // v0.8's `public-with-callout` (privacy-walk-into-blockquote regression guard).
   // Case (b) `private/secrets/diary` stays excluded by the tripwire.
   const EXPECTED_PUBLIC = new Set([
     'public-note',
@@ -146,6 +147,7 @@ describe('obpubLoader (Astro Content Layer adapter)', () => {
     'public-with-frontmatter-cover',
     'public-with-secret-tag',
     'public-with-math',
+    'public-with-callout',
     'note-with-alias',
     'posts/ai/claude/agents',
     'posts/mix/visible',

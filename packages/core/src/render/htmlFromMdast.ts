@@ -22,6 +22,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeKatex from 'rehype-katex';
 import type { Literal, Root as MdastRoot } from 'mdast';
 import type { ElementContent, Element, Root as HastRoot } from 'hast';
+import { calloutBlockquoteHandler } from './callout.ts';
 
 /**
  * Structured heading record for in-page navigation (Table of Contents).
@@ -123,7 +124,7 @@ function hasHeadingAnchorChild(heading: Element): boolean {
 export function renderMdastToHtml(tree: MdastRoot): string {
   const hast = toHast(tree, {
     allowDangerousHtml: false,
-    handlers: mathHandlers,
+    handlers: { ...mathHandlers, blockquote: calloutBlockquoteHandler },
   });
   if (hast === null || hast === undefined) return '';
   // Narrow to Root — toHast on an mdast Root always returns a hast Root, but
@@ -214,7 +215,7 @@ export function renderMdastToHtmlWithHeadings(
 ): { html: string; headings: readonly NoteHeading[] } {
   const hast = toHast(tree, {
     allowDangerousHtml: false,
-    handlers: mathHandlers,
+    handlers: { ...mathHandlers, blockquote: calloutBlockquoteHandler },
   });
   if (hast === null || hast === undefined) return { html: '', headings: [] };
   if (hast.type !== 'root') return { html: toHtml(hast), headings: [] };
