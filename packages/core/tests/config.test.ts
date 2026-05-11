@@ -421,6 +421,11 @@ describe('site.social (v0.3 polish)', () => {
     expect(cfg.site.social?.github).toBeUndefined();
   });
 
+  it('accepts an empty github string as a "needs setup" placeholder', () => {
+    const cfg = defineConfig(withSite({ social: { github: '' } }));
+    expect(cfg.site.social?.github).toBe('');
+  });
+
   it('rejects a non-URL github value', () => {
     expect(() =>
       defineConfig(withSite({ social: { github: 'lim010111' } })),

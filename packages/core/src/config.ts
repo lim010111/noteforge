@@ -47,7 +47,16 @@ const vaultSchema = z.object({
 
 const socialSchema = z
   .object({
-    github: z.string().url('유효한 URL이어야 합니다').optional(),
+    // Three-state contract consumed by `<SocialLinks />`:
+    //   - field omitted     → channel hidden (no DOM remnant; full opt-out)
+    //   - empty string ''   → "needs setup" stub icon with onboarding hint
+    //   - valid URL         → live anchor
+    // The empty-string sentinel powers the first-run UX in the default
+    // `apps/blog/noteforge.config.ts`, so fork users see the icon and learn
+    // *which* config field to edit instead of silently rendering nothing.
+    github: z
+      .union([z.string().url('유효한 URL이어야 합니다'), z.literal('')])
+      .optional(),
     email: z.string().email('유효한 이메일 주소여야 합니다').optional(),
   })
   .optional();

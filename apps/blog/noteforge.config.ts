@@ -41,23 +41,28 @@ if (typeof vaultPath !== 'string' || vaultPath.length === 0) {
 
 export default defineConfig({
   // Public identity injected into HTML <head>, sitemap, RSS, and OG meta.
-  // Edit these before your first deploy — leaving the demo values ships the upstream identity.
+  // Edit these before your first deploy — the values below are placeholders
+  // shipped by the upstream template, not real personal info.
   site: {
-    title: 'shine notes',
-    url: 'https://noteforge.pages.dev',
-    author: 'shine',
+    title: 'My Notes',
+    url: 'https://noteforge.pages.dev',         // Replace with your own deploy URL (see docs/DEPLOY.md §3).
+    author: 'Your Name',
     // avatar: '/avatar.png',     // Optional. Must live under apps/blog/public/; external URLs are rejected.
-    // nickname: 'shine',         // Optional. Display name; falls back to `author`.
+    // nickname: 'Your Nickname', // Optional. Display name; falls back to `author`.
     social: {
       // Supported keys: `github` (URL), `email`. Both optional.
-      github: 'https://github.com/lim010111',
+      // Empty string = "needs setup" stub: the GitHub icon stays visible in
+      // the header and clicking it opens an in-browser hint pointing back
+      // here. Replace with your URL (e.g. 'https://github.com/<your-username>')
+      // to render a live link, or delete the field entirely to hide the icon.
+      github: '',
     },
     // about: { headline: '...', bio: ['...'], highlights: ['...'] }, // Optional, powers the About page.
   },
   // Single vault entry (MVP enforces max 1). `path` comes from OBPUB_VAULT_PATH.
   vaults: [
     {
-      id: 'shine',                              // Internal identifier; safe to leave as-is.
+      id: 'primary',                            // Internal identifier; safe to leave as-is.
       path: vaultPath,
       urlPrefix: '/',                           // Path prefix prepended to every published URL. Default '/'.
       theme: '@noteforge/theme-default',        // Workspace package name; the only theme shipped today.

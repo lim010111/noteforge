@@ -79,16 +79,18 @@ Site identity (title, canonical URL, author, social links) and per-vault behavio
 // apps/blog/noteforge.config.ts
 export default defineConfig({
   site: {
-    title: 'shine notes',                   // ← your blog title
+    title: 'My Notes',                      // ← your blog title
     url: 'https://noteforge.pages.dev',     // ← your deployed URL
-    author: 'shine',                        // ← your name
+    author: 'Your Name',                    // ← your name
     social: {
-      github: 'https://github.com/lim010111',
+      // '' = "needs setup" stub (icon visible, click prompts you to fill this in).
+      // Replace with 'https://github.com/<your-username>' when ready.
+      github: '',
     },
   },
   vaults: [
     {
-      id: 'shine',
+      id: 'primary',
       path: vaultPath,                      // ← from OBPUB_VAULT_PATH
       ignore: ['Templates/**', 'Excalidraw/**'], // ← folders to skip entirely
     },

@@ -44,8 +44,12 @@ const headline = about?.headline;
 const bio = about?.bio ?? [];
 const highlights = about?.highlights ?? [];
 const social = identity.social ?? {};
+// Presence-based: an empty `github` string is the "needs setup" sentinel
+// that SocialLinks renders as a stub button, so we still want the contact
+// row to appear. Fully omitted fields hide the row, preserving the opt-out
+// contract for users who set no social channel at all.
 const hasSocial =
-  (typeof social.github === "string" && social.github.length > 0) ||
+  typeof social.github === "string" ||
   (typeof social.email === "string" && social.email.length > 0);
 ---
 <article class="about-page">
