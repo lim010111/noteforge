@@ -13,6 +13,13 @@ obsidian_blog/
 │   │       ├── resolve/wikilink.ts # Obsidian-style 타겟 해석 (aliases)
 │   │       ├── slug.ts             # 한국어/공백/충돌 슬러그
 │   │       ├── tags.ts             # 5가지 태그 포맷 정규화
+│   │       ├── vaultIndex/         # ★ VaultIndex — 한 곳의 vault 상태
+│   │       │   ├── buildVaultIndex.ts       # one-shot (pipeline용)
+│   │       │   ├── createIncrementalVaultIndex.ts  # 가변 (watcher용, depGraph 흡수)
+│   │       │   └── types.ts                 # VaultIndexSnapshot
+│   │       ├── render/
+│   │       │   ├── htmlFromMdast.ts         # mdast → HTML + headings
+│   │       │   └── renderPublicNote.ts      # ★ per-note 사밀 렌더 단위
 │   │       ├── privacy/            # ★ 제품 핵심
 │   │       │   ├── classify.ts          # isPublic() + tripwire
 │   │       │   ├── graph.ts             # full/filtered 그래프
@@ -20,15 +27,15 @@ obsidian_blog/
 │   │       │   ├── commentStrip.ts      # %%...%% 제거
 │   │       │   ├── frontmatterFilter.ts # allowlist 기반 필터
 │   │       │   ├── transclude.ts        # ![[Note]] 재귀/제거
-│   │       │   └── attachmentFilter.ts  # reference closure
+│   │       │   └── attachmentClosure.ts # ★ attachment ref 수집 + closure 빌드 + closure 적용 (단일 owner)
 │   │       ├── types.ts
-│   │       └── index.ts
+│   │       └── index.ts            # 패키지 공개 seam (서브패스 임포트 금지 — ESLint enforce)
 │   ├── astro-integration/          # @noteforge/astro — Astro Content Layer 어댑터
 │   │   └── src/
 │   │       ├── integration.ts      # astro:config:setup 훅
 │   │       ├── loader.ts           # Content Layer loader
 │   │       ├── remarkWikilink.ts   # MDX 파이프라인 브리지
-│   │       ├── watcher.ts          # chokidar + invalidation
+│   │       ├── watcher.ts          # chokidar adapter — createIncrementalVaultIndex로 위임
 │   │       └── index.ts
 │   ├── theme-default/              # @noteforge/theme-default
 │   │   └── src/
@@ -49,10 +56,12 @@ obsidian_blog/
 
 ## 파이프라인 — Phase A → D
 
-### Phase A. Discovery
-`walker → parseNote(+commentStrip) → resolve/wikilink → tags`
+### Phase A. Discovery — `VaultIndex`
+`buildVaultIndex(input)` (or `createIncrementalVaultIndex(...).primeFromVault()`)
 
-vault 전체(public + private 모두)를 읽음. 누수 탐지를 위해 전체 그래프가 필요.
+vault 전체(public + private 모두)를 읽어 `VaultIndexSnapshot` 산출 — `notes`, `slugByRelPath`, `wikilinkIndex`, `attachments`, `attachmentByBasenameLower`. 두 어댑터(one-shot + incremental)가 같은 shape을 약속한다 → pipeline.ts와 watcher.ts가 동일 시각으로 vault를 본다.
+
+**VaultIndex는 classify를 모른다** — public/private 결정은 다음 phase에서 호출. 누수 탐지를 위해 전체 그래프가 필요하므로 private 노트도 그대로 보존.
 
 ### Phase B. 분류
 `privacy/classify`
@@ -66,13 +75,26 @@ isPublic = frontmatter.public === true
 `private/**` 경로 파일은 **무조건** private (tripwire, `unsafeAllowPrivateFolder` 필요).
 
 ### Phase C. Graph Filtering (핵심)
-`privacy/graph → linkRewriter → transclude → frontmatterFilter → attachmentFilter`
 
-1. 공개 노드만 유지.
+`pipeline.ts`가 두 패스로 오케스트레이트:
+
+**Pass 1 — linkRewriter (cross-note)**: 모든 public 노트의 mdast에 `rewriteWikilinks`를 적용 (in-place). transclusion이 다른 노트의 이미-rewritten mdast를 참조하므로 이 패스가 먼저 끝나야 한다.
+
+**Pass 2 — `renderPublicNote` (per-note)**: 각 public slug에 대해 한 번씩 호출. 내부 단계: transclude → serialize (HTML + h2/h3/h4 headings) → frontmatter allowlist → tag blocklist + gateTag strip → **raw** image 추출 → attachment ref 수집. 단계 순서가 한 함수 안에 응집되어 mid-level 테스트 표면이 된다. **closure-naive** — image URL/frontmatter image 게이팅은 Pass 3 책임.
+
+**Pass 3 — `applyAttachmentClosure` (per-note, closure 적용)**: cross-note closure 계산 후 각 public RenderedNote에 closure를 적용해 frontmatter `cover`/`thumbnail`을 게이트하고 body image URL을 필터한다. 이 패스는 [`privacy/attachmentClosure.ts`](../packages/core/src/privacy/attachmentClosure.ts)가 단독 소유 — Pass 2가 이 책임을 알지 못해서 다른 호출자(audit CLI 등)가 closure 적용을 깜빡할 수 없다.
+
+**Attachment closure** (도메인 용어): "공개 노트들이 참조하는 첨부파일의 집합". 한 attachment id가 closure에 포함되는 조건은 (a) 적어도 하나의 public 노트가 참조하고 (b) 확장자가 허용 목록에 있다. 세 함수가 한 모듈에 응집되어 closure가 어떻게 만들어지고 어떻게 적용되는지가 한 곳에서 답해진다:
+- `collectAttachmentRefs(note, vaultIndex, slug)` — pre-closure: 한 노트의 body+frontmatter에서 attachment ref 추출. public/private 무관.
+- `buildAttachmentClosure({...})` — 모든 ref와 publicNoteIds로부터 included/excluded 결정.
+- `applyAttachmentClosure(rendered, closure)` — post-closure: RenderedNote에 closure를 적용한 새 RenderedNote 반환 (frontmatter cover/thumbnail 게이팅 + body image URL 필터).
+
+**Cross-note ops** (pipeline.ts에 잔류):
+1. 공개 노드만 유지 → public 그래프.
 2. public→public 엣지만 유지.
-3. `[[...]]` 위키링크: public 타겟 → 정상 `<a>`, private/미존재 → `strip-to-text`.
-4. `![[...]]` transclusion: public 타겟 → 본문 재귀 확장(동일 파이프라인), private/미존재 → 노드 제거.
-5. frontmatter는 allowlist 필드만 노출(`cover`/`thumbnail`은 `/attachments/<rel>`일 때 public attachment closure로 추가 검증).
+3. `[[...]]` 위키링크: public 타겟 → 정상 `<a>`, private/미존재 → `strip-to-text` (Pass 1).
+4. `![[...]]` transclusion: public 타겟 → 본문 재귀 확장, private/미존재 → 노드 제거 (Pass 2).
+5. frontmatter는 allowlist 필드만 노출(`cover`/`thumbnail`은 attachment closure 적용 — Pass 3).
 6. 태그 blocklist 적용.
 7. 백링크는 필터된 그래프만 사용.
 8. 첨부파일은 public 노트 참조 closure만 `dist/`로.
@@ -107,7 +129,7 @@ classify (isPublic + tripwire)
 graph (full → filtered)
   │
   ▼
-linkRewriter / transclude / frontmatterFilter / attachmentFilter
+linkRewriter / transclude / frontmatterFilter / attachmentClosure
   │
   ▼
 Astro Content Layer loader
@@ -131,8 +153,8 @@ dist/
 - **캐싱**: Astro Content Layer의 기본 캐시를 사용하되, watcher가 변경된 노트 + 의존 노트를 `invalidate()`로 드랍.
 
 ## 프레임워크 경계
-- `@noteforge/core`: Astro, remark AST 타입 외 프레임워크 의존 **없음**. 추후 다른 SSG(11ty, Next.js)에도 재사용 가능.
-- `@noteforge/astro`: Astro Integration API + remark 파이프라인 통합. Astro 버전 업 시 여기만 영향.
+- `@noteforge/core`: Astro, remark AST 타입 외 프레임워크 의존 **없음**. 추후 다른 SSG(11ty, Next.js)에도 재사용 가능. **공개 seam은 `src/index.ts` 한 곳** — 외부 패키지의 서브패스 임포트는 ESLint `no-restricted-imports`로 차단. 두 깊은 모듈을 통해 외부에 노출: **`VaultIndex`**(vault 디스커버리 + edge 추적, 두 어댑터)와 **`renderPublicNote`**(per-note 사밀 렌더). 이 두 seam을 통해 audit CLI / 미래 MCP / 다른 SSG 어댑터가 동일 인터페이스를 소비한다.
+- `@noteforge/astro`: Astro Integration API + remark 파이프라인 통합. **watcher는 `createIncrementalVaultIndex` 단 하나에만 의존** — vault 인덱싱·edge 추적·invalidation lookup이 모두 인덱서 뒤로 모인다. Astro 버전 업 시 여기만 영향.
 - `@noteforge/theme-default`: Astro 컴포넌트. 교체 가능한 하나의 테마.
 - `@noteforge/cli`: 사용자 진입점. 내부적으로 Astro CLI를 래핑.
 

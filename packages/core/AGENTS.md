@@ -4,8 +4,11 @@
 프레임워크 독립 privacy-first 파이프라인. Phase A→C: walk → parse → classify → filter → render. 다른 모든 워크스페이스 패키지가 이 모듈에 의존하는 단일 결정 지점.
 
 ## 핵심 파일
-- src/index.ts — 패키지 진입점 (config / pipeline / privacy 재export)
-- src/pipeline.ts — `runCorePipeline`. discover → privacy filter → render
+- src/index.ts — **패키지 공개 seam**. 외부(`@noteforge/astro`, `@noteforge/cli`, `@noteforge/theme-default`, `apps/blog`)는 반드시 이 진입점을 통과해야 한다. ESLint `no-restricted-imports` 규칙이 `@noteforge/core/<subpath>` 임포트를 차단.
+- src/pipeline.ts — `runCorePipeline`. 얇은 오케스트레이터: VaultIndex → classify → linkRewriter pass → renderPublicNote 루프(RAW 산출) → cross-note ops (graph / closure / alias / audit set) → `applyAttachmentClosure` per public slug.
+- src/vaultIndex/ — **VaultIndex** 두 어댑터. `buildVaultIndex` (one-shot, pipeline용) + `createIncrementalVaultIndex` (가변, dev watcher용). 같은 `VaultIndexSnapshot` shape. classify 미포함.
+- src/render/renderPublicNote.ts — **renderPublicNote** per-note privacy render unit. transclude + serialize + frontmatter/tag filter + **raw** image 추출 + attachment ref 수집을 한 함수에 응집. closure-naive — image/frontmatter 게이팅은 attachmentClosure가 책임.
+- src/privacy/attachmentClosure.ts — **attachment closure 단일 owner**. `collectAttachmentRefs` (pre-closure 노트 스캔) + `buildAttachmentClosure` (cross-note 결정) + `applyAttachmentClosure` (post-closure 적용)의 세 export.
 - src/config.ts — `ObpubConfig` 스키마 + classify 룰 빌드
 - src/privacy/classify.ts — public/private 단일 판정 지점
 - src/privacy/frontmatterFilter.ts — allowlist 필드만 통과

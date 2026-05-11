@@ -60,6 +60,9 @@ pnpm obpub audit [--strict]          # 빌드 산출물 독립 검증
 - **vault**: Obsidian 개인 지식 저장소 폴더 (레포 밖).
 - **public/private 노트**: `isPublic()` 판정 결과. 기본값 `false`.
 - **tripwire**: `private/` 폴더 규칙. frontmatter로도 우회 불가.
+- **VaultIndex**: "어떤 노트가 존재하고 서로 어떻게 참조하나"를 답하는 단일 모듈 (`packages/core/src/vaultIndex/`). 두 어댑터 — `buildVaultIndex` (one-shot, pipeline용) / `createIncrementalVaultIndex` (가변, watcher용) — 가 같은 `VaultIndexSnapshot` shape을 산출. **VaultIndex는 classify를 알지 못한다** (privacy 결정은 classify 한 곳에 유지).
+- **VaultIndexSnapshot**: 읽기 전용 스냅샷 — `notes`, `slugByRelPath`, `relPathBySlug`, `indexedNotes`, `wikilinkIndex`, `attachments`, `attachmentByBasenameLower`. mdast는 포함하지 않음 (heavy + 변경 빈도 다름).
+- **renderPublicNote**: 한 public 노트의 사밀 렌더 단위 (`packages/core/src/render/renderPublicNote.ts`) — transclude → serialize → frontmatter allowlist → tag blocklist + gateTag strip → image 추출 → attachment ref 수집. linkRewriter pass와 cross-note ops는 pipeline.ts가 책임.
 - **strip-to-text**: private 링크를 `<a>` 없이 텍스트로만 남기는 기본 동작.
 - **canary**: fixture에 심어둔 누출 감지용 고유 문자열.
 
