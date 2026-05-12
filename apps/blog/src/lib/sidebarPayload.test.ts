@@ -160,6 +160,64 @@ describe('buildSidebarPayload — site identity propagation', () => {
   });
 });
 
+describe('buildSidebarPayload — GitHub fallback for unset avatar/nickname', () => {
+  it('derives avatarSrc from the github URL when site.avatar is unset', () => {
+    siteMock.avatar = undefined;
+    siteMock.social = { github: 'https://github.com/example' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.avatarSrc).toBe('https://github.com/example.png');
+  });
+
+  it('derives nickname from the github username when site.nickname is unset', () => {
+    siteMock.nickname = undefined;
+    siteMock.social = { github: 'https://github.com/example' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.nickname).toBe('example');
+  });
+
+  it('configured avatar/nickname win over GitHub fallback', () => {
+    siteMock.avatar = '/avatar.png';
+    siteMock.nickname = 'shine';
+    siteMock.social = { github: 'https://github.com/example' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.avatarSrc).toBe('/avatar.png');
+    expect(payload.nickname).toBe('shine');
+  });
+
+  it("does not derive when github is the empty '' stub (no username to derive from)", () => {
+    siteMock.avatar = undefined;
+    siteMock.nickname = undefined;
+    siteMock.social = { github: '' };
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.avatarSrc).toBeUndefined();
+    expect(payload.nickname).toBeUndefined();
+    // The stub sentinel itself still propagates so ProfileBlock can render
+    // the "needs setup" icon.
+    expect(payload.github).toBe('');
+  });
+
+  it('omits avatarSrc and nickname when neither github nor explicit fields are set', () => {
+    siteMock.avatar = undefined;
+    siteMock.nickname = undefined;
+    siteMock.social = undefined;
+    const payload = buildSidebarPayload([
+      makeEntry('about', { title: 'About' }),
+    ]);
+    expect(payload.avatarSrc).toBeUndefined();
+    expect(payload.nickname).toBeUndefined();
+    expect('avatarSrc' in payload).toBe(false);
+    expect('nickname' in payload).toBe(false);
+  });
+});
+
 describe('buildSidebarPayload — slot count SSOT', () => {
   it('emits slotCount equal to CATEGORY_ACCENT_SLOT_COUNT (no magic number)', () => {
     const payload = buildSidebarPayload([makeEntry('a', { title: 'a' })]);

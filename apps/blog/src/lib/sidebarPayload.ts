@@ -6,6 +6,7 @@ import type { FolderNode } from '@noteforge/theme-default';
 import { CATEGORY_ACCENT_SLOT_COUNT } from '@noteforge/theme-default/lib/categoryAccent.ts';
 import { filterPublishable, type NotesEntry } from './viewModels.ts';
 import { buildCategoryTree, buildFolderTree } from './folderAggregation.ts';
+import { resolveSiteIdentity } from './siteIdentity.ts';
 import obpubConfig from '../../noteforge.config.ts';
 
 export type NavMode = 'folder' | 'category';
@@ -56,10 +57,14 @@ export interface SidebarPayload {
  * - `slotCount` mirrors `CATEGORY_ACCENT_SLOT_COUNT` so design (TOKENS.md →
  *   tokens.css → categoryAccent.ts → here) stays one SSOT chain. Hard-coding
  *   would silently desync if a future step changes the slot count.
- * - `avatarSrc` / `nickname` come from `obpubConfig.site.{avatar,nickname}`.
- *   Both are optional per `siteSchema` (step 2). Missing values stay
- *   `undefined` — never `''` — so consuming components can rely on a strict
- *   `!== undefined` check to omit themselves on incomplete identity.
+ * - `avatarSrc` / `nickname` / `github` are resolved by `resolveSiteIdentity`,
+ *   which falls back to GitHub-derived values (`https://github.com/<u>.png`
+ *   for the avatar, the username for the nickname) when `site.avatar` /
+ *   `site.nickname` are unset but `site.social.github` is a github.com URL.
+ *   Missing values stay `undefined` — never `''` — so consuming components
+ *   can rely on a strict `!== undefined` check to omit themselves on
+ *   incomplete identity. The empty-string `''` github "stub" sentinel is
+ *   passed through verbatim so the ProfileBlock's onboarding icon survives.
  */
 export function buildSidebarPayload(
   allEntries: readonly NotesEntry[],
@@ -91,13 +96,13 @@ export function buildSidebarPayload(
     payload.activeFolderPath = options.activeFolderPath;
   }
 
-  const { avatar, nickname, social } = obpubConfig.site;
-  if (avatar !== undefined) payload.avatarSrc = avatar;
-  if (nickname !== undefined) payload.nickname = nickname;
-  // `typeof === 'string'` keeps the empty-string sentinel (`''`) intact so the
-  // ProfileBlock's stub icon stays reachable; `length > 0` would silently
-  // collapse the onboarding state to "off".
-  if (typeof social?.github === 'string') payload.github = social.github;
+  const identity = resolveSiteIdentity(obpubConfig.site);
+  if (identity.avatar !== undefined) payload.avatarSrc = identity.avatar;
+  if (identity.nickname !== undefined) payload.nickname = identity.nickname;
+  // `resolveSiteIdentity` preserves the empty-string sentinel (`''`) so the
+  // ProfileBlock's stub icon stays reachable; collapsing to `undefined`
+  // would silently demote the onboarding state to "off".
+  if (identity.github !== undefined) payload.github = identity.github;
 
   return payload;
 }
