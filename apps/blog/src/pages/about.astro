@@ -9,14 +9,20 @@ import {
 import obpubConfig from '../../noteforge.config.ts';
 import { ensureTrailingSlash } from '../lib/viewModels.ts';
 import { buildSidebarPayload } from '../lib/sidebarPayload.ts';
+import { resolveSiteIdentity } from '../lib/siteIdentity.ts';
 import '../styles/global.css';
 
+// `resolveSiteIdentity` falls back to GitHub-derived avatar/nickname
+// (https://github.com/<u>.png + username) when the config fields are unset
+// but `site.social.github` is a github.com URL. `author` always stays the
+// canonical real-name string from `siteSchema`.
+const resolved = resolveSiteIdentity(obpubConfig.site);
 const identity: AboutIdentity = { author: obpubConfig.site.author };
-if (obpubConfig.site.nickname !== undefined) {
-  identity.nickname = obpubConfig.site.nickname;
+if (resolved.nickname !== undefined) {
+  identity.nickname = resolved.nickname;
 }
-if (obpubConfig.site.avatar !== undefined) {
-  identity.avatar = obpubConfig.site.avatar;
+if (resolved.avatar !== undefined) {
+  identity.avatar = resolved.avatar;
 }
 if (obpubConfig.site.social !== undefined) {
   identity.social = obpubConfig.site.social;
