@@ -10,7 +10,7 @@ A privacy-first Astro static site generator that publishes **only the Obsidian n
 [![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
-[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions)
 [![Release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
 ![Screenshot of a published noteforge blog: a CATEGORIES sidebar showing `tools` > `cli`, with the `cli` category landing page in the main column and a HOME / TOOLS / CLI breadcrumb at the top](./docs/assets/blog-categories-overview.png)

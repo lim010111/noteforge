@@ -10,7 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
-[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions)
 [![Release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
 ![已发布的 noteforge 博客截图：左侧 CATEGORIES 侧边栏显示 `tools` > `cli`，主栏是 `cli` 分类的着陆页，顶部面包屑为 HOME / TOOLS / CLI](./docs/assets/blog-categories-overview.png)

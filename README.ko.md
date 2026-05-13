@@ -10,7 +10,7 @@ Obsidian vault에서 **사용자가 명시적으로 표시한 노트만** 정적
 [![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
-[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions)
 [![Release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
 ![발행된 noteforge 블로그 스크린샷 — `tools` > `cli` 트리가 보이는 CATEGORIES 사이드바, 메인 컬럼에 cli 카테고리 랜딩 페이지, 상단의 HOME / TOOLS / CLI 브레드크럼](./docs/assets/blog-categories-overview.png)
