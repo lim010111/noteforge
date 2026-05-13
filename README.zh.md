@@ -2,33 +2,46 @@
 
 # noteforge
 
-> 一个 privacy-first 的 Astro 静态站点生成器，只把你亲手挑选的 Obsidian 笔记发布成静态博客。**没标记的，就不存在。**
+> **语言**: [English](./README.md) · [한국어](./README.ko.md) · 简体中文
+
+一个 privacy-first 的 Astro 静态站点生成器，**只发布你亲手 opt-in 的 Obsidian 笔记**。没标记的，绝不会出现在构建产物里。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.6-brightgreen.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-f69220.svg)](https://pnpm.io/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-ff5d01.svg)](https://astro.build/)
-[![GitHub release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
-
-**语言**: [English](./README.md) · [한국어](./README.ko.md) · 简体中文
-
-`noteforge` 只发布你显式 opt-in 的笔记 —— frontmatter 里写了 `public: true`，或者正文中带有 `#public` 标签的笔记。其他所有内容都不会进入构建产物。这与 Quartz 的 opt-out 默认完全相反：除非你明确允许，否则任何内容都不会离开你的 vault。完整的威胁模型以及本项目刻意不覆盖的范围，请见 [docs/PRD.md](./docs/PRD.md)。
+[![CI](https://img.shields.io/github/actions/workflow/status/lim010111/noteforge/ci.yml?branch=main)](https://github.com/lim010111/noteforge/actions)
+[![Release](https://img.shields.io/github/v/release/lim010111/noteforge?include_prereleases&sort=semver)](https://github.com/lim010111/noteforge/releases)
 
 ![已发布的 noteforge 博客截图：左侧 CATEGORIES 侧边栏显示 `tools` > `cli`，主栏是 `cli` 分类的着陆页，顶部面包屑为 HOME / TOOLS / CLI](./docs/assets/blog-categories-overview.png)
 
+## 关于
+
+`noteforge` 只发布你显式标记的笔记 —— frontmatter 里写了 `public: true`，或正文带有 `#public` 标签。其他所有笔记默认私有，**未经允许任何内容都不会离开你的 vault**。这与 Quartz 的 opt-out 模型（默认全部发布，一个被遗忘的 `dg-publish: false` 就能泄露错误的笔记）完全相反。
+
+隐私不是一个开关，而是整条流水线。frontmatter 经过 allowlist 过滤，`%%comments%%` 在任何其他步骤之前就被剥离，私有笔记的 `![[transclusion]]` 直接从 AST 中删除，post-build audit 还会扫描 `dist/` 以验证 canary 字符串没有泄漏。完整威胁模型见 [docs/PRD.md](./docs/PRD.md) 与 [SECURITY.md](./SECURITY.md)。
+
+## 功能
+
+- **Opt-in 发布** — frontmatter `public: true` **或** `#public` 标签。两条规则都在 [`packages/core/src/privacy/classify.ts`](./packages/core/src/privacy/classify.ts) 一处定义，绝不在别处重复。
+- **`private/**` tripwire** — 任何位于 `private/` 文件夹下的笔记都保持私有，即便 frontmatter 写着 `public: true`。绕开它必须在配置中明确写 `unsafeAllowPrivateFolder: true`。
+- **Frontmatter allowlist** — 只有 `title`, `description`, `date`, `updated`, `tags`, `aliases`, `cover`, `thumbnail`, `author`, `draft`, `public`, `slug`, `permalink`, `lang`, `featured`, `category` 才能到达渲染后的 HTML。强制由 [`packages/core/src/privacy/frontmatterFilter.ts`](./packages/core/src/privacy/frontmatterFilter.ts) 负责。
+- **注释与 transclusion 安全** — `%%...%%` 在 discovery 阶段就被移除；指向私有笔记的 `![[Note]]` 直接从 AST 删除，指向公开笔记的则递归走同一条流水线。
+- **Post-build audit** — `obpub audit` 独立于 core 流水线扫描 `dist/`。这条 audit 中重新实现隐私逻辑是被明确禁止的（这是有意的双重检查）。
+- **Obsidian 兼容写作** — wikilinks、callouts（官方 13 种 · 可折叠 / 嵌套）、KaTeX、attachment closure、基于 category 或 folder 的导航。
+- **HMR 开发服务器** — 在 Obsidian 中修改一篇笔记，无需重启即可看到变化。
+
 ## 前置要求
 
-克隆仓库前请确认你已具备：
-
-- 一个 [Obsidian](https://obsidian.md/) vault（或任何包含 Markdown 文件的文件夹），里面至少有一篇你想发布的笔记
-- [Node.js](https://nodejs.org/) **22.6+** —— 推荐 LTS 22.11（仓库已附带 `.nvmrc`）
+- 一个 [Obsidian](https://obsidian.md/) vault（或任何 Markdown 文件夹），里面至少有一篇你想发布的笔记
+- [Node.js](https://nodejs.org/) **22.6+** —— 推荐 LTS 22.11，仓库已附带 [`.nvmrc`](./.nvmrc)
 - [pnpm](https://pnpm.io/installation) **10.x**
 - [Git](https://git-scm.com/)
 
-## 快速开始
+## 安装
 
 ```bash
-# 1. 把仓库克隆到你想放的目录
+# 1. 克隆仓库
 git clone https://github.com/lim010111/noteforge my-blog && cd my-blog
 
 # 2. 安装依赖
@@ -36,23 +49,25 @@ pnpm install
 
 # 3. 告诉 noteforge 你的 vault 在哪里
 cp .env.example .env
-#    用编辑器打开 .env，把 OBPUB_VAULT_PATH 设置为你 Obsidian vault 的
-#    绝对路径。.env.example 里有 macOS、Linux、WSL 的示例。
+# 打开 .env，把 OBPUB_VAULT_PATH 设为你的 Obsidian vault 的绝对路径。
+# 文件里给出了 macOS、Linux 和 WSL 的示例。
 
 # 4. 启动开发服务器
-pnpm --filter blog dev      # 默认在 http://localhost:4321 打开
+pnpm --filter blog dev     # http://localhost:4321
 
-# 5. （之后）构建用于部署的静态站点
-pnpm --filter blog build    # 输出到 apps/blog/dist 并自动跑一遍 privacy audit
+# 5. 构建静态站点（会运行一次 post-build privacy audit）
+pnpm --filter blog build   # 产物 → apps/blog/dist
 ```
 
-> `--filter blog` 这个参数告诉 pnpm 在 `blog` 工作区包（即 `apps/blog/`）内执行该脚本。本 README 中所有的 `dev` / `build` 命令都按这种方式工作。
+> `--filter blog` 表示在 `blog` workspace 包（`apps/blog/`）里执行脚本。本 README 的所有 `dev` / `build` 命令都是相同方式。
 
-如果开发服务器启动了但看不到任何笔记，请跳到 [问题排查](#问题排查) 一节。
+如果开发服务器起来了但看不到任何笔记，请直接跳到[故障排查](#故障排查)。
 
-## 发布一篇笔记
+## 用法
 
-在 Obsidian 中打开 vault 里的任意笔记，要么在 frontmatter 里写上 `public: true`，要么在正文任意位置加一个 `#public` 标签 —— 二者满足其一即可。保存文件后，开发服务器会在下一次刷新时自动识别。
+### 发布一篇笔记
+
+打开 vault 里的任意笔记，要么在 frontmatter 中写 `public: true`，要么在正文任何位置加 `#public` 标签 —— 任一即可：
 
 ```yaml
 ---
@@ -60,107 +75,88 @@ title: 我的第一篇公开笔记
 public: true
 ---
 
-这篇笔记现在是公开的了。
+这篇笔记现在已公开。
 ```
 
-如果想确认某篇笔记为什么会（或不会）被发布，可以用 status 命令。路径既可以相对于当前 shell，也可以是绝对路径：
+保存文件，开发服务器会在下次刷新时自动反映。
+
+### 查看某篇笔记的判定原因
 
 ```bash
-pnpm obpub status "$OBPUB_VAULT_PATH/path/to/your-note.md"
+pnpm obpub status "${OBPUB_VAULT_PATH}/path/to/your-note.md"
 # → your-note.md → PUBLIC (reason: frontmatter public: true)
 ```
 
-## 自定义你的站点
+`obpub status` 调用的是与构建相同的 `classify` 函数，因此输出即为权威判定。
 
-站点身份信息（标题、canonical URL、作者、社交链接）以及每个 vault 的具体行为（要忽略的目录、主题）都集中在 **`apps/blog/noteforge.config.ts`** 里。`pnpm install` 之后请第一时间打开它，先把 `site` 字段改成你自己的内容 —— 否则构建产物会带着上游 demo 站点的身份发布出去：
+### 站点身份
+
+站点元数据（标题、canonical URL、author、社交链接）与各 vault 的规则都在 [`apps/blog/noteforge.config.ts`](./apps/blog/noteforge.config.ts) 中。请先编辑 `site` 区块 —— 否则你的构建会以上游 demo 站点的身份发布：
 
 ```ts
 // apps/blog/noteforge.config.ts
 export default defineConfig({
   site: {
-    title: 'My Notes',                      // ← 你的博客标题
-    url: 'https://noteforge.pages.dev',     // ← 你部署后的 URL
-    author: 'Your Name',                    // ← 你的名字
+    title: 'My Notes',                     // ← 你的博客标题
+    url: 'https://noteforge.pages.dev',    // ← 你的部署 URL
+    author: 'Your Name',
     social: {
-      // '' = "需要设置" stub（图标可见，点击会提示该填到哪里）。
-      // 把它替换成 'https://github.com/<your-username>' 即可启用真链接。
+      // '' = "待设置" 占位（图标仍可见，点击会显示提示）。
+      // 准备好之后替换成 'https://github.com/<your-username>'。
       github: '',
     },
   },
   vaults: [
     {
       id: 'primary',
-      path: vaultPath,                      // ← 来自 OBPUB_VAULT_PATH
-      ignore: ['Templates/**', 'Excalidraw/**'], // ← 完全忽略的文件夹
+      path: vaultPath,                                  // ← 从 OBPUB_VAULT_PATH 注入
+      ignore: ['Templates/**', 'Excalidraw/**'],        // ← 完全跳过的文件夹
     },
   ],
-  // ... 完整选项见文件中的内联注释
 });
 ```
 
-文件内的注释覆盖了你大概率会改动的全部选项，包括 `nav.mode`、`privateLinkBehavior`，以及 `unsafeAllowPrivateFolder` tripwire 覆写开关。
+该文件内联的注释覆盖了所有常用选项，包括 `nav.mode`、`privateLinkBehavior` 与 `unsafeAllowPrivateFolder` 覆盖开关。
 
-## 分类
+### 分类
 
-侧边栏的层级结构以及每篇已发布笔记的 URL，都由 `nav.mode` 决定。一共有两种模式可选，默认值是 `'category'`。
+侧边栏树与每篇笔记的 URL 都由 `nav.mode` 控制。共支持两种模式，默认是 `'category'`。
 
-### `category` 模式（默认）
-
-每篇笔记 frontmatter 里的 `category` 字段决定它出现在侧边栏的什么位置、URL 长什么样。笔记按你设定的分类名分组，与它在 vault 里实际所在的文件夹无关 —— 这意味着你在 Obsidian 里整理文件的方式可以和读者在站点上看到的分组完全独立。
+**`category` 模式（默认）** —— 每篇笔记 frontmatter 的 `category` 字段决定它在侧边栏中的位置，与它在 vault 中位于哪个文件夹无关：
 
 ```yaml
 ---
-title: pnpm 工作区笔记
+title: pnpm workspace notes
 public: true
-category: tools
+category: tools/cli
 ---
 ```
 
-上面这篇笔记会出现在侧边栏的 `tools` 分组下，URL 变成 `/tools/pnpm 工作区笔记/`。
+上面这篇笔记会出现在侧边栏的 `tools > cli` 下，URL 为 `/tools/cli/<filename>/`。多级分类用 `/` 分隔。没有 `category` 字段的笔记会被归入侧边栏底部固定的 **Uncategorized** 分组。
 
-要使用嵌套分类，用斜杠 (`/`) 分隔层级。例如 `category: tools/cli` 会把笔记放到侧边栏的 `tools > cli` 树下，URL 为 `/tools/cli/...`。
+![Obsidian 编辑器，笔记 frontmatter 含 `tags: - public` 与 `category: tools/cli`](./docs/assets/category-mode-obsidian_example.png)
 
-![Obsidian 编辑器中显示一篇 "pnpm 워크스페이스 정리" 的笔记，frontmatter 里有 `tags: - public` 和 `category: tools/cli`](./docs/assets/category-mode-obsidian_example.png)
+**`folder` 模式** —— vault 的文件夹层级直接成为侧边栏与 URL，不需要写 `category` 字段。要使用此模式，在配置中设置 `nav: { mode: 'folder' }`。
 
-笔记本身可以放在 vault 内的任何位置 —— 决定它在站点上位置的是 `category` 字段。
+![Obsidian 文件浏览器中的 vault 文件夹层级 `tools` > `cli` > "pnpm 워크스페이스 정리"](./docs/assets/folder-mode-obsidian_example.png)
 
-没有 `category` 字段的笔记会被收进侧边栏底部的 **Uncategorized** 分组，URL 只用文件名（`/<filename>/`）。
+上述两种例子在站点上渲染为完全相同的侧边栏树与 URL：
 
-### `folder` 模式
+![noteforge 博客的 CATEGORIES 侧边栏显示 `tools` > `cli`，"cli" 着陆页列出 "pnpm 워크스페이스 정리" 并带 HOME / TOOLS / CLI 面包屑](./docs/assets/blog-categories-overview.png)
 
-在这个模式下，vault 的目录结构会被直接用作侧边栏和 URL 的来源。每篇笔记不需要再加 `category` 字段 —— 你磁盘上的目录层级原样变成站点的分类树。
+## 隐私是如何强制的
 
-![Obsidian 文件浏览器显示 vault 目录层级 `tools` > `cli` > "pnpm 워크스페이스 정리"](./docs/assets/folder-mode-obsidian_example.png)
+- **`private/**` tripwire** —— 位于 `private/` 文件夹下的任何笔记都保持私有，即使 frontmatter 写了 `public: true`。唯一的逃生口是配置中的 `unsafeAllowPrivateFolder: true`，且必须显式写出。
+- **Frontmatter allowlist** —— 上述列表之外的字段绝不会出现在渲染后的 HTML 里，无论笔记如何声明。
+- **注释剥离** —— Obsidian 的 `%%...%%` 在 discovery 阶段就被移除，比流水线其余任何步骤都更早。
+- **Transclusion 把关** —— 指向私有笔记的 `![[Note]]` 从 AST 删除；指向公开笔记的则递归走同一条流水线。
+- **Post-build audit** —— `pnpm obpub audit` 用 `@noteforge/cli` 的独立规则集再次检查 `dist/`，因此 core 的回归同样会被捕获。
 
-要切换到这个模式，请在 `noteforge.config.ts` 中显式设置：
-
-```ts
-// noteforge.config.ts
-export default defineConfig({
-  // ...
-  nav: { mode: 'folder' },
-});
-```
-
-如果你的 vault 已经按你想要的站点结构整理好了，这个模式很顺手。如果你更希望在 vault 内自由整理，但在站点上以另一种方式分组给读者，那默认的 `'category'` 模式更合适。
-
-上面两个例子 —— frontmatter 里的 `category: tools/cli` 与 vault 中的 `tools/cli/` 文件夹 —— 描述的是同一个目的地。它们在已发布的博客中渲染出完全一致的侧边栏树和 URL：
-
-![noteforge 博客的 CATEGORIES 侧边栏显示 `tools` > `cli`，"cli" 着陆页列出 "pnpm 워크스페이스 정리"，顶部面包屑为 HOME / TOOLS / CLI](./docs/assets/blog-categories-overview.png)
-
-## 隐私是如何被强制保证的
-
-`private/**` 文件夹是一道 tripwire：里面的任何笔记都保持私有，即使 frontmatter 中写了 `public: true` 也无效。要绕过这个规则，必须在配置里显式设置 `unsafeAllowPrivateFolder: true`。
-
-frontmatter 会经过一份 allowlist 过滤（`title`、`description`、`date`、`updated`、`tags`、`aliases`、`cover`、`thumbnail`、`author`、`draft`、`public`、`slug`、`permalink`、`lang`、`featured`、`category`），不在这份白名单上的字段永远不会进入渲染后的 HTML。
-
-Obsidian 的 `%%...%%` 注释会在 discovery 阶段（管线最前面）被剥离，因此不会出现在后续任何环节里。
-
-完整的威胁模型见 [docs/PRD.md](./docs/PRD.md) 与 [SECURITY.md](./SECURITY.md)。
+测试 fixture 中埋的 canary 字符串（`DO_NOT_LEAK_BANANA_6f3c1`、`CLAUDE_COMMENT_LEAK_77b`、`FOLDER_TREE_DO_NOT_LEAK_8a4f2`）被断言为在渲染后的 HTML 中出现 **零次**。完整威胁模型在 [docs/PRD.md](./docs/PRD.md)，举报渠道与责任范围在 [SECURITY.md](./SECURITY.md)。
 
 ## 部署
 
-`pnpm --filter blog build` 会在 `apps/blog/dist/` 生成一个完整的静态站点，任何静态托管平台都能直接 serve。本仓库正式记录的部署路径是 **通过 Direct Upload 部署到 Cloudflare Pages**：
+`pnpm --filter blog build` 生成的 `apps/blog/dist/` 是一个任何静态主机都能直接托管的完整静态站点。仓库文档化的路径是 **Cloudflare Pages 的 Direct Upload**：
 
 ```bash
 npm i -g wrangler
@@ -169,30 +165,55 @@ pnpm --filter blog build
 wrangler pages deploy apps/blog/dist --project-name=<your-project-name>
 ```
 
-GitHub Pages、Netlify 以及其他静态托管平台同样可用，只是没在本仓库的文档中覆盖 —— 因为构建是在你本地机器上跑的（你的绝对 vault 路径在 CI runner 上并不存在）。包含自定义域名的完整 Cloudflare 部署流程见 [docs/DEPLOY.md](./docs/DEPLOY.md)。
+GitHub Pages、Netlify 等其它静态主机同样可用，只是不在仓库文档范围内 —— 因为构建运行在你本地机器上（你的绝对 vault 路径在 CI runner 中不存在）。Cloudflare 完整流程（含自定义域名）见 [docs/DEPLOY.md](./docs/DEPLOY.md)。
 
-## 问题排查
+## 故障排查
 
-**我标了 `public: true` 的笔记没有出现。** 跑一下 `pnpm obpub status <笔记的绝对路径>.md`，看它被怎么分类了。最常见的原因有：笔记落在 `private/**` 目录下（tripwire 会覆盖任何 frontmatter）、文件命中了 `apps/blog/noteforge.config.ts` 中的 `ignore` glob，或者开发服务器还没接到改动 —— 试着重新保存笔记，或者重启 `pnpm --filter blog dev`。
+**我标了 `public: true`，但笔记没出现。** 先用 `pnpm obpub status <笔记绝对路径>.md` 看看判定结果。常见原因：笔记位于 `private/**` 文件夹下（tripwire 覆盖 frontmatter）、文件命中了 `apps/blog/noteforge.config.ts` 的 `ignore` glob、开发服务器还没拾起变化 —— 再保存一次，或重启 `pnpm --filter blog dev`。
 
-**启动时报错说 `OBPUB_VAULT_PATH` 没设置。** noteforge 找不到你的 vault。请确认 `.env` 文件就在仓库根目录下，并且 `OBPUB_VAULT_PATH` 是绝对路径（不能用 `~/...`）。在 WSL 上，Windows 里的 vault 通过 `/mnt/c/Users/...` 访问。运行 `pnpm --filter blog dev` 的 shell 会话必须能继承到这个变量，所以如果你在另一个终端里设置了它，请重启开发服务器。
+**启动时报 `OBPUB_VAULT_PATH` 未设置。** noteforge 找不到你的 vault。确认仓库根目录有 `.env`，且 `OBPUB_VAULT_PATH` 指向一个绝对路径（不能是 `~/...`）。WSL 用户的 Windows vault 可通过 `/mnt/c/Users/...` 访问。运行 `pnpm --filter blog dev` 的 shell 必须继承该环境变量，所以如果在另一个终端导出，请重启开发服务器。
+
+## 架构
+
+`noteforge` 是一个 pnpm workspace monorepo，包含四个包加一个 dogfood 应用：
+
+| 包 | 角色 |
+|----|------|
+| [`@noteforge/core`](./packages/core) | 框架无关的隐私流水线。`isPublic`、frontmatter allowlist、transclusion、attachment closure 的单一来源。 |
+| [`@noteforge/astro`](./packages/astro-integration) | Astro 5 Content Layer loader + chokidar watcher。把 core 接入 dev / build 生命周期。 |
+| [`@noteforge/theme-default`](./packages/theme-default) | 参考 Astro 主题。只消费已过滤的输出，禁止直接读 raw vault。 |
+| [`@noteforge/cli`](./packages/cli) | `obpub` CLI（`dev` / `build` / `audit` / `status`）。 |
+| [`apps/blog`](./apps/blog) | 仓库内的 dogfood 站点。 |
+
+模块全景见 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)，各包的责任边界见各目录下的 `CLAUDE.md`。
+
+## 贡献
+
+欢迎贡献。完整工作流、TDD 规则与 PR 清单见 [CONTRIBUTING.md](./CONTRIBUTING.md)。简版：
+
+```bash
+pnpm install
+pnpm -r typecheck && pnpm lint && pnpm test && pnpm --filter blog build
+```
+
+涉及 `packages/core/src/privacy/**` 的 PR 必须保持 canary 断言通过，且与普通功能 PR 分开审阅。
 
 ## 文档
 
-- [docs/PRD.md](./docs/PRD.md) — 威胁模型，以及范围内 / 范围外的内容
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — 模块、管线与依赖关系图
-- [docs/DEPLOY.md](./docs/DEPLOY.md) — Cloudflare Pages、GitHub Pages 以及其他静态托管
-- [docs/UI_GUIDE.md](./docs/UI_GUIDE.md) — 设计 token 与排版指南
-- [docs/adr/](./docs/adr/) — 架构决策记录（ADR）
-- [CHANGELOG.md](./CHANGELOG.md) — 发布日志
-- [CONTRIBUTING.md](./CONTRIBUTING.md) — 开发流程、TDD、PR 检查表
-- [SECURITY.md](./SECURITY.md) — 安全问题上报方式
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — Contributor Covenant v2.1
+- [docs/PRD.md](./docs/PRD.md) —— 威胁模型，覆盖范围与不覆盖的部分
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) —— 模块、流水线、依赖图
+- [docs/DEPLOY.md](./docs/DEPLOY.md) —— Cloudflare Pages、GitHub Pages 及其它静态主机
+- [docs/UI_GUIDE.md](./docs/UI_GUIDE.md) —— 设计 token 与布局指南
+- [docs/adr/](./docs/adr/) —— 架构决策记录（ADR）
+- [CHANGELOG.md](./CHANGELOG.md) —— 发布日志
+- [CONTRIBUTING.md](./CONTRIBUTING.md) —— 开发工作流、TDD、PR 清单
+- [SECURITY.md](./SECURITY.md) —— 安全问题上报方式
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) —— Contributor Covenant v2.1
 
 ## 状态
 
-**v0.8.1** —— 第一个稳定版本系列。完整历史见 [CHANGELOG.md](./CHANGELOG.md)。
+**v0.8.1** —— 首个稳定线。完整历史见 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 许可证
 
-以 [MIT](./LICENSE) 协议发布。本项目从不存储、传输、分析你 vault 的内容，也不会发送任何遥测信息。
+以 [MIT 许可证](./LICENSE) 发布。本项目不存储、不传输、不分析你的 vault 内容，也不发送任何遥测。
