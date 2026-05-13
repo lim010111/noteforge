@@ -33,12 +33,29 @@
   text-transform: uppercase;
 }
 
+/*
+ * Sentinel tracks "is the header stuck?" for the scroll-shadow class toggle.
+ * Sits above the sticky header in normal flow at 0×1px so it has no visual
+ * cost; an IntersectionObserver in BaseLayout flips body.is-scrolled when it
+ * leaves the viewport. See docs/adr/0014-sticky-header-shadow-on-scroll.md.
+ */
+.site-header__sentinel {
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+}
+
 .site-header {
   position: sticky;
   top: 0;
   z-index: 30;
   background: var(--color-bg-page);
   border-bottom: 1px solid var(--color-border);
+  box-shadow: none;
+  transition: box-shadow var(--duration-base) var(--ease-out);
+}
+body.is-scrolled .site-header {
+  box-shadow: var(--shadow-1);
 }
 .site-header__inner {
   max-width: var(--container-main);
@@ -87,7 +104,7 @@
 }
 
 .brand {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--text-meta);
   font-weight: var(--weight-meta);
   letter-spacing: var(--ls-meta);
@@ -101,7 +118,7 @@
 
 .site-nav {
   display: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--text-meta);
   font-weight: var(--weight-meta);
   letter-spacing: var(--ls-meta);
@@ -178,11 +195,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   width: 1.75rem;
   height: 1.75rem;
   border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--color-text-muted);
+  overflow: hidden;
 }
 .mobile-menu summary::-webkit-details-marker {
   display: none;
@@ -191,9 +210,36 @@
   background: var(--color-bg-surface-strong);
   color: var(--color-text-heading);
 }
-.mobile-menu summary svg {
+/*
+ * Hamburger ↔ close X — companion to .theme-toggle (UI_GUIDE §9 "토글 아이콘
+ * 회전"). Both icons overlap; CSS swaps which is opaque via [open], with a
+ * ~90° rotate so the change feels mechanical rather than a hard cut.
+ */
+.mobile-menu summary .mobile-menu__icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   width: 1rem;
   height: 1rem;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+.mobile-menu summary .mobile-menu__icon--bars {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+.mobile-menu summary .mobile-menu__icon--close {
+  opacity: 0;
+  transform: rotate(-90deg);
+}
+.mobile-menu[open] summary .mobile-menu__icon--bars {
+  opacity: 0;
+  transform: rotate(90deg);
+}
+.mobile-menu[open] summary .mobile-menu__icon--close {
+  opacity: 1;
+  transform: rotate(0deg);
 }
 .mobile-menu__panel {
   position: absolute;
@@ -377,23 +423,56 @@
   color: var(--color-text-link);
 }
 
-.theme-icon-sun {
+/*
+ * Theme toggle — sun and moon overlap inside the button and cross-fade with a
+ * subtle rotate. Listed under UI_GUIDE §9 ("토글 아이콘 회전"); previously
+ * implemented as a hard display swap, now wired up to the contract.
+ *
+ * Both icons stay in flow so the button preserves its accessible hit target
+ * (set by .icon-button at 1.75rem square). The first child sets the box; the
+ * second is absolutely positioned on top of it.
+ */
+.theme-toggle {
+  position: relative;
+  overflow: hidden;
+}
+.theme-icon {
   display: inline-flex;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
 }
 .theme-icon-moon {
-  display: none;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1rem;
+  height: 1rem;
+}
+/* Light mode: sun visible, moon tucked under +12°. */
+.theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0deg);
+}
+.theme-icon-moon {
+  opacity: 0;
+  transform: rotate(-12deg);
 }
 :root[data-theme="dark"] .theme-icon-sun {
-  display: none;
+  opacity: 0;
+  transform: rotate(12deg);
 }
 :root[data-theme="dark"] .theme-icon-moon {
-  display: inline-flex;
+  opacity: 1;
+  transform: rotate(0deg);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .theme-icon-sun {
-    display: none;
+    opacity: 0;
+    transform: rotate(12deg);
   }
   :root:not([data-theme="light"]) .theme-icon-moon {
-    display: inline-flex;
+    opacity: 1;
+    transform: rotate(0deg);
   }
 }
