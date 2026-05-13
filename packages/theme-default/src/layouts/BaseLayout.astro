@@ -59,6 +59,13 @@ const shellClasses = [
   </head>
   <body class:list={[hasSidebar && "has-sidebar", hasToc && "has-toc"]}>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    {/* Sticky-header shadow sentinel — a 1px tracer just above the header.
+        When it leaves the viewport (i.e. the header is "stuck"), CSS adds
+        `--shadow-1` to the header. Pure CSS can't detect sticky state, so a
+        ~10-line IntersectionObserver is the smallest viable shim. See
+        docs/adr/0014-sticky-header-shadow-on-scroll.md for the contract
+        rationale. */}
+    <div class="site-header__sentinel" aria-hidden="true"></div>
     <header class="site-header">
       <div class="site-header__inner">
         <a class="brand" href="/">{siteName}</a>
@@ -69,13 +76,15 @@ const shellClasses = [
           </ul>
         </nav>
         <div class="header-actions">
-          <button id="theme-toggle" type="button" class="icon-button" aria-label="테마 전환">
-            {/* Sun + moon: CSS swaps the visible one based on data-theme / prefers-color-scheme. */}
-            <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button id="theme-toggle" type="button" class="icon-button theme-toggle" aria-label="테마 전환">
+            {/* Sun + moon overlap inside the button. CSS fades opacity + rotates
+                ~12° between the two based on data-theme / prefers-color-scheme.
+                Both SVGs remain in the DOM; only their visibility changes. */}
+            <svg class="theme-icon theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
             </svg>
-            <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="theme-icon theme-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           </button>
@@ -85,8 +94,13 @@ const shellClasses = [
               without any new JS. CSS (layout.css) hides this copy on lg+. */}
           <details class="mobile-menu">
             <summary aria-label="메뉴">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              {/* Hamburger + close X overlap. CSS swaps which is visible via
+                  the [open] selector — fade + rotate ~90° between the two. */}
+              <svg class="mobile-menu__icon mobile-menu__icon--bars" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+              <svg class="mobile-menu__icon mobile-menu__icon--close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
               </svg>
             </summary>
             <div class={`mobile-menu__panel${hasSidebar ? " mobile-menu__panel--with-sidebar" : ""}`}>
@@ -143,6 +157,26 @@ const shellClasses = [
           window.matchMedia("(prefers-color-scheme: dark)"),
         );
       }
+    </script>
+    {/* Sticky-header shadow — toggles `is-scrolled` on <body> when the 1px
+        sentinel above the header has scrolled out of view. Progressive
+        enhancement only: without IntersectionObserver the header simply
+        keeps its hairline border-bottom, which is the v0.2 baseline. */}
+    <script>
+      (() => {
+        if (!("IntersectionObserver" in window)) return;
+        const sentinel = document.querySelector(".site-header__sentinel");
+        if (sentinel === null) return;
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const e = entries[0];
+            if (e === undefined) return;
+            document.body.classList.toggle("is-scrolled", !e.isIntersecting);
+          },
+          { threshold: 0 },
+        );
+        observer.observe(sentinel);
+      })();
     </script>
   </body>
 </html>
