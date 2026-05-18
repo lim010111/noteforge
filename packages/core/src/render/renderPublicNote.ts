@@ -10,6 +10,7 @@ import { parseWikilinkTarget, resolveWikilink } from '../resolve/wikilink.ts';
 import type { ParsedNote } from '../types.ts';
 import type { VaultIndexSnapshot } from '../vaultIndex/types.ts';
 
+import { dropDanglingFootnoteReferences } from './footnotes.ts';
 import {
   renderMdastToHtmlWithHeadings,
   type NoteHeading,
@@ -100,28 +101,39 @@ export function renderPublicNote(input: RenderPublicNoteInput): RenderedNote {
     attachmentUrlFor: (id) => `${ATTACHMENT_PREFIX}${id}`,
   });
 
-  // 2. Serialize → HTML + headings (h2/h3/h4) in one hast pass. Private
-  //    transclusion subtrees were already removed above, so headings inside
-  //    them cannot leak through this channel.
-  const { html, headings } = renderMdastToHtmlWithHeadings(tree);
+  // 2. Drop footnote references orphaned by a `![[Note#Section]]` slice — the
+  //    referenced definition may live outside the transcluded heading range.
+  //    Runs after transclusion, before serialization, so no broken `<sup>`
+  //    anchor reaches the HTML.
+  dropDanglingFootnoteReferences(tree);
 
-  // 3. Frontmatter allowlist filter. Closure-aware sanitization is the
+  // 3. Serialize → HTML + headings (h2/h3/h4) in one hast pass. Private
+  //    transclusion subtrees were already removed above, so headings inside
+  //    them cannot leak through this channel. `lang` drives footnote-section
+  //    labels (Korean notes get Korean screen-reader text).
+  const { html, headings } = renderMdastToHtmlWithHeadings(tree, {
+    lang: typeof input.note.frontmatter['lang'] === 'string'
+      ? input.note.frontmatter['lang']
+      : undefined,
+  });
+
+  // 4. Frontmatter allowlist filter. Closure-aware sanitization is the
   //    orchestrator's job (see `applyAttachmentClosure`).
   const frontmatter = filterFrontmatter(input.note.frontmatter, input.frontmatterAllowlist);
 
-  // 4. Tag blocklist + gate-tag strip.
+  // 5. Tag blocklist + gate-tag strip.
   const isBlocked = matchesBlocklist(input.tagBlocklist);
   const isGate = (t: string): boolean =>
     t === input.gateTag || t.startsWith(`${input.gateTag}/`);
   const tags = input.note.tags.filter((t) => !isBlocked(t) && !isGate(t));
 
-  // 5. Raw image extraction from the post-transclude tree. Closure-gating is
+  // 6. Raw image extraction from the post-transclude tree. Closure-gating is
   //    applied later by the orchestrator; here we just report what the tree
   //    contains. Private-target image subtrees were already removed above.
   const embeddedImages = findAllImageUrls(tree);
   const firstImage = embeddedImages[0];
 
-  // 6. Attachment refs from raw body + frontmatter. Both public and private
+  // 7. Attachment refs from raw body + frontmatter. Both public and private
   //    notes are scanned by the orchestrator (in different loops) so the
   //    closure builder sees the full reference graph.
   const attachmentRefs = collectAttachmentRefs(input.note, input.vaultIndex, input.slug);

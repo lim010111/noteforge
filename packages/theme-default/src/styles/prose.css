@@ -268,6 +268,141 @@ details.callout[open] > summary::after {
 }
 
 /*
+ * GFM + Obsidian markdown elements. The data layer (`@noteforge/core`) parses
+ * footnotes, tables, strikethrough, task lists, autolinks (GFM) and
+ * `==highlight==` (Obsidian); these rules only format what arrives — they make
+ * no privacy or content decisions.
+ */
+
+/* Tables — hairline grid, weighted header, horizontal scroll on overflow.
+ * `.table-scroll` is the wrapper `core/render/htmlFromMdast` adds around each
+ * <table> so a wide table scrolls inside its box, not the whole page. */
+.prose :where(.table-scroll) {
+  margin-block: var(--space-5);
+  overflow-x: auto;
+}
+.prose :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+.prose :where(th, td) {
+  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: top;
+}
+.prose :where(thead th) {
+  background: var(--color-bg-surface-strong);
+  color: var(--color-text-heading);
+  font-weight: var(--weight-meta);
+}
+
+/* Strikethrough `~~text~~`. */
+.prose :where(del) {
+  color: var(--color-text-muted);
+}
+
+/* Highlight `==text==` → <mark>, on the soft accent wash. */
+.prose :where(mark) {
+  background: var(--color-accent-soft);
+  color: inherit;
+  padding: 0.05em 0.22em;
+  border-radius: var(--radius-sm);
+}
+
+/* Task-list checkboxes. `core` tags every task item with `data-task` holding
+ * the state char; the native <input> is hidden and a marker drawn via ::before.
+ * Unknown states fall back to printing the raw char (the base `content` rule). */
+.prose :where(li[data-task]) {
+  list-style: none;
+  position: relative;
+  padding-left: var(--space-6);
+}
+.prose :where(li[data-task]) > input[type='checkbox'] {
+  display: none;
+}
+.prose :where(li[data-task])::before {
+  content: attr(data-task);
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15em;
+  height: 1.15em;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+.prose :where(li[data-task=' '])::before {
+  content: '';
+}
+.prose :where(li[data-task='x'])::before,
+.prose :where(li[data-task='X'])::before {
+  content: '✓';
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg-surface);
+}
+.prose :where(li[data-task='/'])::before {
+  content: '◐';
+}
+.prose :where(li[data-task='-'])::before {
+  content: '–';
+}
+.prose :where(li[data-task='>'])::before {
+  content: '›';
+}
+.prose :where(li[data-task='-']) {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+/* Footnotes. The reference is a <sup><a data-footnote-ref>; the section is
+ * `<section class="footnotes">` with a sr-only label + ordered definitions. */
+.prose :where(sup) {
+  line-height: 0;
+}
+.prose :where(a[data-footnote-ref]) {
+  text-decoration: none;
+  font-weight: var(--weight-meta);
+  padding: 0 0.15em;
+}
+.prose :where(.footnotes) {
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+.prose :where(.footnotes ol) {
+  padding-left: var(--space-5);
+}
+.prose :where(a[data-footnote-backref]) {
+  text-decoration: none;
+  margin-left: 0.25em;
+}
+
+/* Screen-reader-only — used by the footnotes section label that
+ * mdast-util-to-hast emits (`<h2 class="sr-only">각주 / Footnotes</h2>`). */
+.prose :where(.sr-only) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
  * Embed aside — body of a publicly-transcluded `![[Note]]`. The data layer
  * (`@noteforge/core/privacy/transclude`) has already removed private targets,
  * so this rule never decides what to show; it only formats what arrives.

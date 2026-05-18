@@ -8,14 +8,23 @@
 
 - **Obsidian Callouts** — `> [!type] Title\n> body` 구문이 평범한 `<blockquote>` 대신 `<div class="callout callout-{kind}">` (또는 foldable 변형은 `<details>` + `<summary>`) 로 렌더된다. Obsidian 공식 13 종(`note`, `abstract`, `info`, `todo`, `tip`, `success`, `question`, `warning`, `failure`, `danger`, `bug`, `example`, `quote`) 과 모든 별칭(`summary`/`tldr`, `hint`/`important`, `check`/`done`, `help`/`faq`, `caution`/`attention`, `fail`/`missing`, `error`, `cite`) 지원. 알려지지 않은 타입은 Obsidian 동작과 동일하게 `note` 스타일로 폴백하면서 사용자 철자를 타이틀로 노출. foldable `+`/`-` 변형은 추가 JS 없이 `<details>` 로 동작. 중첩 callout + 본문 wikilink/transclusion 도 정상 처리.
 - **Callout 색상 토큰** (`@noteforge/theme-default`): 4 그룹 팔레트(`--color-callout-{note,success,warning,danger}-{bg,border,icon}`) — editorial-technical 디자인 방향 유지를 위해 13 종을 색상 4 그룹으로 묶었다. 라이트/다크 양쪽 모두 `tokens.css` 의 네 미러(`@theme` / `[data-theme="light"]` / `[data-theme="dark"]` / `prefers-color-scheme: dark`) 에 추가.
+- **GFM 마크다운** — 각주(`[^1]` 참조 + `[^1]:` 정의), 표, 취소선(`~~text~~`), 태스크 리스트(`- [ ]` / `- [x]`), autolink literal(평문 URL)을 공식 `micromark-extension-gfm` + `mdast-util-gfm` 번들로 지원. 이전에는 math 외 모든 GFM 문법이 평문으로 새어 나와 `[^1]` 같은 각주 표기가 그대로 출력되던 버그를 해결.
+- **Obsidian 인라인 각주 `^[...]`** — GFM 이 다루지 않는 인라인 각주를 post-parse transform 으로 동일 각주 머신리에 정규화. 생성 식별자(`obpub-ifn-N`)는 네임스페이스 처리되어 사용자 `[^label]` 과 충돌하지 않음.
+- **Obsidian 하이라이트 `==text==`** — `<mark>` 로 렌더. `micromark-extension-mark` 가 micromark v1 에 묶여 현 v2 스택과 충돌하므로 syntax extension 대신 wikilink 와 동일한 post-parse transform 방식 채택.
+- **확장 체크박스 상태** — Obsidian 의 `[/]`, `[-]`, `[>]`, `[?]` 등 GFM 비표준 체크박스를 제네릭하게 인식. 모든 태스크 항목에 상태 문자를 담은 `data-task` 속성을 부여하고, 미등록 문자는 원문 문자를 그대로 마커로 출력 — 어떤 상태도 평문 `[…]` 로 새지 않음.
+- **각주 라벨 i18n** — `mdast-util-to-hast` 가 붙이는 각주 섹션 라벨/back-reference `aria-label` 을 노트 `lang` frontmatter 기준으로 현지화(`ko` → "각주" / "참조 N로 돌아가기", 그 외 영문 기본값).
+- **GFM/Obsidian 요소 스타일** (`@noteforge/theme-default`): `prose.css` 에 표(hairline grid + 가중 헤더 + `.table-scroll` 가로 스크롤), `<mark>`(accent-soft 워시), `<del>`, 각주 섹션/`<sup>` 참조, `data-task` 마커, `.sr-only` 규칙 추가 — 모두 기존 디자인 토큰 사용.
 
 ### Changed
 
 - **`TODO.md` Backlog** — v0.1 Known limitations 의 "Obsidian Callouts (`> [!note]`) 미지원" 항목 제거. Mermaid 는 여전히 미지원으로 유지.
+- **마크다운 파싱 seam** — `pipeline.ts` 인라인에 흩어져 있던 `fromMarkdown` 호출과 `promoteSingleLineDisplayMath` 를 `core/src/render/parseMarkdown.ts` 의 `parseMarkdownToMdast` 단일 진입점으로 통합. GFM·math 문법과 Obsidian post-parse transform 3종을 한 곳에서 적용.
 
 ### Privacy / Security
 
 - callout 노드는 mdast 단계에서 일반 `blockquote` 로 유지하다가 hast 변환 시점(`mdast-util-to-hast` blockquote handler)에 한해 callout 구조로 승격한다. 이 순서 덕분에 `linkRewriter` / `expandTransclusions` 등 기존 privacy 패스가 callout 내부 wikilink/transclusion 도 동일하게 게이트한다. `public-with-callout.md` 신규 fixture 가 wikilink rewriting + private transclusion strip 을 통합 어설션 `[13]` 으로 회귀 가드.
+- GFM/Obsidian 신규 노드(각주 정의, 표 셀, 하이라이트, 태스크 항목)는 모두 표준 `children` 배열을 보유하고, post-parse transform 은 `rewriteWikilinks` / `expandTransclusions` 보다 먼저 실행된다. 두 privacy 워커가 노드 타입을 화이트리스트하지 않고 `children` 으로 구조적 재귀하므로, 각주·표·하이라이트 내부에 중첩된 private wikilink/embed 도 동일하게 게이트된다. `parseMarkdown.test.ts` 가 highlight/footnote/표 셀 내부 private 링크 strip 을 회귀 가드.
+- `dropDanglingFootnoteReferences` (`core/src/render/footnotes.ts`): `![[Note#Section]]` transclusion 으로 정의 없이 떨어진 각주 참조를 직렬화 직전에 제거 — 깨진 `<sup>` 앵커가 HTML 에 남지 않도록. 두 노트가 동일 `[^1]` 을 정의하는 식별자 충돌은 알려진 한계로 문서화(미조정).
 
 ## [0.8.1] - 2026-05-05
 
