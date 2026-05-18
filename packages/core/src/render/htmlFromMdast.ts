@@ -15,7 +15,7 @@
  *   break URL stability when a heading is renamed. They are deliberately separate.
  */
 
-import { toHast } from 'mdast-util-to-hast';
+import { toHast, type Handlers } from 'mdast-util-to-hast';
 import { toHtml } from 'hast-util-to-html';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
@@ -75,6 +75,61 @@ const mathHandlers = {
   },
 };
 
+// `mark` is not a standard mdast node — `transformHighlights` emits it for
+// Obsidian `==highlight==`. mdast-util-to-hast has no default handler, so
+// without this the node would degrade to plain text. `state.all` recursively
+// converts the children, so a wikilink rewritten inside a highlight survives.
+function markHandler(state: unknown, node: unknown): Element {
+  const all = (state as { all(n: unknown): ElementContent[] }).all;
+  return {
+    type: 'element',
+    tagName: 'mark',
+    properties: {},
+    children: all(node),
+  };
+}
+
+/** Optional knobs threaded from `renderPublicNote` (the note's `lang`, etc.). */
+export interface RenderMdastOptions {
+  /** BCP-47-ish language tag from note frontmatter — drives footnote labels. */
+  readonly lang?: string;
+}
+
+// The footnotes `<section>` that mdast-util-to-hast appends carries a
+// visually-hidden label and per-reference back-link `aria-label`s. Both are
+// English by default; a Korean note gets Korean so screen-reader users hear
+// their own language. Non-`ko` notes keep the upstream English defaults.
+function footnoteHastOptions(
+  lang: string | undefined,
+): { footnoteLabel?: string; footnoteBackLabel?: (r: number, rr: number) => string } {
+  if (typeof lang !== 'string' || !lang.toLowerCase().startsWith('ko')) return {};
+  return {
+    footnoteLabel: '각주',
+    footnoteBackLabel(referenceIndex: number, rereferenceIndex: number): string {
+      const ref = referenceIndex + 1;
+      return rereferenceIndex > 1
+        ? `참조 ${ref}로 돌아가기 (${rereferenceIndex})`
+        : `참조 ${ref}로 돌아가기`;
+    },
+  };
+}
+
+function toHastOptions(lang: string | undefined): Parameters<typeof toHast>[1] {
+  // `mark` is not a standard mdast node type, so the strongly-typed `Handlers`
+  // key set rejects it — cast past that. `mathHandlers` keys are known (the
+  // math util augments the type), `mark` is the only outlier.
+  const handlers = {
+    ...mathHandlers,
+    mark: markHandler,
+    blockquote: calloutBlockquoteHandler,
+  } as Handlers;
+  return {
+    allowDangerousHtml: false,
+    handlers,
+    ...footnoteHastOptions(lang),
+  };
+}
+
 // `output: 'html'` (default is `htmlAndMathml`) keeps the DOM half the size;
 // HTML alone is enough for sighted users *and* screen readers (KaTeX uses
 // aria-hidden and visually-hidden text to expose the formula). `strict:
@@ -101,8 +156,13 @@ const autolinkStep = rehypeAutolinkHeadings({
   // tree parsed back from previously rendered HTML) would stack a second anchor
   // on every heading. The pipeline only runs once per render today, but tests
   // and any future re-render path (e.g. partial-tree updates) need this contract.
+  // Skip the visually-hidden `<h2 id="footnote-label">` that mdast-util-to-hast
+  // appends for the footnotes section — a permalink "#" on it is meaningless
+  // and would be read out by screen readers ("각주 #").
   test: (node: Element) =>
-    HEADING_ANCHOR_TAGS.has(node.tagName) && !hasHeadingAnchorChild(node),
+    HEADING_ANCHOR_TAGS.has(node.tagName) &&
+    !hasHeadingAnchorChild(node) &&
+    node.properties?.['id'] !== 'footnote-label',
 }) as HastTransformer;
 
 function hasHeadingAnchorChild(heading: Element): boolean {
@@ -121,11 +181,8 @@ function hasHeadingAnchorChild(heading: Element): boolean {
  * Returns an empty string when the tree has no renderable hast representation
  * (matches the prior pipeline behaviour for empty bodies).
  */
-export function renderMdastToHtml(tree: MdastRoot): string {
-  const hast = toHast(tree, {
-    allowDangerousHtml: false,
-    handlers: { ...mathHandlers, blockquote: calloutBlockquoteHandler },
-  });
+export function renderMdastToHtml(tree: MdastRoot, options: RenderMdastOptions = {}): string {
+  const hast = toHast(tree, toHastOptions(options.lang));
   if (hast === null || hast === undefined) return '';
   // Narrow to Root — toHast on an mdast Root always returns a hast Root, but
   // the upstream type is the wider Nodes union.
@@ -135,8 +192,34 @@ export function renderMdastToHtml(tree: MdastRoot): string {
   // running math first keeps the tree closer to its final shape when slugStep
   // walks it.
   katexStep(hast);
+  wrapTables(hast);
   applyHeadingAnchors(hast);
   return toHtml(hast);
+}
+
+/**
+ * Wrap every `<table>` in a `<div class="table-scroll">` so a wide GFM table
+ * scrolls horizontally inside its own box on small screens instead of forcing
+ * the whole article column wider. Recurses so tables nested in blockquotes /
+ * callouts / lists are wrapped too.
+ */
+export function wrapTables(node: HastRoot | Element): void {
+  const children = node.children;
+  if (!Array.isArray(children)) return;
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
+    if (child === undefined || child.type !== 'element') continue;
+    if (child.tagName === 'table') {
+      children[i] = {
+        type: 'element',
+        tagName: 'div',
+        properties: { className: ['table-scroll'] },
+        children: [child],
+      };
+      continue;
+    }
+    wrapTables(child);
+  }
 }
 
 /**
@@ -212,14 +295,13 @@ function extractHeadingText(children: readonly ElementContent[]): string {
  */
 export function renderMdastToHtmlWithHeadings(
   tree: MdastRoot,
+  options: RenderMdastOptions = {},
 ): { html: string; headings: readonly NoteHeading[] } {
-  const hast = toHast(tree, {
-    allowDangerousHtml: false,
-    handlers: { ...mathHandlers, blockquote: calloutBlockquoteHandler },
-  });
+  const hast = toHast(tree, toHastOptions(options.lang));
   if (hast === null || hast === undefined) return { html: '', headings: [] };
   if (hast.type !== 'root') return { html: toHtml(hast), headings: [] };
   katexStep(hast);
+  wrapTables(hast);
   applyHeadingAnchors(hast);
   return { html: toHtml(hast), headings: collectHeadings(hast) };
 }

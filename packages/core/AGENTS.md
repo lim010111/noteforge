@@ -7,7 +7,9 @@
 - src/index.ts — **패키지 공개 seam**. 외부(`@noteforge/astro`, `@noteforge/cli`, `@noteforge/theme-default`, `apps/blog`)는 반드시 이 진입점을 통과해야 한다. ESLint `no-restricted-imports` 규칙이 `@noteforge/core/<subpath>` 임포트를 차단.
 - src/pipeline.ts — `runCorePipeline`. 얇은 오케스트레이터: VaultIndex → classify → linkRewriter pass → renderPublicNote 루프(RAW 산출) → cross-note ops (graph / closure / alias / audit set) → `applyAttachmentClosure` per public slug.
 - src/vaultIndex/ — **VaultIndex** 두 어댑터. `buildVaultIndex` (one-shot, pipeline용) + `createIncrementalVaultIndex` (가변, dev watcher용). 같은 `VaultIndexSnapshot` shape. classify 미포함.
-- src/render/renderPublicNote.ts — **renderPublicNote** per-note privacy render unit. transclude + serialize + frontmatter/tag filter + **raw** image 추출 + attachment ref 수집을 한 함수에 응집. closure-naive — image/frontmatter 게이팅은 attachmentClosure가 책임.
+- src/render/parseMarkdown.ts — **마크다운 파싱 seam**. `parseMarkdownToMdast`: CommonMark + GFM(footnote·table·strikethrough·task list·autolink) + math 문법 + Obsidian post-parse transform(`==highlight==`, `^[inline footnote]`, 확장 체크박스). 위키링크/embed는 여기서 다루지 않고 text로 남겨 privacy 단계가 처리.
+- src/render/transforms/ — post-parse mdast transform 3종. micromark 확장이 없거나(highlight) Obsidian 전용(inline footnote, 확장 체크박스)인 문법을 파싱 후 walk로 처리. 산출 노드는 반드시 표준 `children` 배열 보유 — privacy 워커가 구조적으로 재귀하므로.
+- src/render/renderPublicNote.ts — **renderPublicNote** per-note privacy render unit. transclude + dangling-footnote drop + serialize + frontmatter/tag filter + **raw** image 추출 + attachment ref 수집을 한 함수에 응집. closure-naive — image/frontmatter 게이팅은 attachmentClosure가 책임.
 - src/privacy/attachmentClosure.ts — **attachment closure 단일 owner**. `collectAttachmentRefs` (pre-closure 노트 스캔) + `buildAttachmentClosure` (cross-note 결정) + `applyAttachmentClosure` (post-closure 적용)의 세 export.
 - src/config.ts — `ObpubConfig` 스키마 + classify 룰 빌드
 - src/privacy/classify.ts — public/private 단일 판정 지점
@@ -25,6 +27,7 @@ pnpm --filter @noteforge/core test
 - 새 frontmatter 필드 허용 → src/privacy/frontmatterFilter.ts allowlist 변경 + fixture canary 가 누설 0회인지 검증
 - 새 publish 트리거(예: 신규 태그 규칙) → src/privacy/classify.ts + src/privacy/publishable.ts 동시 갱신
 - 새 링크 / transclude 패턴 → src/privacy/linkRewriter.ts 또는 src/privacy/transclude.ts + classify 재유도 금지
+- 새 마크다운 문법 → micromark 확장이 있으면 src/render/parseMarkdown.ts 확장 추가, 없으면 src/render/transforms/ post-parse transform 추가. 새 비표준 노드는 src/render/htmlFromMdast.ts handler 등록 필요.
 
 ## Non-obvious
 - **반드시**: 공개/비공개 결정은 src/privacy/classify.ts 단 한 곳에서만. 다른 모듈에서 재구현 금지 (루트 CRITICAL).

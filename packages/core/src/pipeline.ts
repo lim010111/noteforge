@@ -37,14 +37,12 @@
  */
 
 import picomatch from 'picomatch';
-import { fromMarkdown } from 'mdast-util-from-markdown';
-import { mathFromMarkdown } from 'mdast-util-math';
-import { math as mathSyntax } from 'micromark-extension-math';
 import * as path from 'node:path';
 import type { Root } from 'mdast';
 
 import { buildAliasRedirects, type AliasRedirect } from './aliases/buildAliasMap.ts';
 import { getClassifyRule, type ObpubConfig } from './config.ts';
+import { parseMarkdownToMdast } from './render/parseMarkdown.ts';
 import {
   renderPublicNote,
   type NoteHeading,
@@ -73,32 +71,6 @@ import { buildVaultIndex } from './vaultIndex/buildVaultIndex.ts';
 import type { ParsedNote } from './types.ts';
 
 export type { NoteHeading } from './render/renderPublicNote.ts';
-
-/**
- * Lift a `$$expr$$` that occupies its own line into the fenced-block form
- * that micromark-extension-math recognises as display math.
- *
- * Why: Obsidian users routinely write display formulas as a single line —
- *   `$$W \leftarrow W + \Delta W$$`
- * — but the math micromark grammar only treats the fenced form (the `$$`
- * pair on its own line, with the expression between them) as block math.
- * Without this normalisation those single-line formulas end up parsed as
- * inline math and render without the centred display layout the author
- * intended. We only rewrite lines whose entire content (after optional
- * indentation) is a single `$$…$$` group, so multi-formula paragraphs and
- * inline `$$x$$` mid-sentence are untouched.
- */
-function promoteSingleLineDisplayMath(body: string): string {
-  // JS regex replacement strings interpret `$$` as a literal `$`, so the
-  // fenced delimiters need to be written as `$$$$` to emit `$$` in the
-  // output. This was the bug that quietly downgraded promoted lines to a
-  // single dollar — never let it back in without round-tripping through
-  // the test fixture below.
-  return body.replace(
-    /^([ \t]*)\$\$([^$\n]+?)\$\$[ \t]*$/gm,
-    '$1$$$$\n$2\n$$$$',
-  );
-}
 
 export interface PipelineWarning {
   readonly code: string;
@@ -198,16 +170,10 @@ export async function runCorePipeline(config: ObpubConfig): Promise<PipelineResu
     notesBySlug.set(slug, n);
     sourcePathBySlug.set(slug, n.relativePath);
     if (publicSlugs.has(slug)) {
-      // micromark-extension-math + mdast-util-math turn `$x$` into `inlineMath`
-      // and `$$x$$` into `math` mdast nodes. Without them dollar-sign syntax
-      // flows through as plain text. KaTeX SSR runs later inside renderPublicNote.
-      rewrittenMdastBySlug.set(
-        slug,
-        fromMarkdown(promoteSingleLineDisplayMath(n.body), {
-          extensions: [mathSyntax()],
-          mdastExtensions: [mathFromMarkdown()],
-        }) as unknown as Root,
-      );
+      // `parseMarkdownToMdast` layers GFM + math grammar onto CommonMark and
+      // applies the Obsidian post-parse transforms (highlight, inline
+      // footnote, task checkboxes). KaTeX SSR runs later in renderPublicNote.
+      rewrittenMdastBySlug.set(slug, parseMarkdownToMdast(n.body));
     }
   }
 
