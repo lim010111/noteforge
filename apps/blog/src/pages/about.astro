@@ -41,7 +41,7 @@ const about: AboutContent | undefined =
 const sidebar = buildSidebarPayload(
   await getCollection('notes'),
   undefined,
-  obpubConfig.nav.mode,
+  obpubConfig.nav,
 );
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),

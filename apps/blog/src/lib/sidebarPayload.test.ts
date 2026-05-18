@@ -71,7 +71,10 @@ describe('buildSidebarPayload — payload shape', () => {
       makeEntry('posts/foo', { title: 'foo' }),
     ];
     const direct = buildFolderTree(filterPublishable(entries));
-    const payload = buildSidebarPayload(entries, undefined, 'folder');
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'folder',
+      sidebarNotes: 'hide',
+    });
     expect(payload.folderTree).toEqual(direct);
   });
 });
@@ -238,27 +241,36 @@ describe('buildSidebarPayload — nav.mode (v0.7)', () => {
     makeEntry('about', { title: 'About' }),
   ];
 
-  it("defaults to folder mode (matches buildFolderTree) when mode is omitted", () => {
+  it("defaults to folder mode (matches buildFolderTree) when nav is omitted", () => {
     const direct = buildFolderTree(filterPublishable(entries));
     const payload = buildSidebarPayload(entries);
     expect(payload.folderTree).toEqual(direct);
   });
 
-  it("default differs from explicit 'category' tree (category is now opt-in)", () => {
+  it("default differs from explicit 'category' tree (category is opt-in)", () => {
     const defaulted = buildSidebarPayload(entries);
-    const categoryOptIn = buildSidebarPayload(entries, undefined, 'category');
+    const categoryOptIn = buildSidebarPayload(entries, undefined, {
+      mode: 'category',
+      sidebarNotes: 'hide',
+    });
     expect(defaulted.folderTree).not.toEqual(categoryOptIn.folderTree);
   });
 
   it("explicit mode 'folder' produces the vault-path tree (matches the default)", () => {
     const direct = buildFolderTree(filterPublishable(entries));
-    const payload = buildSidebarPayload(entries, undefined, 'folder');
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'folder',
+      sidebarNotes: 'hide',
+    });
     expect(payload.folderTree).toEqual(direct);
   });
 
   it("mode 'category' uses the frontmatter `category` field for the tree", () => {
     const direct = buildCategoryTree(filterPublishable(entries));
-    const payload = buildSidebarPayload(entries, undefined, 'category');
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'category',
+      sidebarNotes: 'hide',
+    });
     expect(payload.folderTree).toEqual(direct);
 
     const childNames = payload.folderTree.children.map((c) => c.name);
@@ -272,22 +284,56 @@ describe('buildSidebarPayload — nav.mode (v0.7)', () => {
     const payload = buildSidebarPayload(
       entries,
       { activeSlug: 'temp_drafts/diary-1', activeFolderPath: '에세이/2026/' },
-      'category',
+      { mode: 'category', sidebarNotes: 'hide' },
     );
     expect(payload.activeSlug).toBe('temp_drafts/diary-1');
     expect(payload.activeFolderPath).toBe('에세이/2026/');
   });
+});
 
-  it("category mode auto-enables hideLeafNotes so the sidebar stays category-only", () => {
-    expect(buildSidebarPayload(entries, undefined, 'category').hideLeafNotes).toBe(true);
+describe('buildSidebarPayload — nav.sidebarNotes (ADR-0015)', () => {
+  const entries: NotesEntry[] = [
+    makeEntry('AI/Claude/agents', {
+      title: 'agents',
+      frontmatter: { category: 'Tech/AI' },
+    }),
+    makeEntry('about', { title: 'About' }),
+  ];
+
+  it("hides leaf notes by default (sidebarNotes defaults to 'hide')", () => {
+    expect(buildSidebarPayload(entries).hideLeafNotes).toBe(true);
   });
 
-  it("folder mode leaves hideLeafNotes unset (legacy full tree)", () => {
-    expect(buildSidebarPayload(entries, undefined, 'folder').hideLeafNotes).toBeUndefined();
+  it("folder mode hides leaf notes when sidebarNotes is 'hide'", () => {
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'folder',
+      sidebarNotes: 'hide',
+    });
+    expect(payload.hideLeafNotes).toBe(true);
   });
 
-  it("default mode (omitted) leaves hideLeafNotes unset (folder default)", () => {
-    expect(buildSidebarPayload(entries).hideLeafNotes).toBeUndefined();
+  it("folder mode keeps the full tree when sidebarNotes is 'show'", () => {
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'folder',
+      sidebarNotes: 'show',
+    });
+    expect(payload.hideLeafNotes).toBeUndefined();
+  });
+
+  it("category mode hides leaf notes under the default 'hide'", () => {
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'category',
+      sidebarNotes: 'hide',
+    });
+    expect(payload.hideLeafNotes).toBe(true);
+  });
+
+  it("sidebarNotes 'show' is honoured in category mode too (no mode special-case)", () => {
+    const payload = buildSidebarPayload(entries, undefined, {
+      mode: 'category',
+      sidebarNotes: 'show',
+    });
+    expect(payload.hideLeafNotes).toBeUndefined();
   });
 });
 

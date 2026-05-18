@@ -456,6 +456,12 @@
   background: var(--color-accent-2-soft);
   color: var(--color-accent-2);
 }
+/* Weaker than --active: marks the container folder of the active note when
+   leaf notes are hidden (ADR-0015). No accent fill — the note, not the
+   folder, is the current page; this is ambient "you are in here" context. */
+.folder-tree__name--current-section {
+  font-weight: 600;
+}
 .folder-tree__note-link {
   font-family: var(--font-sans);
   font-size: var(--text-small);

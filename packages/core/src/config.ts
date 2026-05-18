@@ -131,6 +131,10 @@ const graphSchema = z
 const navSchema = z
   .object({
     mode: z.enum(['folder', 'category']).default('folder'),
+    // Whether leaf notes appear in the sidebar folder tree. Default 'hide':
+    // the sidebar stays a category navigator and notes are reached via the
+    // folder/category index page. See ADR-0015.
+    sidebarNotes: z.enum(['show', 'hide']).default('hide'),
   })
   .default({});
 

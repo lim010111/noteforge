@@ -44,7 +44,7 @@ const sections: CategoryOverviewSection[] = buildCategoryOverviewSections(
   dateBySlug,
   { sectionLinks: true },
 );
-const sidebar = buildSidebarPayload(all, undefined, navMode);
+const sidebar = buildSidebarPayload(all, undefined, obpubConfig.nav);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
