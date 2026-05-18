@@ -217,7 +217,7 @@ Notable advanced toggles (all optional):
 
 - `publishing.frontmatterAllowlist` / `tagBlocklist` — extend the defaults.
 - `attachments.uploadDir` / `uploadMaxBytes` / `allowedExtensions` — closure scope.
-- `nav.mode` — `'category'` (default) or `'folder'` for the sidebar tree.
+- `nav.mode` — `'folder'` (default) or `'category'` for the sidebar tree.
 - `unsafeAllowPrivateFolder` — disables the `private/**` tripwire; **only set
   this if you are certain.**
 

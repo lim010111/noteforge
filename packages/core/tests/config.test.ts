@@ -493,24 +493,24 @@ describe('site.about (v0.4)', () => {
 });
 
 describe('nav (v0.7)', () => {
-  it('defaults nav.mode to "category" when nav is omitted', () => {
+  it('defaults nav.mode to "folder" when nav is omitted', () => {
     const cfg = defineConfig(baseInput());
-    expect(cfg.nav.mode).toBe('category');
+    expect(cfg.nav.mode).toBe('folder');
   });
 
-  it('defaults nav.mode to "category" when nav is provided as empty object', () => {
+  it('defaults nav.mode to "folder" when nav is provided as empty object', () => {
     const cfg = defineConfig(baseInput({ nav: {} } as Partial<ObpubConfigInput>));
-    expect(cfg.nav.mode).toBe('category');
+    expect(cfg.nav.mode).toBe('folder');
   });
 
-  it('accepts nav.mode "category"', () => {
+  it('accepts the opt-in nav.mode "category"', () => {
     const cfg = defineConfig(
       baseInput({ nav: { mode: 'category' } } as Partial<ObpubConfigInput>),
     );
     expect(cfg.nav.mode).toBe('category');
   });
 
-  it('preserves explicit nav.mode "folder" as the opt-in vault path', () => {
+  it('preserves explicit nav.mode "folder"', () => {
     const cfg = defineConfig(
       baseInput({ nav: { mode: 'folder' } } as Partial<ObpubConfigInput>),
     );

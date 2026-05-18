@@ -238,19 +238,19 @@ describe('buildSidebarPayload — nav.mode (v0.7)', () => {
     makeEntry('about', { title: 'About' }),
   ];
 
-  it("defaults to category mode (matches buildCategoryTree) when mode is omitted", () => {
-    const direct = buildCategoryTree(filterPublishable(entries));
+  it("defaults to folder mode (matches buildFolderTree) when mode is omitted", () => {
+    const direct = buildFolderTree(filterPublishable(entries));
     const payload = buildSidebarPayload(entries);
     expect(payload.folderTree).toEqual(direct);
   });
 
-  it("default differs from explicit 'folder' tree (default is no longer vault-path)", () => {
+  it("default differs from explicit 'category' tree (category is now opt-in)", () => {
     const defaulted = buildSidebarPayload(entries);
-    const folderOptIn = buildSidebarPayload(entries, undefined, 'folder');
-    expect(defaulted.folderTree).not.toEqual(folderOptIn.folderTree);
+    const categoryOptIn = buildSidebarPayload(entries, undefined, 'category');
+    expect(defaulted.folderTree).not.toEqual(categoryOptIn.folderTree);
   });
 
-  it("explicit mode 'folder' produces the vault-path tree (opt-in path preserved)", () => {
+  it("explicit mode 'folder' produces the vault-path tree (matches the default)", () => {
     const direct = buildFolderTree(filterPublishable(entries));
     const payload = buildSidebarPayload(entries, undefined, 'folder');
     expect(payload.folderTree).toEqual(direct);
@@ -286,8 +286,8 @@ describe('buildSidebarPayload — nav.mode (v0.7)', () => {
     expect(buildSidebarPayload(entries, undefined, 'folder').hideLeafNotes).toBeUndefined();
   });
 
-  it("default mode (omitted) inherits category-mode hideLeafNotes flag", () => {
-    expect(buildSidebarPayload(entries).hideLeafNotes).toBe(true);
+  it("default mode (omitted) leaves hideLeafNotes unset (folder default)", () => {
+    expect(buildSidebarPayload(entries).hideLeafNotes).toBeUndefined();
   });
 });
 

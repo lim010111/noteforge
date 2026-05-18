@@ -185,7 +185,7 @@ export default defineConfig({
 
 - `publishing.frontmatterAllowlist` / `tagBlocklist` — 기본값에 항목을 더 얹습니다.
 - `attachments.uploadDir` / `uploadMaxBytes` / `allowedExtensions` — 첨부 클로저의 범위를 조정합니다.
-- `nav.mode` — `'category'`(기본) 또는 `'folder'`. 사이드바 트리 구성 방식을 바꿉니다.
+- `nav.mode` — `'folder'`(기본) 또는 `'category'`. 사이드바 트리 구성 방식을 바꿉니다.
 - `unsafeAllowPrivateFolder` — `private/**` 트립와이어를 끕니다. **꼭 필요하다고 확신할 때만 켜세요.**
 
 MVP는 한 프로젝트당 볼트 하나만 받습니다 (스키마가 두 개 이상을 거절합니다). 다중 볼트는 로드맵에 있습니다 (`docs/PRD.md` 참고).
