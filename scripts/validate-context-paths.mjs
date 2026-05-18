@@ -36,17 +36,14 @@ const SKIP_DIRS = new Set([
   ".pnpm-store",
 ]);
 
-// References whose first concrete segment is a build / runtime artifact dir
-// (gitignored, recreated by the build) are documentation pointers to outputs
-// that intentionally don't exist in the source tree. Treat as valid without
+// References that pass through a build / runtime artifact dir (gitignored,
+// recreated by the build) — at any depth, e.g. `dist/bin.js` or
+// `packages/cli/dist/bin.js` — are documentation pointers to outputs that
+// intentionally don't exist in the source tree. Treat as valid without
 // touching the filesystem so CI doesn't depend on prior build steps.
 function refTouchesSkipDir(ref) {
   const segments = ref.split("/").filter((s) => s !== "" && s !== ".");
-  for (const seg of segments) {
-    if (seg === "..") continue;
-    return SKIP_DIRS.has(seg);
-  }
-  return false;
+  return segments.some((seg) => seg !== ".." && SKIP_DIRS.has(seg));
 }
 
 function walk(dir, out = []) {
