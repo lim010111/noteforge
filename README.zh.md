@@ -120,9 +120,9 @@ export default defineConfig({
 
 ### 分类
 
-侧边栏树与每篇笔记的 URL 都由 `nav.mode` 控制。共支持两种模式，默认是 `'category'`。
+侧边栏树与每篇笔记的 URL 都由 `nav.mode` 控制。共支持两种模式，默认是 `'folder'`。
 
-**`category` 模式（默认）** —— 每篇笔记 frontmatter 的 `category` 字段决定它在侧边栏中的位置，与它在 vault 中位于哪个文件夹无关：
+**`category` 模式** —— 每篇笔记 frontmatter 的 `category` 字段决定它在侧边栏中的位置，与它在 vault 中位于哪个文件夹无关。要使用此模式，在配置中设置 `nav: { mode: 'category' }`：
 
 ```yaml
 ---
@@ -136,7 +136,7 @@ category: tools/cli
 
 ![Obsidian 编辑器，笔记 frontmatter 含 `tags: - public` 与 `category: tools/cli`](./docs/assets/category-mode-obsidian_example.png)
 
-**`folder` 模式** —— vault 的文件夹层级直接成为侧边栏与 URL，不需要写 `category` 字段。要使用此模式，在配置中设置 `nav: { mode: 'folder' }`。
+**`folder` 模式（默认）** —— vault 的文件夹层级直接成为侧边栏与 URL，不需要写 `category` 字段。
 
 ![Obsidian 文件浏览器中的 vault 文件夹层级 `tools` > `cli` > "pnpm 워크스페이스 정리"](./docs/assets/folder-mode-obsidian_example.png)
 

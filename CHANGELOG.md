@@ -17,6 +17,7 @@
 
 ### Changed
 
+- **`nav.mode` 기본값** — `'category'` 에서 `'folder'` 로 변경. 이제 별도 설정 없이 vault 의 폴더 계층이 그대로 사이드바 트리와 노트의 기본 URL 이 된다. 노트마다 `category` frontmatter 를 직접 적어야 했던 기존 기본 동작은 `nav: { mode: 'category' }` 옵트인으로 계속 지원.
 - **`TODO.md` Backlog** — v0.1 Known limitations 의 "Obsidian Callouts (`> [!note]`) 미지원" 항목 제거. Mermaid 는 여전히 미지원으로 유지.
 - **마크다운 파싱 seam** — `pipeline.ts` 인라인에 흩어져 있던 `fromMarkdown` 호출과 `promoteSingleLineDisplayMath` 를 `core/src/render/parseMarkdown.ts` 의 `parseMarkdownToMdast` 단일 진입점으로 통합. GFM·math 문법과 Obsidian post-parse transform 3종을 한 곳에서 적용.
 

@@ -69,7 +69,7 @@ export interface SidebarPayload {
 export function buildSidebarPayload(
   allEntries: readonly NotesEntry[],
   options?: { activeSlug?: string; activeFolderPath?: string },
-  mode: NavMode = 'category',
+  mode: NavMode = 'folder',
 ): SidebarPayload {
   const publishable = filterPublishable(allEntries);
   const folderTree =

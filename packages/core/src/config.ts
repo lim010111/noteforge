@@ -130,7 +130,7 @@ const graphSchema = z
 
 const navSchema = z
   .object({
-    mode: z.enum(['folder', 'category']).default('category'),
+    mode: z.enum(['folder', 'category']).default('folder'),
   })
   .default({});
 
