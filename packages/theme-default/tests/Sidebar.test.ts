@@ -588,4 +588,54 @@ describe('Sidebar (composition + FolderTree + ProfileBlock)', () => {
     );
     expect(live).not.toMatch(/data-social-stub="github"/);
   });
+
+  it('(15) hideLeafNotes + activeSlug → container folder marked --current-section, not aria-current', async () => {
+    const html = await renderSidebar({
+      folderTree: buildFixture(),
+      activeSlug: 'AI/Claude/agents',
+      hideLeafNotes: true,
+      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+    });
+    // The active note itself is not in the tree — leaf notes are hidden.
+    expect(
+      html,
+      'leaf note link must be absent when hideLeafNotes is set',
+    ).not.toMatch(/href="\/AI\/Claude\/agents\/"/);
+    // Its immediate container folder (AI/Claude) carries --current-section.
+    // Attribute order is matched independently (Astro emits class before href).
+    const claudeLink = html.match(/<a\b[^>]*\bhref="\/AI\/Claude\/"[^>]*>/);
+    expect(claudeLink, 'AI/Claude folder name link must exist').not.toBeNull();
+    expect(
+      claudeLink![0]!,
+      'AI/Claude (immediate container of the active note) is the current section',
+    ).toMatch(/folder-tree__name--current-section/);
+    // current-section is visual-only — it must NOT add aria-current. The note,
+    // not the folder, is the current page, so no sidebar row claims it.
+    expect(
+      countMatches(html, /\baria-current="page"/g),
+      'current-section is not aria-current — the note, not the folder, is the page',
+    ).toBe(0);
+    // Only the *immediate* container is the section — not the grandparent AI.
+    const aiLink = html.match(/<a\b[^>]*\bhref="\/AI\/"[^>]*>/);
+    expect(aiLink, 'AI folder name link must exist').not.toBeNull();
+    expect(
+      aiLink![0]!,
+      'AI (grandparent) must not be marked --current-section',
+    ).not.toMatch(/folder-tree__name--current-section/);
+  });
+
+  it('(16) full-tree mode (hideLeafNotes unset) never emits --current-section', async () => {
+    // The section highlight exists only to compensate for a hidden note link.
+    // When leaf notes are shown, the note carries aria-current itself (test 2)
+    // and no folder should borrow the section emphasis.
+    const html = await renderSidebar({
+      folderTree: buildFixture(),
+      activeSlug: 'AI/Claude/agents',
+      slotCount: CATEGORY_ACCENT_SLOT_COUNT,
+    });
+    expect(
+      html,
+      'no --current-section class when leaf notes are visible',
+    ).not.toMatch(/folder-tree__name--current-section/);
+  });
 });

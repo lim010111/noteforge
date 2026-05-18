@@ -14,7 +14,7 @@ const canonicalUrl = ensureTrailingSlash(
 const sidebar = buildSidebarPayload(
   await getCollection('notes'),
   undefined,
-  obpubConfig.nav.mode,
+  obpubConfig.nav,
 );
 
 function lastSegment(slug: string): string {

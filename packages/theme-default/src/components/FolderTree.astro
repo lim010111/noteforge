@@ -37,6 +37,12 @@
  *     the matching folder NAME link with `aria-current="page"` and auto-opens
  *     the chain to it. The folder index page is the "current" location, not
  *     any contained note.
+ *   - When `hideLeafNotes` is set, a note page has no note link in the tree
+ *     to carry `aria-current`. To keep wayfinding, the active note's
+ *     immediate container folder gets `folder-tree__name--current-section`
+ *     — visual emphasis only, NOT `aria-current` (the note, not the folder,
+ *     is the current page). Root-level notes have no container and so
+ *     highlight nothing. See ADR-0015.
  *
  * Recursion: this component invokes `<Astro.self />` on each folder. The
  * presence of `branch`/`depth` props discriminates root mode (renders
@@ -118,6 +124,20 @@ function isFolderActive(folderPath: string): boolean {
 function isNoteActive(slug: string): boolean {
   return activeSlug === slug;
 }
+
+// When leaf notes are hidden (ADR-0015), the active note has no sidebar link
+// to carry `aria-current`. We mark its *immediate* container folder as the
+// current section instead — a weaker emphasis than `--active`, which stays
+// reserved for the exact folder-index page. Derived purely from `activeSlug`;
+// a root-level note (no `/`) has no container folder and highlights nothing.
+const currentSectionFolder =
+  hideLeafNotes && activeSlug !== undefined && activeSlug.includes("/")
+    ? activeSlug.slice(0, activeSlug.lastIndexOf("/"))
+    : undefined;
+
+function isCurrentSection(folderPath: string): boolean {
+  return currentSectionFolder === folderPath;
+}
 ---
 {!isBranch && !isEmpty && (
   <nav class="folder-tree" aria-label="Folder tree">
@@ -126,6 +146,7 @@ function isNoteActive(slug: string): boolean {
       {node.children.map((child) => {
         const open = isFolderOpen(child.path);
         const active = isFolderActive(child.path);
+        const currentSection = isCurrentSection(child.path);
         if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
           return (
             <li class="folder-tree__item folder-tree__item--leaf-category">
@@ -135,7 +156,7 @@ function isNoteActive(slug: string): boolean {
                   aria-hidden="true"
                 ></span>
                 <a
-                  class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                  class={`folder-tree__name${active ? " folder-tree__name--active" : currentSection ? " folder-tree__name--current-section" : ""}`}
                   href={`/${child.path}/`}
                   aria-current={active ? "page" : undefined}
                 >
@@ -154,7 +175,7 @@ function isNoteActive(slug: string): boolean {
               <summary class="folder-tree__summary">
                 <span class="folder-tree__chevron" aria-hidden="true">▸</span>
                 <a
-                  class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                  class={`folder-tree__name${active ? " folder-tree__name--active" : currentSection ? " folder-tree__name--current-section" : ""}`}
                   href={`/${child.path}/`}
                   aria-current={active ? "page" : undefined}
                 >
@@ -199,6 +220,7 @@ function isNoteActive(slug: string): boolean {
     {node.children.map((child) => {
       const open = isFolderOpen(child.path);
       const active = isFolderActive(child.path);
+      const currentSection = isCurrentSection(child.path);
       if (shouldRenderAsLeafLink(child, hideLeafNotes)) {
         return (
           <li class="folder-tree__item folder-tree__item--leaf-category">
@@ -208,7 +230,7 @@ function isNoteActive(slug: string): boolean {
                 aria-hidden="true"
               ></span>
               <a
-                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                class={`folder-tree__name${active ? " folder-tree__name--active" : currentSection ? " folder-tree__name--current-section" : ""}`}
                 href={`/${child.path}/`}
                 aria-current={active ? "page" : undefined}
               >
@@ -227,7 +249,7 @@ function isNoteActive(slug: string): boolean {
             <summary class="folder-tree__summary">
               <span class="folder-tree__chevron" aria-hidden="true">▸</span>
               <a
-                class={`folder-tree__name${active ? " folder-tree__name--active" : ""}`}
+                class={`folder-tree__name${active ? " folder-tree__name--active" : currentSection ? " folder-tree__name--current-section" : ""}`}
                 href={`/${child.path}/`}
                 aria-current={active ? "page" : undefined}
               >

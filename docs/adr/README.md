@@ -12,6 +12,7 @@
 - [0011-chromatic-palette-expansion.md](./0011-chromatic-palette-expansion.md) — v0.3 secondary accent + 5 카테고리 슬롯 + 사이드바 surface tier (warm earth tone family)
 - [0012-folder-routing-trailing-slash.md](./0012-folder-routing-trailing-slash.md) — v0.3 `trailingSlash: 'always'` + 폴더↔노트/alias 슬러그 충돌 빌드 타임 throw
 - [0014-sticky-header-shadow-on-scroll.md](./0014-sticky-header-shadow-on-scroll.md) — v0.6 sticky 헤더 `--shadow-1` on scroll (4번째 static-contract JS 예외)
+- [0015-sidebar-hides-leaf-notes.md](./0015-sidebar-hides-leaf-notes.md) — v0.7 folder 모드 사이드바, leaf 노트 기본 숨김 (`nav.sidebarNotes`)
 
 > ADR-0006 ~ ADR-0010, ADR-0013은 현재 [`docs/ADR.md`](../ADR.md)에만 인라인 형태로 남아 있다. 표준 SSOT로 분리할 가치가 있다고 판단되는 시점에 이 디렉터리에 백필한다.
 

@@ -8,7 +8,7 @@ import '../styles/global.css';
 const sidebar = buildSidebarPayload(
   await getCollection('notes'),
   undefined,
-  obpubConfig.nav.mode,
+  obpubConfig.nav,
 );
 ---
 <BaseLayout title="찾을 수 없습니다" siteName={obpubConfig.site.title} sidebar={sidebar}>

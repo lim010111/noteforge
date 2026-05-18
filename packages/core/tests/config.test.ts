@@ -527,6 +527,33 @@ describe('nav (v0.7)', () => {
     ).toThrow(ObpubConfigError);
   });
 
+  it('defaults nav.sidebarNotes to "hide" when nav is omitted', () => {
+    const cfg = defineConfig(baseInput());
+    expect(cfg.nav.sidebarNotes).toBe('hide');
+  });
+
+  it('defaults nav.sidebarNotes to "hide" when nav is an empty object', () => {
+    const cfg = defineConfig(baseInput({ nav: {} } as Partial<ObpubConfigInput>));
+    expect(cfg.nav.sidebarNotes).toBe('hide');
+  });
+
+  it('accepts the opt-in nav.sidebarNotes "show"', () => {
+    const cfg = defineConfig(
+      baseInput({ nav: { sidebarNotes: 'show' } } as Partial<ObpubConfigInput>),
+    );
+    expect(cfg.nav.sidebarNotes).toBe('show');
+  });
+
+  it('rejects nav.sidebarNotes values outside the enum', () => {
+    expect(() =>
+      defineConfig(
+        baseInput({
+          nav: { sidebarNotes: 'collapsed' as unknown as 'hide' },
+        } as Partial<ObpubConfigInput>),
+      ),
+    ).toThrow(ObpubConfigError);
+  });
+
   it("includes 'category' in the default frontmatter allowlist", () => {
     const cfg = defineConfig(baseInput());
     expect(cfg.publishing.frontmatterAllowlist).toContain('category');

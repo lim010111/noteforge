@@ -85,7 +85,7 @@ export default defineConfig({
   privateLinkBehavior: 'strip-to-text',
 
   // --- Optional advanced toggles (uncomment to override defaults) ---
-  // nav: { mode: 'category' },                      // default 'folder'. 'category' uses the frontmatter `category` field as the sidebar tree instead of the vault folder hierarchy.
+  // nav: { mode: 'category', sidebarNotes: 'show' }, // mode: default 'folder'. 'category' uses the frontmatter `category` field as the sidebar tree instead of the vault folder hierarchy. sidebarNotes: default 'hide' — the sidebar shows categories only and notes are reached via the index page; 'show' restores the full tree with note titles (ADR-0015).
   // unsafeAllowPrivateFolder: true,                 // Override the private/** tripwire. Do NOT enable unless you know what you are doing.
   // attachments: {                                  // Public attachment closure. uploadDir cannot live under private/** without the override above.
   //   uploadDir: 'attachments',

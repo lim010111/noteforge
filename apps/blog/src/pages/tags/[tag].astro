@@ -29,7 +29,7 @@ const canonicalUrl = ensureTrailingSlash(
 const sidebar = buildSidebarPayload(
   await getCollection('notes'),
   undefined,
-  obpubConfig.nav.mode,
+  obpubConfig.nav,
 );
 ---
 <BaseLayout title={`#${tag}`} canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>

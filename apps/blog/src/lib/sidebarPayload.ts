@@ -11,6 +11,15 @@ import obpubConfig from '../../noteforge.config.ts';
 
 export type NavMode = 'folder' | 'category';
 
+/** Whether the sidebar folder tree shows leaf notes. Mirrors `nav.sidebarNotes`. */
+export type SidebarNotes = 'show' | 'hide';
+
+/** The slice of `ObpubConfig['nav']` the sidebar payload consumes. */
+export interface NavConfig {
+  mode: NavMode;
+  sidebarNotes: SidebarNotes;
+}
+
 /**
  * View-model the route layer hands to `<BaseLayout sidebar={...} />`.
  *
@@ -37,11 +46,12 @@ export interface SidebarPayload {
   github?: string;
   slotCount: number;
   /**
-   * Set to true when the sidebar should display only categories. In
-   * `nav.mode === 'category'` (the default) note items live on the
-   * category-index page that lists them, so leaving them in the sidebar
-   * tree as well is duplicative and crowds the navigator. `buildSidebarPayload`
-   * sets this automatically based on `mode`.
+   * Set to true when the sidebar should display categories only. Driven by
+   * `nav.sidebarNotes` — `'hide'` (the default) drops leaf note items from
+   * the tree so the sidebar stays a category navigator; notes are reached
+   * via the folder/category index page a folder click lands on. `'show'`
+   * keeps the legacy full tree. `buildSidebarPayload` sets this from
+   * `nav.sidebarNotes`, independent of `nav.mode`. See ADR-0015.
    */
   hideLeafNotes?: boolean;
 }
@@ -69,11 +79,11 @@ export interface SidebarPayload {
 export function buildSidebarPayload(
   allEntries: readonly NotesEntry[],
   options?: { activeSlug?: string; activeFolderPath?: string },
-  mode: NavMode = 'folder',
+  nav: NavConfig = { mode: 'folder', sidebarNotes: 'hide' },
 ): SidebarPayload {
   const publishable = filterPublishable(allEntries);
   const folderTree =
-    mode === 'category'
+    nav.mode === 'category'
       ? buildCategoryTree(publishable)
       : buildFolderTree(publishable);
 
@@ -82,10 +92,13 @@ export function buildSidebarPayload(
     slotCount: CATEGORY_ACCENT_SLOT_COUNT,
   };
 
-  // In category mode the sidebar is a pure category navigator; notes appear
-  // on the category-index page they belong to. Folder mode keeps the
-  // historical full-tree view because vault path *is* the URL there.
-  if (mode === 'category') {
+  // `nav.sidebarNotes` is the single switch for sidebar density, applied
+  // uniformly to both nav modes (ADR-0015). `'hide'` (the default) keeps the
+  // sidebar a category navigator — leaf notes surface on the index page a
+  // folder click lands on, not in the tree. `'show'` restores the legacy
+  // full tree. The old `mode === 'category'` special-case is gone: category
+  // mode now hides notes simply because the default is `'hide'`.
+  if (nav.sidebarNotes === 'hide') {
     payload.hideLeafNotes = true;
   }
 

@@ -185,7 +185,7 @@ if (props.kind === 'note') {
   sidebar = buildSidebarPayload(
     all,
     { activeSlug: props.entry.id },
-    obpubConfig.nav.mode,
+    obpubConfig.nav,
   );
 } else if (props.kind === 'alias-redirect') {
   const absoluteTo = new URL(props.to, siteOrigin).toString();
@@ -207,7 +207,7 @@ if (props.kind === 'note') {
   sidebar = buildSidebarPayload(
     all,
     { activeFolderPath: `${props.viewModel.folderPath}/` },
-    obpubConfig.nav.mode,
+    obpubConfig.nav,
   );
 }
 ---

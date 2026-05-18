@@ -13,7 +13,7 @@ const summaries = summarizeTags(publishable);
 const canonicalUrl = ensureTrailingSlash(
   new URL(Astro.url.pathname, Astro.site).toString(),
 );
-const sidebar = buildSidebarPayload(all, undefined, obpubConfig.nav.mode);
+const sidebar = buildSidebarPayload(all, undefined, obpubConfig.nav);
 ---
 <BaseLayout title="태그" canonicalUrl={canonicalUrl} ogType="website" siteName={obpubConfig.site.title} sidebar={sidebar}>
   <TagList taglist={{ tags: summaries }} />

@@ -23,12 +23,15 @@ export interface FolderTreeProps {
   /** Number of `--color-accent-cat-N` slots in tokens.css. Pass `CATEGORY_ACCENT_SLOT_COUNT`. */
   slotCount: number;
   /**
-   * When true, do not render leaf note items inside the tree. Used in
-   * `nav.mode === 'category'` where notes surface only through the category
-   * index page (clicking the parent category lists them in the main column),
-   * keeping the sidebar a pure category navigator. A category whose
-   * `children` is empty *and* whose notes are hidden by this flag also
-   * downgrades from `<details>` to a plain `<a>` to avoid an empty toggle.
+   * When true, do not render leaf note items inside the tree. Driven by
+   * `nav.sidebarNotes === 'hide'` (the default; see ADR-0015) in either nav
+   * mode — notes surface only through the folder/category index page a
+   * parent click lands on, keeping the sidebar a pure category navigator.
+   * A category whose `children` is empty *and* whose notes are hidden by
+   * this flag also downgrades from `<details>` to a plain `<a>` to avoid an
+   * empty toggle. On a note page, with this set, the note's immediate
+   * container folder is marked `--current-section` so wayfinding survives
+   * the hidden note link.
    */
   hideLeafNotes?: boolean;
 }
